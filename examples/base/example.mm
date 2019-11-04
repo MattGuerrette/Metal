@@ -12,6 +12,7 @@
 
 #include <chrono>
 #include <atomic>
+#include <cassert>
 
 using namespace std::chrono_literals;
 
@@ -103,6 +104,10 @@ constexpr std::chrono::nanoseconds timestep(16ms);
 /*-------------------------------------------------*/
 
 @interface AppDelegate : NSObject<NSApplicationDelegate>
+{
+    @public
+    Example* example;
+}
 @property (strong, nonatomic) NSWindow* window;
 @property (strong, nonatomic) MetalView* view;
 @property (atomic) BOOL needsDisplay;
@@ -169,6 +174,10 @@ CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* no
     CVDisplayLinkSetOutputCallback(_displayLink, displayLinkCallback, (__bridge_retained void *)self);
     CVDisplayLinkSetCurrentCGDisplay(_displayLink, 0);
     CVDisplayLinkStart(_displayLink);
+    
+    if (example) {
+        example->init();
+    }
 }
 
 @end
@@ -218,6 +227,13 @@ Example::~Example()
     
 }
 
+CAMetalLayer* Example::metalLayer()
+{
+    assert(delegate_ != nil);
+    
+    return ((AppDelegate*)delegate_).view.metalLayer;
+}
+
 int Example::run()
 {
     using clock = std::chrono::high_resolution_clock;
@@ -237,7 +253,7 @@ int Example::run()
     std::chrono::nanoseconds lag(0ns);
     
     AppDelegate* delegate = (AppDelegate*)delegate_;
-    metal_layer_ = [delegate view].metalLayer;
+    delegate->example = this;
     while([delegate isRunning])
     {
         auto current_time = clock::now();
