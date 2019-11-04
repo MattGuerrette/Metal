@@ -11,6 +11,7 @@
 #include <string>
 
 #import <Cocoa/Cocoa.h>
+#import <QuartzCore/QuartzCore.h>
 
 class Example
 {
@@ -23,6 +24,9 @@ public:
     virtual void render() = 0;
     
     int run();
+    
+protected:
+    CAMetalLayer* metal_layer_;
 
 private:
     std::string title_;

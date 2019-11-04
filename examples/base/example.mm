@@ -111,7 +111,6 @@ constexpr std::chrono::nanoseconds timestep(16ms);
 @property (nonatomic) BOOL isRunning;
 @property (nonatomic) NSRect windowRect;
 - (void)_windowWillClose:(NSNotification*)notification;
-//- (CVReturn)displayLinkCallback:(CVDisplayLinkRef)displayLink :(const CVTimeStamp*)now :(const CVTimeStamp*)outputTime :(CVOptionFlags)flagsIn :(CVOptionFlags*)flagsOut :(void*)displayLinkContext;
 - (instancetype)initWithTitleAndRect:(NSString*)title :(NSRect)rect;
 @end
 
@@ -238,6 +237,7 @@ int Example::run()
     std::chrono::nanoseconds lag(0ns);
     
     AppDelegate* delegate = (AppDelegate*)delegate_;
+    metal_layer_ = [delegate view].metalLayer;
     while([delegate isRunning])
     {
         auto current_time = clock::now();
