@@ -29,4 +29,5 @@ private:
     uint32_t width_;
     uint32_t height_;
     id<NSApplicationDelegate> delegate_;
+    
 };

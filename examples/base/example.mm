@@ -10,6 +10,13 @@
 #import <Metal/Metal.h>
 #import <QuartzCore/QuartzCore.h>
 
+#include <chrono>
+#include <atomic>
+
+using namespace std::chrono_literals;
+
+constexpr std::chrono::nanoseconds timestep(16ms);
+
 /*----------------------------------------------*/
 // Metal View
 /*----------------------------------------------*/
@@ -98,10 +105,13 @@
 @interface AppDelegate : NSObject<NSApplicationDelegate>
 @property (strong, nonatomic) NSWindow* window;
 @property (strong, nonatomic) MetalView* view;
+@property (atomic) BOOL needsDisplay;
+@property (nonatomic, nonnull) CVDisplayLinkRef displayLink;
 @property (nonatomic) NSString* title;
 @property (nonatomic) BOOL isRunning;
 @property (nonatomic) NSRect windowRect;
 - (void)_windowWillClose:(NSNotification*)notification;
+//- (CVReturn)displayLinkCallback:(CVDisplayLinkRef)displayLink :(const CVTimeStamp*)now :(const CVTimeStamp*)outputTime :(CVOptionFlags)flagsIn :(CVOptionFlags*)flagsOut :(void*)displayLinkContext;
 - (instancetype)initWithTitleAndRect:(NSString*)title :(NSRect)rect;
 @end
 
@@ -123,6 +133,19 @@
     [self setIsRunning:NO];
 }
 
+// Display link callback
+// Handles signaling render should occur
+CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
+{
+    AppDelegate* delegate = (__bridge AppDelegate*)displayLinkContext;
+    if(delegate)
+    {
+        [delegate setNeedsDisplay:YES];
+    }
+
+    return kCVReturnSuccess;
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
     NSRect frame = [self windowRect];
@@ -142,6 +165,11 @@
     
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
     [center addObserver:self selector:@selector(_windowWillClose:) name:NSWindowWillCloseNotification object:nil];
+
+    CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
+    CVDisplayLinkSetOutputCallback(_displayLink, displayLinkCallback, (__bridge_retained void *)self);
+    CVDisplayLinkSetCurrentCGDisplay(_displayLink, 0);
+    CVDisplayLinkStart(_displayLink);
 }
 
 @end
@@ -193,6 +221,8 @@ Example::~Example()
 
 int Example::run()
 {
+    using clock = std::chrono::high_resolution_clock;
+    
     NSString* title = [[NSString alloc] initWithUTF8String:title_.c_str()];
     NSRect rect = NSMakeRect(0.0f, 0.0f, static_cast<CGFloat>(width_), static_cast<CGFloat>(height_));
     delegate_ = [[AppDelegate alloc] initWithTitleAndRect:title :rect];
@@ -203,8 +233,20 @@ int Example::run()
     [application setDelegate:delegate_];
     [application finishLaunching];
     
-    while([((AppDelegate*)delegate_) isRunning])
+    
+    auto start_time = clock::now();
+    std::chrono::nanoseconds lag(0ns);
+    
+    AppDelegate* delegate = (AppDelegate*)delegate_;
+    while([delegate isRunning])
     {
+        auto current_time = clock::now();
+        auto delta_time = current_time - start_time;
+        start_time = current_time;
+
+        lag += std::chrono::duration_cast<std::chrono::nanoseconds>(delta_time);
+
+        
         // Handle event processing
         NSEvent* event;
         do {
@@ -218,11 +260,19 @@ int Example::run()
 
         } while (event);
         
-        // update
-        update();
+        // Fixed update loop at 'timestep' defined
+        // as 16ms per frame.
+        while (lag >= timestep) {
+
+            update();
+
+            lag -= timestep;
+        }
         
         // render
-        render();
+        if([delegate needsDisplay]) {
+            render();
+        }
     }
     
     return EXIT_SUCCESS;
