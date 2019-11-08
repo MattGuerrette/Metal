@@ -10,7 +10,12 @@
 #include "platform.h"
 #include <string>
 
+#ifdef SYSTEM_MACOS
 #import <Cocoa/Cocoa.h>
+#else
+#import <UIKit/UIKit.h>
+#endif
+
 #import <QuartzCore/QuartzCore.h>
 
 class Example {
@@ -22,13 +27,21 @@ public:
     virtual void init()   = 0;
     virtual void update() = 0;
     virtual void render() = 0;
-    int run();
+    int          run(int argc, char* argv[]);
 
     CAMetalLayer* metalLayer();
 
+    
+    CAMetalLayer* metalLayer_;
 private:
-    std::string               title_;
-    uint32_t                  width_;
-    uint32_t                  height_;
+    std::string title_;
+    uint32_t    width_;
+    uint32_t    height_;
+
+#ifdef SYSTEM_MACOS
     id<NSApplicationDelegate> delegate_;
+#else
+    id<UIApplicationDelegate> delegate_;
+#endif
+
 };

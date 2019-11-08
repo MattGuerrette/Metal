@@ -144,10 +144,10 @@ MTLVertexDescriptor* Triangle::createVertexDescriptor()
 
 void Triangle::updateUniform()
 {
-    auto translation = simd_make_float3(0.0f, 0.0f, -3.0f);
+    auto translation = simd_make_float3(0.0f, 10.0f, -10.0f);
     auto rotationX   = 0.0f;
     auto rotationY   = rotation_y_;
-    auto scaleFactor = 1.0f;
+    //auto scaleFactor = 1.0f;
 
     const vector_float3   xAxis       = { 1, 0, 0 };
     const vector_float3   yAxis       = { 0, 1, 0 };
@@ -201,6 +201,14 @@ void Triangle::makeBuffers()
 void Triangle::update()
 {
     rotation_y_ += 0.01f;
+    
+    CAMetalLayer* layer = metalLayer();
+    const CGSize drawableSize = layer.drawableSize;
+    const float  aspect       = drawableSize.width / drawableSize.height;
+    const float  fov          = (2 * M_PI) / 5;
+    const float  near         = 0.01f;
+    const float  far          = 1000.0f;
+    camera.setPerspective(aspect, fov, near, far);
 }
 
 void Triangle::render()
@@ -258,5 +266,5 @@ int main(int argc, char** argv)
 {
     Triangle example;
 
-    return example.run();
+    return example.run(argc, argv);
 }

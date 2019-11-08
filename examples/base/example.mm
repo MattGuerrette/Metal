@@ -6,7 +6,7 @@
 */
 
 #include "example.h"
-#import <Cocoa/Cocoa.h>
+#import <GameController/GameController.h>
 #import <Metal/Metal.h>
 #import <QuartzCore/QuartzCore.h>
 
@@ -213,6 +213,226 @@ CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* no
 
 #else
 
+/*----------------------------------------------*/
+// Metal View
+/*----------------------------------------------*/
+
+@interface                                  MetalView : UIView
+@property (nonatomic, assign) CAMetalLayer* metalLayer;
+@end
+
+@implementation MetalView
+
++ (id)layerClass
+{
+    return [CAMetalLayer class];
+}
+
+- (BOOL)acceptsFirstResponder
+{
+    return YES;
+}
+
+//- (CALayer*)makeBackingLayer
+//{
+//    CAMetalLayer* layer = [CAMetalLayer layer];
+//    self.metalLayer     = layer;
+//    return self.metalLayer;
+//}
+
+- (instancetype)initWithFrame:(CGRect)frame
+{
+    if ((self = [super initWithFrame:frame])) {
+        self.metalLayer = (CAMetalLayer*)self.layer;
+        self.metalLayer.device       = MTLCreateSystemDefaultDevice();
+        self.metalLayer.pixelFormat  = MTLPixelFormatBGRA8Unorm;
+        self.metalLayer.drawableSize = self.bounds.size;
+    }
+
+    return self;
+}
+
+//- (instancetype)initWithFrame:(NSRect)frameRect
+//{
+//    if ((self = [super initWithFrame:frameRect])) {
+//        self.wantsLayer              = YES;
+//        self.metalLayer.device       = MTLCreateSystemDefaultDevice();
+//        self.metalLayer.pixelFormat  = MTLPixelFormatBGRA8Unorm;
+//        self.metalLayer.drawableSize = self.bounds.size;
+//    }
+//
+//    return self;
+//}
+
+@end
+
+@interface ViewController : GCEventViewController
+- (void)startAnimation;
+- (void)stopAnimation;
+- (void)setAnimationCallback:(int)interval
+                    callback:(void (*)(void*))callback
+               callbackParam:(void*)callbackParam;
+- (void)doLoop:(CADisplayLink*)sender;
+@end
+
+@implementation ViewController {
+    CADisplayLink* displayLink;
+    int            animationInterval;
+    void (*animationCallback)(void*);
+    void* animationCallbackParam;
+}
+
+- (void)setAnimationCallback:(int)interval
+                    callback:(void (*)(void*))callback
+               callbackParam:(void*)callbackParam
+{
+    [self stopAnimation];
+
+    animationInterval      = interval;
+    animationCallback      = callback;
+    animationCallbackParam = callbackParam;
+
+    if (animationCallback) {
+        [self startAnimation];
+    }
+}
+
+- (void)startAnimation
+{
+    displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(doLoop:)];
+
+#ifdef __IPHONE_10_3
+    if ([displayLink respondsToSelector:@selector(preferredFramesPerSecond)]
+        && [[UIScreen mainScreen] respondsToSelector:@selector(maximumFramesPerSecond)]) {
+        displayLink.preferredFramesPerSecond = [UIScreen mainScreen].maximumFramesPerSecond / animationInterval;
+    } else
+#endif
+    {
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < 100300
+        [displayLink setFrameInterval:animationInterval];
+#endif
+    }
+
+    [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+}
+
+- (void)stopAnimation
+{
+    [displayLink invalidate];
+    displayLink = nil;
+}
+
+- (void)doLoop:(CADisplayLink*)sender
+{
+    animationCallback(animationCallbackParam);
+}
+
+- (void)loadView
+{
+    // Do nothing
+}
+
+- (void)touchesBegan:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
+{
+    NSLog(@"Touches began...");
+}
+
+- (void)touchesMoved:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
+{
+    NSLog(@"Touches moved...");
+}
+
+- (void)touchesEnded:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event
+{
+    NSLog(@"Touches ended...");
+}
+
+@end
+
+#ifndef SYSTEM_MACOS
+static void runCallback(void* data)
+{
+    Example* example = static_cast<Example*>(data);
+    if(example != nullptr)
+    {
+        example->update();
+        
+        example->render();
+    }
+}
+#endif
+
+@interface AppDelegate : NSObject <UIApplicationDelegate>
+
+@property (strong, nonatomic) UIWindow *window;
+@property (strong, nonatomic) ViewController *controller;
+@property (strong, nonatomic) MetalView *view;
++ (NSString*)getAppDelegateClassName;
+@end
+
+@implementation AppDelegate
+
+static Example* example;
+
+- (BOOL)application:(UIApplication *)application willFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey,id> *)launchOptions
+{
+    self.controller  = [[ViewController alloc] initWithNibName:nil bundle:nil];
+    self.view = [[MetalView alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    [self.controller setView:self.view];
+
+    self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    [self.window setRootViewController:self.controller];
+    [self.window makeKeyAndVisible];
+    
+    example->metalLayer_ = self.view.metalLayer;
+    example->init();
+    [self.controller setAnimationCallback:1 callback:runCallback callbackParam:example];
+    
+    return YES;
+}
+
+- (void)applicationDidFinishLaunching:(UIApplication*)application
+{
+    NSLog(@"Finished launching...");
+}
+
++ (NSString*)getAppDelegateClassName
+{
+    return @"AppDelegate";
+}
+
+- (void)applicationWillTerminate:(UIApplication*)application
+{
+    NSLog(@"Will terminate...");
+}
+
+- (void)applicationDidReceiveMemoryWarning:(UIApplication*)application
+{
+    NSLog(@"Received memory warning");
+}
+
+- (void)applicationWillResignActive:(UIApplication*)application
+{
+    NSLog(@"Will resign active...");
+}
+
+- (void)applicationDidEnterBackground:(UIApplication*)application
+{
+    NSLog(@"Entered background");
+}
+
+- (void)applicationWillEnterForeground:(UIApplication*)application
+{
+    NSLog(@"Entering foreground...");
+}
+
+- (void)applicationDidBecomeActive:(UIApplication*)application
+{
+    NSLog(@"Became active");
+}
+
+@end
+
 #endif
 
 /*-------------------------------------------------*/
@@ -231,18 +451,22 @@ Example::~Example()
 
 CAMetalLayer* Example::metalLayer()
 {
-    assert(delegate_ != nil);
 
+#ifdef SYSTEM_MACOS
     return ((AppDelegate*)delegate_).view.metalLayer;
+#else
+    return metalLayer_;//((AppDelegate*)delegate_).view.metalLayer;
+#endif
 }
 
-int Example::run()
+int Example::run(int argc, char* argv[])
 {
-    using clock = std::chrono::high_resolution_clock;
+    //using clock = std::chrono::high_resolution_clock;
 
-    NSString* title = [[NSString alloc] initWithUTF8String:title_.c_str()];
-    NSRect    rect  = NSMakeRect(0.0f, 0.0f, static_cast<CGFloat>(width_), static_cast<CGFloat>(height_));
-    delegate_       = [[AppDelegate alloc] initWithTitleAndRect:title:rect];
+    //NSString* title = [[NSString alloc] initWithUTF8String:title_.c_str()];
+#ifdef SYSTEM_MACOS
+    NSRect rect = NSMakeRect(0.0f, 0.0f, static_cast<CGFloat>(width_), static_cast<CGFloat>(height_));
+    delegate_   = [[AppDelegate alloc] initWithTitleAndRect:title:rect];
 
     App* application = [App sharedApplication];
     [application setActivationPolicy:NSApplicationActivationPolicyRegular];
@@ -289,6 +513,19 @@ int Example::run()
             render();
         }
     }
+#else
+//
+//    AppDelegate* delegate = [[AppDelegate alloc] init];
+//    this->delegate_ = delegate;
+//    delegate->example = this;
+//    [[UIApplication sharedApplication] setDelegate:delegate];
+    example = this;
+    
+    width_ = [UIScreen mainScreen].bounds.size.width;
+    height_ = [UIScreen mainScreen].bounds.size.height;
+    UIApplicationMain(argc, argv, nil, [AppDelegate getAppDelegateClassName]);
+
+#endif
 
     return EXIT_SUCCESS;
 }
