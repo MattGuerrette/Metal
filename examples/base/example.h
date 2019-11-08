@@ -13,25 +13,22 @@
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/QuartzCore.h>
 
-class Example
-{
+class Example {
 public:
     Example(std::string title, uint32_t width, uint32_t height);
 
     virtual ~Example();
 
-    virtual void init() = 0;
+    virtual void init()   = 0;
     virtual void update() = 0;
     virtual void render() = 0;
-    
     int run();
-    
+
     CAMetalLayer* metalLayer();
 
 private:
-    std::string title_;
-    uint32_t width_;
-    uint32_t height_;
+    std::string               title_;
+    uint32_t                  width_;
+    uint32_t                  height_;
     id<NSApplicationDelegate> delegate_;
-    
 };

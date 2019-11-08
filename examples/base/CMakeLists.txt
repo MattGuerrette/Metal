@@ -1,7 +1,10 @@
 
 add_library(base 
     ${CMAKE_CURRENT_SOURCE_DIR}/example.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/example.mm)
+    ${CMAKE_CURRENT_SOURCE_DIR}/example.mm
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera.mm
+    ${CMAKE_CURRENT_SOURCE_DIR}/simd_matrix.h)
 
 set_target_properties(base PROPERTIES
     FRAMEWORK TRUE
