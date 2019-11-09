@@ -9,6 +9,7 @@
 
 #include "platform.h"
 #include <string>
+#include <chrono>
 
 #ifdef SYSTEM_MACOS
 #import <Cocoa/Cocoa.h>
@@ -27,17 +28,21 @@ public:
     virtual void init()   = 0;
     virtual void update() = 0;
     virtual void render() = 0;
+    virtual void onRightThumbstick(float x, float y) = 0;
     int          run(int argc, char* argv[]);
 
     CAMetalLayer* metalLayer();
 
     
     CAMetalLayer* metalLayer_;
+    
+    std::chrono::high_resolution_clock::time_point start_time;
+    std::chrono::nanoseconds lag;
 private:
     std::string title_;
     uint32_t    width_;
     uint32_t    height_;
-
+    
 #ifdef SYSTEM_MACOS
     id<NSApplicationDelegate> delegate_;
 #else

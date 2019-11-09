@@ -11,9 +11,9 @@
 #import <simd/simd.h>
 
 struct Transform {
-    simd_float3 translation;
-    simd_float3 rotation;
-    simd_float3 scale;
+    simd_float3 translation = simd_float3(0.0f);
+    simd_float3 rotation = simd_float3(0.0f);
+    simd_float3 scale = simd_float3(0.0f);
 };
 
 class Camera {

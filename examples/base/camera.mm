@@ -8,17 +8,6 @@
 #include "camera.h"
 #include "simd_matrix.h"
 
-simd_float4x4 simd_float4x4_uniform_scale(float scale)
-{
-    vector_float4 X = { scale, 0, 0, 0 };
-    vector_float4 Y = { 0, scale, 0, 0 };
-    vector_float4 Z = { 0, 0, scale, 0 };
-    vector_float4 W = { 0, 0, 0, 1 };
-
-    simd_float4x4 mat = { X, Y, Z, W };
-    return mat;
-}
-
 Camera::Camera()
 {
 }
@@ -29,24 +18,6 @@ Camera::~Camera()
 
 void Camera::updateView()
 {
-    //    glm::mat4 rotM = glm::mat4(1.0f);
-    //    glm::mat4 transM;
-    //
-    //    rotM = glm::rotate(rotM, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-    //    rotM = glm::rotate(rotM, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-    //    rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-    //
-    //    transM = glm::translate(glm::mat4(1.0f), position);
-    //
-    //    if (type == CameraType::firstperson)
-    //    {
-    //        matrices.view = rotM * transM;
-    //    }
-    //    else
-    //    {
-    //        matrices.view = transM * rotM;
-    //    }
-
     simd_float4x4 rot = matrix_identity_float4x4;
 
     simd_float3 xAxis = simd_make_float3(1.0f, 0.0f, 0.0f);

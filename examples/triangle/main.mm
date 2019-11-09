@@ -26,6 +26,7 @@ public:
     void init() override;
     void update() override;
     void render() override;
+    void onRightThumbstick(float x, float y) override;
 
 private:
     Camera camera;
@@ -51,6 +52,9 @@ private:
     static const int kBufferCount = 3;
 
     float rotation_y_ = 0.0f;
+    float rotation_x_ = 0.0f;
+    float stick_x_ = 0.0f;
+    float stick_y_ = 0.0f;
 };
 
 Triangle::Triangle()
@@ -113,6 +117,7 @@ void Triangle::init()
         NSLog(@"Error occurred when creating render pipeline state: %@", error);
     }
 
+    CGFloat scale = layer.contentsScale;
     const CGSize drawableSize = layer.drawableSize;
     const float  aspect       = drawableSize.width / drawableSize.height;
     const float  fov          = (2 * M_PI) / 5;
@@ -144,8 +149,8 @@ MTLVertexDescriptor* Triangle::createVertexDescriptor()
 
 void Triangle::updateUniform()
 {
-    auto translation = simd_make_float3(0.0f, 10.0f, -10.0f);
-    auto rotationX   = 0.0f;
+    auto translation = simd_make_float3(0.0f, 0.0f, -10.0f);
+    auto rotationX   = rotation_x_;
     auto rotationY   = rotation_y_;
     //auto scaleFactor = 1.0f;
 
@@ -200,15 +205,15 @@ void Triangle::makeBuffers()
 
 void Triangle::update()
 {
-    rotation_y_ += 0.01f;
-    
-    CAMetalLayer* layer = metalLayer();
-    const CGSize drawableSize = layer.drawableSize;
-    const float  aspect       = drawableSize.width / drawableSize.height;
-    const float  fov          = (2 * M_PI) / 5;
-    const float  near         = 0.01f;
-    const float  far          = 1000.0f;
-    camera.setPerspective(aspect, fov, near, far);
+    float delta = 1.0f / 60.0f;
+    rotation_x_ += delta * stick_y_;
+    rotation_y_ += delta * stick_x_;
+}
+
+void Triangle::onRightThumbstick(float x, float y)
+{
+    stick_x_ = x;
+    stick_y_ = y;
 }
 
 void Triangle::render()

@@ -30,6 +30,11 @@ constexpr std::chrono::nanoseconds timestep(16ms);
 
 @implementation MetalView
 
+- (BOOL)isFlipped
+{
+    return YES;
+}
+
 + (id)layerClass
 {
     return [CAMetalLayer class];
@@ -102,6 +107,35 @@ constexpr std::chrono::nanoseconds timestep(16ms);
 /*-------------------------------------------------*/
 
 /*-------------------------------------------------*/
+// View Controller
+/*-------------------------------------------------*/
+
+@interface ViewController : GCEventViewController
+
+@end
+
+@implementation ViewController
+
+- (void)loadView
+{
+    /* Do nothing */
+}
+
+- (void)mouseMoved:(NSEvent *)event
+{
+    NSPoint event_location = [event locationInWindow];
+    //NSPoint local_point = [self.view convertPoint:event_location fromView:nil];
+    if(NSMouseInRect(event_location, [self.view frame], YES))
+    {
+        //NSLog(@"Mouse X: %ld Y: %ld", (long)event_location.x, (long)event_location.y);
+    }
+}
+
+@end
+
+/*-------------------------------------------------*/
+
+/*-------------------------------------------------*/
 // Application Delegate
 /*-------------------------------------------------*/
 
@@ -111,12 +145,14 @@ constexpr std::chrono::nanoseconds timestep(16ms);
 }
 @property (strong, nonatomic) NSWindow*         window;
 @property (strong, nonatomic) MetalView*        view;
+@property (strong, nonatomic) ViewController*   viewController;
 @property (atomic) BOOL                         needsDisplay;
 @property (nonatomic, nonnull) CVDisplayLinkRef displayLink;
 @property (nonatomic) NSString*                 title;
 @property (nonatomic) BOOL                      isRunning;
 @property (nonatomic) NSRect                    windowRect;
 - (void)_windowWillClose:(NSNotification*)notification;
+- (void)_controllerDidConnect:(NSNotification*)notification;
 - (instancetype)initWithTitleAndRect:(NSString*)title:(NSRect)rect;
 @end
 
@@ -138,6 +174,25 @@ constexpr std::chrono::nanoseconds timestep(16ms);
     [self setIsRunning:NO];
 }
 
+- (void)_controllerDidConnect:(NSNotification *)notification
+{
+    GCController* controller = [notification object];
+    NSLog(@"Controller: %@", [controller vendorName]);
+    
+    GCExtendedGamepad* extended_gamepad = [controller extendedGamepad];
+    if(extended_gamepad != nil)
+    {
+        [[extended_gamepad rightThumbstick] setValueChangedHandler:^(GCControllerDirectionPad * _Nonnull dpad, float xValue, float yValue) {
+            NSLog(@"X: %.2f, Y: %.2f", xValue, yValue);
+            example->onRightThumbstick(xValue, yValue);
+        }];
+        
+        [[extended_gamepad buttonA] setValueChangedHandler:^(GCControllerButtonInput * _Nonnull button, float value, BOOL pressed) {
+            NSLog(@"%@", pressed ? @"Pressed" : @"Released");
+        }];
+    }
+}
+
 // Display link callback
 // Handles signaling render should occur
 CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
@@ -154,14 +209,16 @@ CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* no
 {
     NSRect frame = [self windowRect];
 
+    self.viewController = [[ViewController alloc] initWithNibName:nil bundle:nil];
     self.view = [[MetalView alloc] initWithFrame:frame];
+    [_viewController setView:_view];
 
     const int style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable;
     self.window     = [[Window alloc] initWithContentRect:frame styleMask:style backing:NSBackingStoreBuffered defer:YES];
     [self.window setTitle:_title];
     [self.window setOpaque:YES];
-    [self.window setContentView:_view];
     [self.window setAcceptsMouseMovedEvents:YES];
+    [self.window setContentViewController:self.viewController];
     [self.window makeMainWindow];
     [self.window makeFirstResponder:nil];
     [self.window makeKeyAndOrderFront:nil];
@@ -169,6 +226,7 @@ CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* no
 
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
     [center addObserver:self selector:@selector(_windowWillClose:) name:NSWindowWillCloseNotification object:nil];
+    [center addObserver:self selector:@selector(_controllerDidConnect:) name:GCControllerDidConnectNotification object:nil];
 
     CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
     CVDisplayLinkSetOutputCallback(_displayLink, displayLinkCallback, (__bridge_retained void*)self);
@@ -301,16 +359,9 @@ CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* no
 {
     displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(doLoop:)];
 
-#ifdef __IPHONE_10_3
     if ([displayLink respondsToSelector:@selector(preferredFramesPerSecond)]
         && [[UIScreen mainScreen] respondsToSelector:@selector(maximumFramesPerSecond)]) {
         displayLink.preferredFramesPerSecond = [UIScreen mainScreen].maximumFramesPerSecond / animationInterval;
-    } else
-#endif
-    {
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 100300
-        [displayLink setFrameInterval:animationInterval];
-#endif
     }
 
     [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
@@ -352,10 +403,25 @@ CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* no
 #ifndef SYSTEM_MACOS
 static void runCallback(void* data)
 {
+    using clock = std::chrono::high_resolution_clock;
+    
     Example* example = static_cast<Example*>(data);
     if(example != nullptr)
     {
-        example->update();
+        auto current_time = clock::now();
+        auto delta_time   = current_time - example->start_time;
+        example->start_time        = current_time;
+
+        example->lag += std::chrono::duration_cast<std::chrono::nanoseconds>(delta_time);
+        
+        // Fixed update loop at 'timestep' defined
+        // as 16ms per frame.
+        while (example->lag >= timestep) {
+
+            example->update();
+
+            example->lag -= timestep;
+        }
         
         example->render();
     }
@@ -368,11 +434,32 @@ static void runCallback(void* data)
 @property (strong, nonatomic) ViewController *controller;
 @property (strong, nonatomic) MetalView *view;
 + (NSString*)getAppDelegateClassName;
+- (void)_controllerDidConnect:(NSNotification*)notification;
 @end
 
 @implementation AppDelegate
 
 static Example* example;
+
+
+- (void)_controllerDidConnect:(NSNotification *)notification
+{
+    GCController* controller = [notification object];
+    NSLog(@"Controller: %@", [controller vendorName]);
+    
+    GCExtendedGamepad* extended_gamepad = [controller extendedGamepad];
+    if(extended_gamepad != nil)
+    {
+        [[extended_gamepad rightThumbstick] setValueChangedHandler:^(GCControllerDirectionPad * _Nonnull dpad, float xValue, float yValue) {
+            NSLog(@"X: %.2f, Y: %.2f", xValue, yValue);
+            example->onRightThumbstick(xValue, yValue);
+        }];
+        
+        [[extended_gamepad buttonA] setValueChangedHandler:^(GCControllerButtonInput * _Nonnull button, float value, BOOL pressed) {
+            NSLog(@"%@", pressed ? @"Pressed" : @"Released");
+        }];
+    }
+}
 
 - (BOOL)application:(UIApplication *)application willFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey,id> *)launchOptions
 {
@@ -384,6 +471,12 @@ static Example* example;
     [self.window setRootViewController:self.controller];
     [self.window makeKeyAndVisible];
     
+    NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+    [center addObserver:self selector:@selector(_controllerDidConnect:) name:GCControllerDidConnectNotification object:nil];
+    
+    
+    example->start_time = std::chrono::high_resolution_clock::now();
+    example->lag = 0ns;
     example->metalLayer_ = self.view.metalLayer;
     example->init();
     [self.controller setAnimationCallback:1 callback:runCallback callbackParam:example];
@@ -461,10 +554,11 @@ CAMetalLayer* Example::metalLayer()
 
 int Example::run(int argc, char* argv[])
 {
-    //using clock = std::chrono::high_resolution_clock;
+#ifdef SYSTEM_MACOS    
+    using clock = std::chrono::high_resolution_clock;
 
-    //NSString* title = [[NSString alloc] initWithUTF8String:title_.c_str()];
-#ifdef SYSTEM_MACOS
+    NSString* title = [[NSString alloc] initWithUTF8String:title_.c_str()];
+    
     NSRect rect = NSMakeRect(0.0f, 0.0f, static_cast<CGFloat>(width_), static_cast<CGFloat>(height_));
     delegate_   = [[AppDelegate alloc] initWithTitleAndRect:title:rect];
 
