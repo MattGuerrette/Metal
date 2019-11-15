@@ -9,3 +9,4 @@ include_directories(${CMAKE_SOURCE_DIR}/examples/base)
 # Examples
 add_subdirectory(examples/base)
 add_subdirectory(examples/triangle)
+add_subdirectory(examples/coretext)

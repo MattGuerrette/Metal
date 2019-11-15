@@ -17,11 +17,11 @@ typedef struct
 } Uniforms;
 constexpr NSUInteger kAlignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
 
-class Triangle : public Example {
+class CoreTextExample : public Example {
 public:
-    Triangle();
+    CoreTextExample();
 
-    ~Triangle();
+    ~CoreTextExample();
 
     void init() override;
     void update() override;
@@ -32,7 +32,6 @@ public:
     void onKeyUp(Key key) override;
 #endif
 
-    void onSizeChange(float width, float height) override;
     void onLeftThumbstick(float x, float y) override;
     void onRightThumbstick(float x, float y) override;
 
@@ -58,28 +57,18 @@ private:
     MTLVertexDescriptor* createVertexDescriptor();
 
     static const int kBufferCount = 3;
-
-    float rotation_y_ = 0.0f;
-    float rotation_x_ = 0.0f;
-    float stick_x_ = 0.0f;
-    float stick_y_ = 0.0f;
-    float left_stick_x_ = 0.0f;
-    float left_stick_y_ = 0.0f;
-    float camera_rotation_x_ = 0.0f;
-    float camera_rotation_y_ = 0.0f;
-    float camera_speed_ = 10.0f;
 };
 
-Triangle::Triangle()
-    : Example("Triangle", 1280, 720)
+CoreTextExample::CoreTextExample()
+    : Example("CoreText", 1280, 720)
 {
 }
 
-Triangle::~Triangle()
+CoreTextExample::~CoreTextExample()
 {
 }
 
-void Triangle::init()
+void CoreTextExample::init()
 {
     buffer_index_ = 0;
 
@@ -141,7 +130,7 @@ void Triangle::init()
     //    camera.setTranslation(0.0f, 0.0f, 0.0f);
 }
 
-MTLVertexDescriptor* Triangle::createVertexDescriptor()
+MTLVertexDescriptor* CoreTextExample::createVertexDescriptor()
 {
     MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor new];
 
@@ -161,12 +150,11 @@ MTLVertexDescriptor* Triangle::createVertexDescriptor()
     return vertexDescriptor;
 }
 
-void Triangle::updateUniform()
+void CoreTextExample::updateUniform()
 {
     auto translation = simd_make_float3(0.0f, 0.0f, -10.0f);
-    auto rotationX = rotation_x_;
-    auto rotationY = rotation_y_;
-    //auto scaleFactor = 1.0f;
+    auto rotationX = 0.0f;
+    auto rotationY = 0.0f;
 
     const vector_float3 xAxis = { 1, 0, 0 };
     const vector_float3 yAxis = { 0, 1, 0 };
@@ -174,7 +162,7 @@ void Triangle::updateUniform()
     const matrix_float4x4 yRot = simd_float4x4_rotation(yAxis, rotationY);
     const matrix_float4x4 rot = matrix_multiply(xRot, yRot);
     const matrix_float4x4 trans = simd_float4x4_translation(translation);
-    const matrix_float4x4 modelMatrix = matrix_multiply(trans, rot); //matrix_multiply(matrix_multiply(xRot, yRot), scale);
+    const matrix_float4x4 modelMatrix = matrix_multiply(trans, rot);
 
     Uniforms uniforms;
     auto viewProj = camera.uniforms.viewProjectionMatrix;
@@ -186,7 +174,7 @@ void Triangle::updateUniform()
     memcpy(buffer + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
 
-void Triangle::makeBuffers()
+void CoreTextExample::makeBuffers()
 {
     static const Vertex vertices[] = {
         { .position = { -1, 1, 1, 1 }, .color = { 0, 1, 1, 1 } },
@@ -218,67 +206,32 @@ void Triangle::makeBuffers()
     [uniform_buffer_ setLabel:@"Uniforms"];
 }
 
-void Triangle::update()
+void CoreTextExample::update()
 {
-    float delta = 1.0f / 60.0f;
-    rotation_x_ += delta; // * left_stick_y_;
-    rotation_y_ += delta; //* left_stick_x_;
-}
-
-void Triangle::onSizeChange(float width, float height)
-{
-    float aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
-    [camera setAspectRatio:aspect_ratio];
-    [camera updateUniforms];
 }
 
 #ifdef SYSTEM_MACOS
 
-void Triangle::onKeyDown(Key key)
+void CoreTextExample::onKeyDown(Key key)
 {
-    if (key == Key::A) {
-        stick_x_ = 1.0f;
-    } else if (key == Key::D) {
-        stick_x_ = -1.0f;
-    }
 }
 
-void Triangle::onKeyUp(Key key)
+void CoreTextExample::onKeyUp(Key key)
 {
-    if (key == Key::A) {
-        stick_x_ = 0.0f;
-    } else if (key == Key::D) {
-        stick_x_ = 0.0f;
-    }
 }
 
 #endif
 
-void Triangle::onRightThumbstick(float x, float y)
+void CoreTextExample::onRightThumbstick(float x, float y)
 {
-    stick_x_ = x;
-    stick_y_ = y;
 }
 
-void Triangle::onLeftThumbstick(float x, float y)
+void CoreTextExample::onLeftThumbstick(float x, float y)
 {
-    left_stick_x_ = x;
-    left_stick_y_ = y;
 }
 
-void Triangle::render()
+void CoreTextExample::render()
 {
-    float delta = 1.0f / 60.0f;
-    camera_rotation_x_ = delta * stick_y_;
-    camera_rotation_y_ = delta * -stick_x_;
-
-    [camera rotateOnAxis:[camera right] radians:camera_rotation_x_];
-    [camera rotateOnAxis:[camera up] radians:camera_rotation_y_];
-    auto pos = [camera position];
-    auto newPos = pos + (camera.forward * (delta * left_stick_y_) * camera_speed_);
-    newPos = newPos + (camera.right * (delta * left_stick_x_) * camera_speed_);
-    [camera setPosition:newPos];
-
     updateUniform();
 
     @autoreleasepool {
@@ -330,7 +283,7 @@ void Triangle::render()
 
 int main(int argc, char** argv)
 {
-    Triangle example;
+    CoreTextExample example;
 
     return example.run(argc, argv);
 }

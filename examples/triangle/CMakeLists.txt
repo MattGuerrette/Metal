@@ -1,6 +1,7 @@
 
 set(RESOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/shader.metal
+    ${CMAKE_CURRENT_SOURCE_DIR}/LaunchScreen.storyboard
     ${CMAKE_CURRENT_SOURCE_DIR}/Example.png)
 add_executable(triangle ${CMAKE_CURRENT_SOURCE_DIR}/main.mm
                         ${RESOURCE_FILES})

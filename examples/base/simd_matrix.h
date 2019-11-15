@@ -9,10 +9,10 @@
 
 inline simd_float4x4 simd_float4x4_perspective(float aspect, float fovy, float znear, float zfar)
 {
-    float yScale  = 1 / tan(fovy * 0.5);
-    float xScale  = yScale / aspect;
-    float zRange  = zfar - znear;
-    float zScale  = -(zfar + znear) / zRange;
+    float yScale = 1 / tan(fovy * 0.5);
+    float xScale = yScale / aspect;
+    float zRange = zfar - znear;
+    float zScale = -(zfar + znear) / zRange;
     float wzScale = -2 * zfar * znear / zRange;
 
     simd_float4 P = { xScale, 0, 0, 0 };
