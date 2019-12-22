@@ -4,6 +4,7 @@
 #import <camera.h>
 #import <simd/simd.h>
 #import <simd_matrix.h>
+#import <simd/simd.h>
 
 typedef struct
 {

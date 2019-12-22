@@ -5,13 +5,6 @@
 *    This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-/*
-*    Metal Examples
-*    Copyright(c) 2019 Matt Guerrette
-*
-*    This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
-
 #include "example.h"
 
 #import <GameController/GameController.h>
@@ -29,8 +22,6 @@
 using namespace std::chrono_literals;
 
 constexpr std::chrono::nanoseconds timestep(16ms);
-
-#ifdef SYSTEM_MACOS
 
 /*----------------------------------------------*/
 // Metal View
@@ -184,12 +175,12 @@ constexpr std::chrono::nanoseconds timestep(16ms);
 @property (nonatomic) NSRect windowRect;
 - (void)_windowWillClose:(NSNotification*)notification;
 - (void)_controllerDidConnect:(NSNotification*)notification;
-- (instancetype)initWithTitleAndRect:(NSString*)title:(NSRect)rect;
+- (instancetype)initWithTitleAndRect:(NSString*)title :(NSRect)rect;
 @end
 
 @implementation AppDelegate
 
-- (instancetype)initWithTitleAndRect:(NSString*)title:(NSRect)rect
+- (instancetype)initWithTitleAndRect:(NSString*)title :(NSRect)rect
 {
     self = [super init];
     if (self != nil) {
@@ -214,12 +205,12 @@ constexpr std::chrono::nanoseconds timestep(16ms);
     if (extended_gamepad != nil) {
         [[extended_gamepad rightThumbstick] setValueChangedHandler:^(GCControllerDirectionPad* _Nonnull dpad, float xValue, float yValue) {
             //NSLog(@"X: %.2f, Y: %.2f", xValue, yValue);
-            example->onRightThumbstick(xValue, yValue);
+            self->example->onRightThumbstick(xValue, yValue);
         }];
 
         [[extended_gamepad leftThumbstick] setValueChangedHandler:^(GCControllerDirectionPad* _Nonnull dpad, float xValue, float yValue) {
             //NSLog(@"X: %.2f, Y: %.2f", xValue, yValue);
-            example->onLeftThumbstick(xValue, yValue);
+            self->example->onLeftThumbstick(xValue, yValue);
         }];
 
         [[extended_gamepad buttonA] setValueChangedHandler:^(GCControllerButtonInput* _Nonnull button, float value, BOOL pressed) {
@@ -248,7 +239,7 @@ CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* no
     self.view = [[MetalView alloc] initWithFrame:frame];
     [_viewController setView:_view];
 
-    const int style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable;
+    const int style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
     self.window = [[Window alloc] initWithContentRect:frame styleMask:style backing:NSBackingStoreBuffered defer:YES];
     [self.window setTitle:_title];
     [self.window setOpaque:YES];
@@ -331,7 +322,6 @@ CAMetalLayer* Example::metalLayer()
 
 int Example::run(int argc, char* argv[])
 {
-#ifdef SYSTEM_MACOS
     using clock = std::chrono::high_resolution_clock;
 
     NSString* title = [[NSString alloc] initWithUTF8String:title_.c_str()];
@@ -382,21 +372,9 @@ int Example::run(int argc, char* argv[])
         // render
         if ([delegate needsDisplay]) {
             render();
+            [delegate setNeedsDisplay:NO];
         }
     }
-#else
-    //
-    //    AppDelegate* delegate = [[AppDelegate alloc] init];
-    //    this->delegate_ = delegate;
-    //    delegate->example = this;
-    //    [[UIApplication sharedApplication] setDelegate:delegate];
-    example = this;
-
-    width_ = [UIScreen mainScreen].bounds.size.width;
-    height_ = [UIScreen mainScreen].bounds.size.height;
-    UIApplicationMain(argc, argv, nil, [AppDelegate getAppDelegateClassName]);
-
-#endif
 
     return EXIT_SUCCESS;
 }
