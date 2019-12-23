@@ -18,6 +18,7 @@
 #include <atomic>
 #include <cassert>
 #include <chrono>
+#include <thread>
 
 using namespace std::chrono_literals;
 
@@ -360,6 +361,7 @@ int Example::run(int argc, char* argv[])
 
         } while (event);
 
+
         // Fixed update loop at 'timestep' defined
         // as 16ms per frame.
         while (lag >= timestep) {
@@ -374,6 +376,10 @@ int Example::run(int argc, char* argv[])
             render();
             [delegate setNeedsDisplay:NO];
         }
+        
+        // Sleep for 8ms to avoid thrashing the CPU
+        // TODO: Calculate sleep time
+        std::this_thread::sleep_for(std::chrono::milliseconds(8ms));
     }
 
     return EXIT_SUCCESS;
