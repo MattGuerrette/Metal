@@ -31,6 +31,8 @@ public:
     void onKeyDown(Key key) override;
     void onKeyUp(Key key) override;
 #endif
+    
+    void onSizeChange(float w, float h) override;
 
     void onLeftThumbstick(float x, float y) override;
     void onRightThumbstick(float x, float y) override;
@@ -228,6 +230,11 @@ void CoreTextExample::onRightThumbstick(float x, float y)
 
 void CoreTextExample::onLeftThumbstick(float x, float y)
 {
+}
+
+void CoreTextExample::onSizeChange(float width, float height)
+{
+    
 }
 
 void CoreTextExample::render()

@@ -1,5 +1,8 @@
 #include "example.h"
 
+#include "graphics_math.h"
+
+#include <memory>
 #import <stdio.h>
 #import <Metal/Metal.h>
 #import <camera.h>
@@ -7,13 +10,17 @@
 #import <simd_matrix.h>
 #import <simd/simd.h>
 
+#include "camera_x.h"
+
+using namespace DirectX::SimpleMath;
+
 typedef struct {
-    simd_float4 position;
-    simd_float4 color;
+    Vector4 position;
+    Vector4 color;
 } Vertex;
 
 typedef struct {
-    simd_float4x4 mvp;
+    Matrix mvp;
 } Uniforms;
 constexpr NSUInteger kAlignedUniformSize = (sizeof (Uniforms) + 0xFF) & -0x100;
 
@@ -37,7 +44,8 @@ class Triangle : public Example {
   void onRightThumbstick (float x, float y) override;
 
  private:
-  AAPLCamera *camera;
+    std::unique_ptr<Camera> Camera;
+  //AAPLCamera *camera;
 
   id <MTLDevice> device_;
   id <MTLCommandQueue> command_queue_;
@@ -100,9 +108,10 @@ Triangle::init ()
   uint32_t height = static_cast<uint32_t>([layer drawableSize].height);
   MTLTextureDescriptor *depth_stencil_tex_desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:width height:height mipmapped:NO];
   depth_stencil_tex_desc.sampleCount = 1;
-  depth_stencil_tex_desc.usage = MTLTextureUsageUnknown;
+    depth_stencil_tex_desc.usage = MTLTextureUsageRenderTarget;
   depth_stencil_tex_desc.resourceOptions =
       MTLResourceOptionCPUCacheModeDefault | MTLResourceStorageModePrivate;
+    depth_stencil_tex_desc.storageMode = MTLStorageModeMemoryless;
   depth_stencil_texture_ = [device_ newTextureWithDescriptor:depth_stencil_tex_desc];
 
   makeBuffers ();
@@ -138,8 +147,14 @@ Triangle::init ()
   const float fov = (75.0 * M_PI) / 180.0f;
   const float near = 0.01f;
   const float far = 1000.0f;
+    
+    Camera = std::make_unique<class Camera>(
+                                      Vector3{0.0f, 0.0f, 0.0f},
+                                      Vector3{0.0f, 0.0f, -1.0f},
+                                      Vector3{0.0f, 1.0f, 0.0f},
+                                      fov, aspect, near, far);
 
-  camera = [[AAPLCamera alloc] initPerspectiveWithPosition:{0.0f, 0.0f, 0.0f} direction:{0.0f, 0.0f, -1.0f} up:{0.0f, 1.0f, 0.0f} viewAngle:fov aspectRatio:aspect nearPlane:near farPlane:far];
+//  camera = [[AAPLCamera alloc] initPerspectiveWithPosition:{0.0f, 0.0f, 0.0f} direction:{0.0f, 0.0f, -1.0f} up:{0.0f, 1.0f, 0.0f} viewAngle:fov aspectRatio:aspect nearPlane:near farPlane:far];
   //    camera.setPerspective(aspect, fov, near, far);
   //    camera.setTranslation(0.0f, 0.0f, 0.0f);
 }
@@ -168,22 +183,25 @@ Triangle::createVertexDescriptor ()
 void
 Triangle::updateUniform ()
 {
-  auto translation = simd_make_float3 (0.0f, 0.0f, -10.0f);
+  auto translation = Vector3 (0.0f, 0.0f, -10.0f);
   auto rotationX = rotation_x_;
   auto rotationY = rotation_y_;
   //auto scaleFactor = 1.0f;
 
-  const vector_float3 xAxis = {1, 0, 0};
-  const vector_float3 yAxis = {0, 1, 0};
-  const matrix_float4x4 xRot = simd_float4x4_rotation (xAxis, rotationX);
-  const matrix_float4x4 yRot = simd_float4x4_rotation (yAxis, rotationY);
-  const matrix_float4x4 rot = matrix_multiply (xRot, yRot);
-  const matrix_float4x4 trans = simd_float4x4_translation (translation);
-  const matrix_float4x4 modelMatrix = matrix_multiply (trans, rot); //matrix_multiply(matrix_multiply(xRot, yRot), scale);
-
+  const Vector3 xAxis = {1, 0, 0};
+  const Vector3 yAxis = {0, 1, 0};
+  const Matrix xRot = Matrix::CreateFromAxisAngle(xAxis, rotationX);
+  const Matrix yRot = Matrix::CreateFromAxisAngle(yAxis, rotationY);
+  const Matrix rot = xRot * yRot;
+  const Matrix trans = Matrix::CreateTranslation (translation);
+  const Matrix modelMatrix = rot * trans; //matrix_multiply(matrix_multiply(xRot, yRot), scale);
+    
+  CameraUniforms cameraUniforms = Camera->GetUniforms();
+    
+    
   Uniforms uniforms;
-  auto viewProj = camera.uniforms.viewProjectionMatrix;
-  uniforms.mvp = matrix_multiply (viewProj, modelMatrix);
+    auto viewProj = cameraUniforms.ViewProjection;
+    uniforms.mvp = modelMatrix * viewProj;
 
   const NSUInteger uniformBufferOffset = kAlignedUniformSize * buffer_index_;
 
@@ -237,8 +255,8 @@ void
 Triangle::onSizeChange (float width, float height)
 {
   float aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
-  [camera setAspectRatio:aspect_ratio];
-  [camera updateUniforms];
+  //[camera setAspectRatio:aspect_ratio];
+  //[camera updateUniforms];
 }
 
 #ifdef SYSTEM_MACOS
@@ -292,12 +310,12 @@ Triangle::render ()
   camera_rotation_x_ = delta * stick_y_;
   camera_rotation_y_ = delta * -stick_x_;
 
-  [camera rotateOnAxis:[camera right] radians:camera_rotation_x_];
-  [camera rotateOnAxis:[camera up] radians:camera_rotation_y_];
-  auto pos = [camera position];
-  auto newPos = pos + (camera.forward * (delta * left_stick_y_) * camera_speed_);
-  newPos = newPos + (camera.right * (delta * left_stick_x_) * camera_speed_);
-  [camera setPosition:newPos];
+  //[camera rotateOnAxis:[camera right] radians:camera_rotation_x_];
+  //[camera rotateOnAxis:[camera up] radians:camera_rotation_y_];
+//  auto pos = [camera position];
+//  auto newPos = pos + (camera.forward * (delta * left_stick_y_) * camera_speed_);
+//  newPos = newPos + (camera.right * (delta * left_stick_x_) * camera_speed_);
+//  [camera setPosition:newPos];
 
   updateUniform ();
 
@@ -317,7 +335,7 @@ Triangle::render ()
           pass_desc.colorAttachments[0].clearColor = MTLClearColorMake (.39, .58, .92, 1.0);
           pass_desc.depthAttachment.texture = depth_stencil_texture_;
           pass_desc.depthAttachment.loadAction = MTLLoadActionClear;
-          pass_desc.depthAttachment.storeAction = MTLStoreActionStore;
+          pass_desc.depthAttachment.storeAction = MTLStoreActionDontCare;
           pass_desc.depthAttachment.clearDepth = 1.0;
           pass_desc.stencilAttachment.texture = depth_stencil_texture_;
           pass_desc.stencilAttachment.loadAction = MTLLoadActionClear;
@@ -328,7 +346,7 @@ Triangle::render ()
           id <MTLRenderCommandEncoder> command_encoder = [command_buffer renderCommandEncoderWithDescriptor:pass_desc];
           [command_encoder setRenderPipelineState:pipeline_state_];
           [command_encoder setDepthStencilState:depth_stencil_state_];
-          [command_encoder setFrontFacingWinding:MTLWindingClockwise];
+          [command_encoder setFrontFacingWinding:MTLWindingCounterClockwise];
           [command_encoder setCullMode:MTLCullModeBack];
 
           const NSUInteger uniformBufferOffset = kAlignedUniformSize * buffer_index_;

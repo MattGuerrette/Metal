@@ -226,7 +226,8 @@ CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* no
 {
     AppDelegate* delegate = (__bridge AppDelegate*)displayLinkContext;
     if (delegate) {
-        [delegate setNeedsDisplay:YES];
+        delegate->example->render();
+        //[delegate setNeedsDisplay:YES];
     }
 
     return kCVReturnSuccess;

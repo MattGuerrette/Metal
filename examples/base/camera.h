@@ -47,6 +47,7 @@ Abstract:
 Declaration of the AAPLCamera object.
 */
 
+
 #import <Foundation/Foundation.h>
 #import <simd/simd.h>
 
