@@ -7,24 +7,24 @@
 
 #pragma once
 
-#include "platform.h"
 #include "graphics_math.h"
+#include "platform.h"
 
-
-struct CameraUniforms
-{
-    DirectX::SimpleMath::Matrix View;
-    DirectX::SimpleMath::Matrix Projection;
-    DirectX::SimpleMath::Matrix ViewProjection;
-    DirectX::SimpleMath::Matrix InvViewProjection;
-    DirectX::SimpleMath::Matrix InvProjection;
-    DirectX::SimpleMath::Matrix InvView;
+/// @brief Camera uniform values
+struct CameraUniforms {
+    DirectX::XMMATRIX View;
+    DirectX::XMMATRIX Projection;
+    DirectX::XMMATRIX ViewProjection;
+    DirectX::XMMATRIX InvViewProjection;
+    DirectX::XMMATRIX InvProjection;
+    DirectX::XMMATRIX InvView;
 };
 
 class Camera {
 public:
+    /// @brief Default constructor
     Camera() = default;
-    
+
     /// @brief Constructs a perspective projection camera with position
     /// @param [in] position The camera position
     /// @param [in] direction The camera direction
@@ -33,26 +33,37 @@ public:
     /// @param [in] aspectRation The horizontal over vertical aspect ratio
     /// @param [in] nearPlane The distance of near plane to position in world space
     /// @param [in] farPlane The distance of far plane to position in world space
-    Camera(const DirectX::SimpleMath::Vector3 position,
-           const DirectX::SimpleMath::Vector3 direction,
-           const DirectX::SimpleMath::Vector3 up,
-           float fov,
-           float aspectRatio,
-           float nearPlane,
-           float farPlane);
-    
-    
+    Camera(const DirectX::XMFLOAT3 position,
+        const DirectX::XMFLOAT3 direction,
+        const DirectX::XMFLOAT3 up,
+        float fov,
+        float aspectRatio,
+        float nearPlane,
+        float farPlane);
+
+    /// @brief Gets the uniforms
+    /// @return camera uniforms
     const CameraUniforms& GetUniforms() const;
-    
+
 private:
-    void UpdateBasicVectors(DirectX::SimpleMath::Vector3 newDirection);
-    
+    /// @brief Updates basic vectors from new direction
+    /// @param [in] newDirection The new direction vector
+    /// Computes the new basic vectors for the camera, maintaining
+    /// othogonality.
+    void UpdateBasicVectors(DirectX::XMFLOAT3 newDirection);
+
+    /// @brief Updates uniforms from basis vectors
     void UpdateUniforms();
-    
+
+    /// @brief Computes the view frustrum
+    /// @todo Needs implementation
+    void ComputeViewFrustrum();
+
     CameraUniforms Uniforms;
-    DirectX::SimpleMath::Vector3 Direction;
-    DirectX::SimpleMath::Vector3 Position;
-    DirectX::SimpleMath::Vector3 Up;
+    //DirectX::SimpleMath::Plane Frustrum[6];
+    DirectX::XMFLOAT3 Direction;
+    DirectX::XMFLOAT3 Position;
+    DirectX::XMFLOAT3 Up;
     float ViewAngle;
     float NearPlane;
     float FarPlane;

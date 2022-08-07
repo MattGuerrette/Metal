@@ -7,25 +7,25 @@
 
 #include "camera_x.h"
 
-using namespace DirectX::SimpleMath;
+using namespace DirectX;
 
-Camera::Camera(Vector3 position,
-               Vector3 direction,
-               Vector3 up,
-               float fov,
-               float aspectRatio,
-               float nearPlane,
-               float farPlane)
+Camera::Camera(XMFLOAT3 position,
+    XMFLOAT3 direction,
+    XMFLOAT3 up,
+    float fov,
+    float aspectRatio,
+    float nearPlane,
+    float farPlane)
 {
     Up = up;
     UpdateBasicVectors(direction);
-    
+
     Position = position;
     ViewAngle = fov;
     AspectRatio = aspectRatio;
     NearPlane = nearPlane;
     FarPlane = farPlane;
-    
+
     // Update uniforms
     UpdateUniforms();
 }
@@ -35,20 +35,32 @@ const CameraUniforms& Camera::GetUniforms() const
     return Uniforms;
 }
 
-void Camera::UpdateBasicVectors(Vector3 newDirection)
+void Camera::UpdateBasicVectors(XMFLOAT3 newDirection)
 {
     Direction = newDirection;
-    Direction.Normalize();
-    
-    Vector3 right = Direction.Cross(Up);
-    Up = right.Cross(Direction);
+    XMVECTOR v = XMLoadFloat3(&Direction);
+    v = XMVector3Normalize(v);
+    XMStoreFloat3(&Direction, v);
+
+    XMVECTOR upVector = XMLoadFloat3(&Up);
+    XMVECTOR right = XMVector3Cross(v, upVector);
+    XMVECTOR newUp = XMVector3Cross(right, v);
+    XMStoreFloat3(&Up, newUp);
 }
 
 void Camera::UpdateUniforms()
 {
-    Uniforms.View = Matrix::CreateLookAt(Position, Direction, Up);
-    Uniforms.Projection = Matrix::CreatePerspectiveFieldOfView(ViewAngle, AspectRatio, NearPlane, FarPlane);
+    XMVECTOR pos = XMLoadFloat3(&Position);
+    XMVECTOR dir = XMLoadFloat3(&Direction);
+    XMVECTOR up = XMLoadFloat3(&Up);
+    Uniforms.View = XMMatrixLookAtRH(pos, dir, up);//Matrix::CreateLookAt(Position, Direction, Up);
+    Uniforms.Projection = XMMatrixPerspectiveFovRH(ViewAngle,
+        AspectRatio, NearPlane, FarPlane); //Matrix::CreatePerspectiveFieldOfView(ViewAngle, AspectRatio, NearPlane, FarPlane);
 
+    Uniforms.ViewProjection = Uniforms.Projection * Uniforms.View;
+}
+
+void Camera::ComputeViewFrustrum()
+{
     
-    Uniforms.ViewProjection =  Uniforms.Projection * Uniforms.View;
 }

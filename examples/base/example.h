@@ -1,9 +1,9 @@
 /*
-*    Metal Examples
-*    Copyright(c) 2019 Matt Guerrette
-*
-*    This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+ *    Metal Examples
+ *    Copyright(c) 2019 Matt Guerrette
+ *
+ *    This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
 
 #pragma once
 
@@ -24,7 +24,6 @@ class Example {
 public:
     Example(std::string title, uint32_t width, uint32_t height);
 
-    
     virtual ~Example();
 
     virtual void init() = 0;

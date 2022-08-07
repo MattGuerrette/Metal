@@ -10,14 +10,14 @@
 //#include "platform.h"
 //#import <simd/simd.h>
 //
-//struct Transform {
+// struct Transform {
 //    simd::float3 translation = 0.0f;
 //    simd::float3 rotation = 0.0f;
 //    simd::float3 scale = 0.0f;
 //};
 //
-//class Camera {
-//public:
+// class Camera {
+// public:
 //    Camera();
 //
 //    ~Camera();
@@ -33,7 +33,7 @@
 //
 //
 //    Transform     transform_;
-//private:
+// private:
 //    simd::float4x4 projection_ = matrix_identity_float4x4;
 //    simd::float4x4 view_       = matrix_identity_float4x4;
 //
@@ -46,7 +46,6 @@ See LICENSE folder for this sample’s licensing information.
 Abstract:
 Declaration of the AAPLCamera object.
 */
-
 
 #import <Foundation/Foundation.h>
 #import <simd/simd.h>

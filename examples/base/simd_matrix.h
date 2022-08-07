@@ -1,9 +1,9 @@
 /*
-*    Metal Examples
-*    Copyright(c) 2019 Matt Guerrette
-*
-*    This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+ *    Metal Examples
+ *    Copyright(c) 2019 Matt Guerrette
+ *
+ *    This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
 
 #import <simd/simd.h>
 

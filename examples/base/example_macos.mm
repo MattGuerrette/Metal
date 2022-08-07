@@ -1,9 +1,9 @@
 /*
-*    Metal Examples
-*    Copyright(c) 2019 Matt Guerrette
-*
-*    This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+ *    Metal Examples
+ *    Copyright(c) 2019 Matt Guerrette
+ *
+ *    This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
 
 #include "example.h"
 
@@ -148,9 +148,9 @@ constexpr std::chrono::nanoseconds timestep(16ms);
 - (void)mouseMoved:(NSEvent*)event
 {
     NSPoint event_location = [event locationInWindow];
-    //NSPoint local_point = [self.view convertPoint:event_location fromView:nil];
+    // NSPoint local_point = [self.view convertPoint:event_location fromView:nil];
     if (NSMouseInRect(event_location, [self.view frame], YES)) {
-        //NSLog(@"Mouse X: %ld Y: %ld", (long)event_location.x, (long)event_location.y);
+        // NSLog(@"Mouse X: %ld Y: %ld", (long)event_location.x, (long)event_location.y);
     }
 }
 
@@ -205,17 +205,17 @@ constexpr std::chrono::nanoseconds timestep(16ms);
     GCExtendedGamepad* extended_gamepad = [controller extendedGamepad];
     if (extended_gamepad != nil) {
         [[extended_gamepad rightThumbstick] setValueChangedHandler:^(GCControllerDirectionPad* _Nonnull dpad, float xValue, float yValue) {
-            //NSLog(@"X: %.2f, Y: %.2f", xValue, yValue);
+            // NSLog(@"X: %.2f, Y: %.2f", xValue, yValue);
             self->example->onRightThumbstick(xValue, yValue);
         }];
 
         [[extended_gamepad leftThumbstick] setValueChangedHandler:^(GCControllerDirectionPad* _Nonnull dpad, float xValue, float yValue) {
-            //NSLog(@"X: %.2f, Y: %.2f", xValue, yValue);
+            // NSLog(@"X: %.2f, Y: %.2f", xValue, yValue);
             self->example->onLeftThumbstick(xValue, yValue);
         }];
 
         [[extended_gamepad buttonA] setValueChangedHandler:^(GCControllerButtonInput* _Nonnull button, float value, BOOL pressed) {
-            //NSLog(@"%@", pressed ? @"Pressed" : @"Released");
+            // NSLog(@"%@", pressed ? @"Pressed" : @"Released");
         }];
     }
 }
@@ -355,13 +355,12 @@ int Example::run(int argc, char* argv[])
             event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:nil inMode:NSDefaultRunLoopMode dequeue:YES];
             if (event) {
                 // Handle events
-                [NSApp sendEvent:event]; //propogate
+                [NSApp sendEvent:event]; // propogate
 
-                //processEvent(event);
+                // processEvent(event);
             }
 
         } while (event);
-
 
         // Fixed update loop at 'timestep' defined
         // as 16ms per frame.
@@ -377,7 +376,7 @@ int Example::run(int argc, char* argv[])
             render();
             [delegate setNeedsDisplay:NO];
         }
-        
+
         // Sleep for 8ms to avoid thrashing the CPU
         // TODO: Calculate sleep time
         std::this_thread::sleep_for(std::chrono::milliseconds(8ms));
