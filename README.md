@@ -5,9 +5,9 @@ A collection of open source Objective-C/C++ examples for [Metal](https://develop
 ## Table of Contents
 + [Examples](#Examples)
 
-## <a name="Examples"></a> Examples
+## Examples
 
-### <a name="Basics"></a> Basics
+### Basics
 
 #### [01 - Triangle](examples/triangle/)
 
