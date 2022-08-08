@@ -18,7 +18,14 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/Microsoft/DirectXMath
     GIT_TAG main
 )
-FetchContent_MakeAvailable(DirectXMath)
+
+FetchContent_Declare(
+    SDL
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG 2.0.22
+)
+
+FetchContent_MakeAvailable(SDL DirectXMath)
 
 # Global include
 include_directories(${CMAKE_SOURCE_DIR}/examples/base)

@@ -8,53 +8,42 @@
 #pragma once
 
 #include "platform.h"
+
 #include <chrono>
 #include <string>
 
-#ifdef SYSTEM_MACOS
-#include "keys.h"
-#import <Cocoa/Cocoa.h>
-#else
-#import <UIKit/UIKit.h>
-#endif
+#include <SDL.h>
+#include <QuartzCore/QuartzCore.h>
 
-#import <QuartzCore/QuartzCore.h>
-
-class Example {
+class Example
+{
 public:
-    Example(std::string title, uint32_t width, uint32_t height);
+	Example(std::string title, uint32_t width, uint32_t height);
 
-    virtual ~Example();
+	virtual ~Example();
 
-    virtual void init() = 0;
-    virtual void update() = 0;
-    virtual void render() = 0;
+	virtual void Init() = 0;
 
-    // Input callbacks
-#ifdef SYSTEM_MACOS
-    virtual void onKeyDown(Key key) = 0;
-    virtual void onKeyUp(Key key) = 0;
-#endif
-    virtual void onSizeChange(float width, float height) = 0;
-    virtual void onLeftThumbstick(float x, float y) = 0;
-    virtual void onRightThumbstick(float x, float y) = 0;
+	virtual void Update() = 0;
 
-    // Run loop
-    int run(int argc, char* argv[]);
+	virtual void Render() = 0;
 
-    CAMetalLayer* metalLayer();
+	// Run loop
+	int Run(int argc, char* argv[]);
 
-    CAMetalLayer* metalLayer_;
-
-    std::chrono::high_resolution_clock::time_point start_time;
-    std::chrono::nanoseconds lag;
+	CAMetalLayer* GetMetalLayer() const;
 
 private:
-    std::string title_;
-    uint32_t width_;
-    uint32_t height_;
+	static int EventFilter(void* self, SDL_Event* e);
 
-#ifdef SYSTEM_MACOS
-    id<NSApplicationDelegate> delegate_;
-#endif
+	static void FrameTick(void* self);
+
+	std::chrono::high_resolution_clock::time_point StartTime;
+	std::chrono::nanoseconds                       Lag;
+	std::string                                    Title;
+	bool                                           Running;
+	uint32_t                                       Width;
+	uint32_t                                       Height;
+	SDL_Window* Window;
+	SDL_MetalView MetalView;
 };

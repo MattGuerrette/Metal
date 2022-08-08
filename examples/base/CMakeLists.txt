@@ -12,7 +12,7 @@ set(BASE_SOURCE_FILES
 if (${CMAKE_SYSTEM_NAME} MATCHES "tvOS" OR ${CMAKE_SYSTEM_NAME} MATCHES "iOS")
 add_library(base ${BASE_SOURCE_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/example.mm)
 else()
-add_library(base ${BASE_SOURCE_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/example_macos.mm)
+add_library(base ${BASE_SOURCE_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/example.mm)
 endif()
 
 set_target_properties(base PROPERTIES
@@ -26,13 +26,17 @@ target_include_directories(base PUBLIC
     ${DirectXTK_SOURCE_DIR}/Inc)
     
 if (${CMAKE_SYSTEM_NAME} MATCHES "tvOS" OR ${CMAKE_SYSTEM_NAME} MATCHES "iOS")
-target_link_libraries(base 
+target_link_libraries(base
+                      PUBLIC
+                      SDL2::SDL2-static
                       "-framework UIKit"
                       "-framework GameController"
                       "-framework QuartzCore"
                       "-framework Metal")
 else()
-target_link_libraries(base 
+target_link_libraries(base
+                      PUBLIC
+                      SDL2::SDL2-static
                       "-framework AppKit"
                       "-framework GameController"
                       "-framework QuartzCore"
