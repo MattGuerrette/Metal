@@ -9,16 +9,6 @@
 
 #include "example.h"
 
-
-#include <atomic>
-#include <cassert>
-#include <chrono>
-#include <string>
-
-using namespace std::chrono_literals;
-
-constexpr std::chrono::nanoseconds timestep(16ms);
-
 Example::Example(std::string title, uint32_t width, uint32_t height)
 		: Title(title), Width(width), Height(height)
 {
@@ -29,7 +19,8 @@ Example::Example(std::string title, uint32_t width, uint32_t height)
 
 	Window =
 			SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED,
-					SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_BORDERLESS | SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_METAL);
+					SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_ALLOW_HIGHDPI | /*SDL_WINDOW_BORDERLESS |*/
+                             /*SDL_WINDOW_FULLSCREEN_DESKTOP |*/ SDL_WINDOW_METAL);
 	MetalView = SDL_Metal_CreateView(Window);
 	Running   = true;
 }

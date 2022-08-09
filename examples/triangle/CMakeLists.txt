@@ -2,6 +2,8 @@
 find_program(XCODE_RUN NAMES xcrun REQUIRED)
 if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
     set(XCODE_RUN_SDK iphoneos)
+elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
+    set(XCODE_RUN_SDK appletvos)
 else ()
     set(XCODE_RUN_SDK macosx)
 endif ()
@@ -17,7 +19,13 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
     set(RESOURCE_FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/shader.metal
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib
-            ${CMAKE_CURRENT_SOURCE_DIR}/LaunchScreen.storyboard
+            ${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard
+            ${CMAKE_CURRENT_SOURCE_DIR}/Example.png)
+elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
+    set(RESOURCE_FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/shader.metal
+            ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib
+            ${CMAKE_CURRENT_SOURCE_DIR}/tvOS/LaunchScreen.storyboard
             ${CMAKE_CURRENT_SOURCE_DIR}/Example.png)
 else ()
     set(RESOURCE_FILES
@@ -28,9 +36,8 @@ endif ()
 add_executable(triangle
         ${CMAKE_CURRENT_SOURCE_DIR}/triangle.mm
         ${RESOURCE_FILES})
-if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
-    target_sources(triangle
-            ${SDL2_SOURCE_DIR}/src/main/uikit/SDL_uikit_main.c)
+if ((${CMAKE_SYSTEM_NAME} MATCHES "iOS") OR (${CMAKE_SYSTEM_NAME} MATCHES "tvOS"))
+    target_sources(triangle PRIVATE ${SDL2_SOURCE_DIR}/src/main/uikit/SDL_uikit_main.c)
 endif ()
 target_link_libraries(triangle base)
 set_target_properties(triangle

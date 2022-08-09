@@ -37,8 +37,8 @@ else()
 target_link_libraries(base
                       PUBLIC
                       SDL2::SDL2-static
-                      "-framework AppKit"
-                      "-framework GameController"
-                      "-framework QuartzCore"
+                     # "-framework AppKit"
+                      #"-framework GameController"
+                      #"-framework QuartzCore"
                       "-framework Metal")
 endif()

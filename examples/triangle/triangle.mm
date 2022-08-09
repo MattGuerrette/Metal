@@ -312,7 +312,11 @@ void Triangle::Render()
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCInconsistentNamingInspection"
 
+#if defined(__IPHONEOS__) || defined(__TVOS__)
 int SDL_main(int argc, char** argv)
+#else
+int main(int argc, char** argv)
+#endif
 {
 	Triangle* example = new Triangle;
 

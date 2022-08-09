@@ -3,6 +3,7 @@ project(Metal)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_XCODE_GENERATE_SCHEME TRUE)
+enable_language(OBJC OBJCXX)
 
 include(FetchContent)
 
@@ -14,18 +15,25 @@ include(FetchContent)
 # Added benefit of this is being able to use a single
 # math library across both Microsoft and Apple platforms.
 FetchContent_Declare(
-    DirectXMath
-    GIT_REPOSITORY https://github.com/Microsoft/DirectXMath
-    GIT_TAG main
+        DirectXMath
+        GIT_REPOSITORY https://github.com/Microsoft/DirectXMath
+        GIT_TAG main
 )
 
-FetchContent_Declare(
-    SDL
-    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG 2.0.22
-)
+FetchContent_MakeAvailable(DirectXMath)
 
-FetchContent_MakeAvailable(SDL DirectXMath)
+if (${CMAKE_SYSTEM_NAME} MATCHES "iOS" OR ${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
+    FetchContent_Declare(
+            SDL
+            GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+            GIT_TAG 2.0.22
+    )
+
+    FetchContent_MakeAvailable(SDL)
+else ()
+    find_package(SDL2 REQUIRED)
+endif ()
+
 
 # Global include
 include_directories(${CMAKE_SOURCE_DIR}/examples/base)
