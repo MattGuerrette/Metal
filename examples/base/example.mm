@@ -27,6 +27,8 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 
 Example::~Example()
 {
+    SDL_DestroyWindow(Window);
+    SDL_Quit();
 }
 
 CAMetalLayer* Example::GetMetalLayer() const

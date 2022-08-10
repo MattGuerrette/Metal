@@ -205,7 +205,7 @@ void Instancing::UpdateUniform()
         
         pInstanceData[index].Transform = modelMatrix * cameraUniforms.ViewProjection;
     }
-    [instanceBuffer didModifyRange:NSMakeRange(0, instanceBuffer.length)];
+    //[instanceBuffer didModifyRange:NSMakeRange(0, instanceBuffer.length)];
 }
 
 void Instancing::MakeBuffers()
@@ -239,7 +239,7 @@ void Instancing::MakeBuffers()
     const size_t instanceDataSize = BUFFER_COUNT * INSTANCE_COUNT * sizeof(InstanceData);
     for(auto index = 0; index < BUFFER_COUNT; ++index)
     {
-        InstanceBuffer[index] = [Device newBufferWithLength:instanceDataSize options:MTLResourceStorageModeManaged];
+        InstanceBuffer[index] = [Device newBufferWithLength:instanceDataSize options:MTLResourceOptionCPUCacheModeDefault];
         NSString* label = [NSString stringWithFormat:@"InstanceBuffer: %d", index];
         [InstanceBuffer[index] setLabel:label];
     }
