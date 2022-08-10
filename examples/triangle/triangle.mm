@@ -7,13 +7,13 @@
 
 using namespace DirectX;
 
-typedef struct
+typedef XM_ALIGNED_STRUCT(16)
 {
     XMFLOAT4 Position;
     XMFLOAT4 Color;
 } Vertex;
 
-typedef struct
+typedef XM_ALIGNED_STRUCT(16)
 {
     XMMATRIX ModelViewProj;
 } Uniforms;
@@ -22,6 +22,7 @@ constexpr NSUInteger kAlignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
 
 class Triangle : public Example
 {
+    static constexpr int BUFFER_COUNT = 3;
  public:
     Triangle();
 
@@ -42,18 +43,17 @@ class Triangle : public Example
     id<MTLTexture>             DepthStencilTexture{};
     id<MTLBuffer>              VertexBuffer{};
     id<MTLBuffer>              IndexBuffer{};
-    id<MTLBuffer>              UniformBuffer{};
+    id<MTLBuffer>              UniformBuffer[BUFFER_COUNT];
     id<MTLRenderPipelineState> PipelineState{};
     id<MTLLibrary>             PipelineLibrary{};
-    NSUInteger                 BufferIndex{};
+    NSUInteger                 FrameIndex{};
+    dispatch_semaphore_t       Semaphore{};
 
     void MakeBuffers();
 
     void UpdateUniform();
 
     MTLVertexDescriptor* CreateVertexDescriptor();
-
-    static constexpr int BUFFER_COUNT = 3;
 
     float RotationY = 0.0f;
     float RotationX = 0.0f;
@@ -68,8 +68,7 @@ Triangle::~Triangle() = default;
 
 void Triangle::Init()
 {
-    Device      = MTLCreateSystemDefaultDevice();
-    BufferIndex = 0;
+    Device = MTLCreateSystemDefaultDevice();
 
     // Metal initialization
     CAMetalLayer* layer = GetMetalLayer();
@@ -151,6 +150,8 @@ void Triangle::Init()
     Camera = std::make_shared<class Camera>(
         XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, -1.0f },
         XMFLOAT3{ 0.0f, 1.0f, 0.0f }, fov, aspect, near, far);
+
+    Semaphore = dispatch_semaphore_create(BUFFER_COUNT);
 }
 
 MTLVertexDescriptor* Triangle::CreateVertexDescriptor()
@@ -178,7 +179,7 @@ void Triangle::UpdateUniform()
     auto translation = XMFLOAT3(0.0f, 0.0f, -10.0f);
     auto rotationX   = RotationX;
     auto rotationY   = RotationY;
-    auto scaleFactor = 1.0f;
+    auto scaleFactor = 3.0f;
 
     const XMFLOAT3 xAxis = { 1, 0, 0 };
     const XMFLOAT3 yAxis = { 0, 1, 0 };
@@ -200,27 +201,20 @@ void Triangle::UpdateUniform()
     auto     viewProj = cameraUniforms.ViewProjection;
     uniforms.ModelViewProj = modelMatrix * viewProj;
 
-    const NSUInteger uniformBufferOffset = kAlignedUniformSize * BufferIndex;
+    const NSUInteger uniformBufferOffset = kAlignedUniformSize * FrameIndex;
 
-    char* buffer = reinterpret_cast<char*>([UniformBuffer contents]);
+    char* buffer = reinterpret_cast<char*>([UniformBuffer[FrameIndex] contents]);
     memcpy(buffer + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
 
 void Triangle::MakeBuffers()
 {
     static const Vertex vertices[] = {
-        { .Position = { -1, 1, 1, 1 }, .Color = { 0, 1, 1, 1 }},
-        { .Position = { -1, -1, 1, 1 }, .Color = { 0, 0, 1, 1 }},
-        { .Position = { 1, -1, 1, 1 }, .Color = { 1, 0, 1, 1 }},
-        { .Position = { 1, 1, 1, 1 }, .Color = { 1, 1, 1, 1 }},
-        { .Position = { -1, 1, -1, 1 }, .Color = { 0, 1, 0, 1 }},
-        { .Position = { -1, -1, -1, 1 }, .Color = { 0, 0, 0, 1 }},
-        { .Position = { 1, -1, -1, 1 }, .Color = { 1, 0, 0, 1 }},
-        { .Position = { 1, 1, -1, 1 }, .Color = { 1, 1, 0, 1 }}};
+        { .Position = { 0, 1, 0, 1 }, .Color = { 1, 0, 0, 1 }},
+        { .Position = { -1, -1, 0, 1 }, .Color = { 0, 1, 0, 1 }},
+        { .Position = { 1, -1, 0, 1 }, .Color = { 0, 0, 1, 1 }}};
 
-    static const uint16_t indices[] = { 3, 2, 6, 6, 7, 3, 4, 5, 1, 1, 0, 4,
-                                        4, 0, 3, 3, 7, 4, 1, 5, 6, 6, 2, 1,
-                                        0, 1, 2, 2, 3, 0, 7, 6, 5, 5, 4, 7 };
+    static const uint16_t indices[] = { 0, 1, 2 };
 
     VertexBuffer =
         [Device newBufferWithBytes:vertices
@@ -234,16 +228,21 @@ void Triangle::MakeBuffers()
                            options:MTLResourceOptionCPUCacheModeDefault];
     [IndexBuffer setLabel:@"Indices"];
 
-    UniformBuffer =
-        [Device newBufferWithLength:kAlignedUniformSize * BUFFER_COUNT
-                            options:MTLResourceOptionCPUCacheModeDefault];
-    [UniformBuffer setLabel:@"Uniforms"];
+    for (auto index = 0; index < BUFFER_COUNT; index++)
+    {
+        UniformBuffer[index] =
+            [Device newBufferWithLength:kAlignedUniformSize * BUFFER_COUNT
+                                options:MTLResourceOptionCPUCacheModeDefault];
+        NSString* label = [NSString stringWithFormat:@"Uniform: %d", index];
+        [UniformBuffer[index] setLabel:label];
+    }
+
 }
 
 void Triangle::Update()
 {
     float delta = 1.0f / 60.0f;
-    RotationX += delta; // * left_stick_y_;
+    RotationX = 0.0f;//+= delta; // * left_stick_y_;
     RotationY += delta; //* left_stick_x_;
 }
 
@@ -253,6 +252,15 @@ void Triangle::Render()
 
     @autoreleasepool
     {
+        FrameIndex = (FrameIndex + 1) % BUFFER_COUNT;
+
+        id<MTLCommandBuffer> commandBuffer = [CommandQueue commandBuffer];
+        dispatch_semaphore_wait(Semaphore, DISPATCH_TIME_FOREVER);
+        [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull)
+        {
+          dispatch_semaphore_signal(Semaphore);
+        }];
+
         CAMetalLayer* layer = GetMetalLayer();
         id<CAMetalDrawable> drawable = [layer nextDrawable];
         if (drawable != nil)
@@ -276,19 +284,18 @@ void Triangle::Render()
             passDesc.stencilAttachment.storeAction  = MTLStoreActionDontCare;
             passDesc.stencilAttachment.clearStencil = 0;
 
-            id<MTLCommandBuffer>        commandBuffer  = [CommandQueue commandBuffer];
             id<MTLRenderCommandEncoder> commandEncoder =
                                             [commandBuffer renderCommandEncoderWithDescriptor:passDesc];
             [commandEncoder setRenderPipelineState:PipelineState];
             [commandEncoder setDepthStencilState:DepthStencilState];
             [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-            [commandEncoder setCullMode:MTLCullModeBack];
+            [commandEncoder setCullMode:MTLCullModeNone];
 
             const NSUInteger uniformBufferOffset =
-                                 kAlignedUniformSize * BufferIndex;
+                                 kAlignedUniformSize * FrameIndex;
 
             [commandEncoder setVertexBuffer:VertexBuffer offset:0 atIndex:0];
-            [commandEncoder setVertexBuffer:UniformBuffer
+            [commandEncoder setVertexBuffer:UniformBuffer[FrameIndex]
                                      offset:uniformBufferOffset
                                     atIndex:1];
 

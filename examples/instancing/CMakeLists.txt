@@ -1,5 +1,4 @@
-
-set(EXAMPLE triangle)
+set(EXAMPLE instancing)
 
 find_program(XCODE_RUN NAMES xcrun REQUIRED)
 if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
@@ -33,7 +32,7 @@ else ()
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib)
 endif ()
 add_executable(${EXAMPLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/triangle.mm
+        ${CMAKE_CURRENT_SOURCE_DIR}/instancing.mm
         ${RESOURCE_FILES})
 if ((${CMAKE_SYSTEM_NAME} MATCHES "iOS") OR (${CMAKE_SYSTEM_NAME} MATCHES "tvOS"))
     target_sources(${EXAMPLE} PRIVATE ${SDL2_SOURCE_DIR}/src/main/uikit/SDL_uikit_main.c)
