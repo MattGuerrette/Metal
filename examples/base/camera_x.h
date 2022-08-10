@@ -11,7 +11,7 @@
 #include "platform.h"
 
 /// @brief Camera uniform values
-struct CameraUniforms
+XM_ALIGNED_STRUCT(16) CameraUniforms
 {
     DirectX::XMMATRIX View;
     DirectX::XMMATRIX Projection;
@@ -36,9 +36,13 @@ class Camera
     /// @param [in] nearPlane The distance of near plane to position in world
     /// space
     /// @param [in] farPlane The distance of far plane to position in world space
-    Camera(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 direction,
-        DirectX::XMFLOAT3 up, float fov, float aspectRatio,
-        float nearPlane, float farPlane);
+    Camera(DirectX::XMFLOAT3 position,
+           DirectX::XMFLOAT3 direction,
+           DirectX::XMFLOAT3 up,
+           float fov,
+           float aspectRatio,
+           float nearPlane,
+           float farPlane);
 
     /// @brief Gets the uniforms
     /// @return camera uniforms
