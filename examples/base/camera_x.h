@@ -11,7 +11,8 @@
 #include "platform.h"
 
 /// @brief Camera uniform values
-struct CameraUniforms {
+struct CameraUniforms
+{
     DirectX::XMMATRIX View;
     DirectX::XMMATRIX Projection;
     DirectX::XMMATRIX ViewProjection;
@@ -20,8 +21,9 @@ struct CameraUniforms {
     DirectX::XMMATRIX InvView;
 };
 
-class Camera {
-public:
+class Camera
+{
+ public:
     /// @brief Default constructor
     Camera() = default;
 
@@ -31,21 +33,18 @@ public:
     /// @param [in] up The camera up direction, perpendicular to direction
     /// @param [in] fov The viewing angle (field of view)
     /// @param [in] aspectRation The horizontal over vertical aspect ratio
-    /// @param [in] nearPlane The distance of near plane to position in world space
+    /// @param [in] nearPlane The distance of near plane to position in world
+    /// space
     /// @param [in] farPlane The distance of far plane to position in world space
-    Camera(const DirectX::XMFLOAT3 position,
-        const DirectX::XMFLOAT3 direction,
-        const DirectX::XMFLOAT3 up,
-        float fov,
-        float aspectRatio,
-        float nearPlane,
-        float farPlane);
+    Camera(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 direction,
+        DirectX::XMFLOAT3 up, float fov, float aspectRatio,
+        float nearPlane, float farPlane);
 
     /// @brief Gets the uniforms
     /// @return camera uniforms
     const CameraUniforms& GetUniforms() const;
 
-private:
+ private:
     /// @brief Updates basic vectors from new direction
     /// @param [in] newDirection The new direction vector
     /// Computes the new basic vectors for the camera, maintaining
@@ -55,17 +54,16 @@ private:
     /// @brief Updates uniforms from basis vectors
     void UpdateUniforms();
 
-    /// @brief Computes the view frustrum
+    /// @brief Computes the view frustum
     /// @todo Needs implementation
-    void ComputeViewFrustrum();
+    void ComputeViewFrustum();
 
-    CameraUniforms Uniforms;
-    //DirectX::SimpleMath::Plane Frustrum[6];
+    CameraUniforms    Uniforms;
     DirectX::XMFLOAT3 Direction;
     DirectX::XMFLOAT3 Position;
     DirectX::XMFLOAT3 Up;
-    float ViewAngle;
-    float NearPlane;
-    float FarPlane;
-    float AspectRatio;
+    float             ViewAngle;
+    float             NearPlane;
+    float             FarPlane;
+    float             AspectRatio;
 };

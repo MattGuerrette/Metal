@@ -60,7 +60,7 @@ void Camera::UpdateUniforms()
     Uniforms.ViewProjection = Uniforms.Projection * Uniforms.View;
 }
 
-void Camera::ComputeViewFrustrum()
+void Camera::ComputeViewFrustum()
 {
     
 }

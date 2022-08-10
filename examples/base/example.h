@@ -17,33 +17,31 @@
 
 class Example
 {
-public:
-	Example(std::string title, uint32_t width, uint32_t height);
+ public:
+    Example(const char* title, uint32_t width, uint32_t height);
 
-	virtual ~Example();
+    virtual ~Example();
 
-	virtual void Init() = 0;
+    virtual void Init() = 0;
 
-	virtual void Update() = 0;
+    virtual void Update() = 0;
 
-	virtual void Render() = 0;
+    virtual void Render() = 0;
 
-	// Run loop
-	int Run(int argc, char* argv[]);
+    // Run loop
+    int Run(int argc, char* argv[]);
 
-	CAMetalLayer* GetMetalLayer() const;
+    CAMetalLayer* GetMetalLayer() const;
 
-private:
-	static int EventFilter(void* self, SDL_Event* e);
+ private:
+    static int EventFilter(void* self, SDL_Event* e);
 
-	static void FrameTick(void* self);
+    static void FrameTick(void* self);
 
-	std::chrono::high_resolution_clock::time_point StartTime;
-	std::chrono::nanoseconds                       Lag;
-	std::string                                    Title;
-	bool                                           Running;
-	uint32_t                                       Width;
-	uint32_t                                       Height;
-	SDL_Window* Window;
-	SDL_MetalView MetalView;
+    std::string   Title;
+    bool          Running;
+    uint32_t      Width;
+    uint32_t      Height;
+    SDL_MetalView MetalView;
+    SDL_Window* Window;
 };

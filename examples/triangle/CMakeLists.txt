@@ -19,19 +19,16 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
     set(RESOURCE_FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/shader.metal
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib
-            ${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard
-            ${CMAKE_CURRENT_SOURCE_DIR}/Example.png)
+            ${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
     set(RESOURCE_FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/shader.metal
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib
-            ${CMAKE_CURRENT_SOURCE_DIR}/tvOS/LaunchScreen.storyboard
-            ${CMAKE_CURRENT_SOURCE_DIR}/Example.png)
+            ${CMAKE_CURRENT_SOURCE_DIR}/tvOS/LaunchScreen.storyboard)
 else ()
     set(RESOURCE_FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/shader.metal
-            ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib
-            ${CMAKE_CURRENT_SOURCE_DIR}/Example.png)
+            ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib)
 endif ()
 add_executable(triangle
         ${CMAKE_CURRENT_SOURCE_DIR}/triangle.mm

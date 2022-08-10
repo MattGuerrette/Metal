@@ -3,11 +3,8 @@ set(BASE_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/platform.h
     ${CMAKE_CURRENT_SOURCE_DIR}/example.h
     ${CMAKE_CURRENT_SOURCE_DIR}/graphics_math.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/camera.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/camera.mm
     ${CMAKE_CURRENT_SOURCE_DIR}/camera_x.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/camera_x.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/simd_matrix.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera_x.cpp)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "tvOS" OR ${CMAKE_SYSTEM_NAME} MATCHES "iOS")
 add_library(base ${BASE_SOURCE_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/example.mm)
@@ -29,16 +26,10 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "tvOS" OR ${CMAKE_SYSTEM_NAME} MATCHES "iOS")
 target_link_libraries(base
                       PUBLIC
                       SDL2::SDL2-static
-                      "-framework UIKit"
-                      "-framework GameController"
-                      "-framework QuartzCore"
-                      "-framework Metal")
+                      "-framework MetalKit")
 else()
 target_link_libraries(base
                       PUBLIC
                       SDL2::SDL2-static
-                     # "-framework AppKit"
-                      #"-framework GameController"
-                      #"-framework QuartzCore"
-                      "-framework Metal")
+                      "-framework MetalKit")
 endif()

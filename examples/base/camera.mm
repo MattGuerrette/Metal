@@ -6,7 +6,6 @@
  */
 
 #include "camera.h"
-#include "simd_matrix.h"
 
 using namespace simd;
 

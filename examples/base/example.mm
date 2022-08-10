@@ -9,7 +9,7 @@
 
 #include "example.h"
 
-Example::Example(std::string title, uint32_t width, uint32_t height)
+Example::Example(const char* title, uint32_t width, uint32_t height)
 		: Title(title), Width(width), Height(height)
 {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
@@ -18,7 +18,7 @@ Example::Example(std::string title, uint32_t width, uint32_t height)
 	}
 
 	Window =
-			SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED,
+			SDL_CreateWindow(Title.c_str(), SDL_WINDOWPOS_CENTERED,
 					SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_ALLOW_HIGHDPI | /*SDL_WINDOW_BORDERLESS |*/
                              /*SDL_WINDOW_FULLSCREEN_DESKTOP |*/ SDL_WINDOW_METAL);
 	MetalView = SDL_Metal_CreateView(Window);
