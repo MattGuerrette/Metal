@@ -23,6 +23,32 @@ XM_ALIGNED_STRUCT(16) Vertex
     DirectX::XMFLOAT4 Weights;
 };
 
+struct JointPose
+{
+    DirectX::XMFLOAT4 Rotation;
+    DirectX::XMFLOAT4 Position;
+    float32_t Scale;
+};
+
+struct Joint
+{
+    std::string Name;
+    DirectX::XMMATRIX InverseBind;
+    uint8_t ParentIndex;
+};
+
+struct Skeleton
+{
+    std::string Name;
+    std::vector<Joint> Joints;
+};
+
+struct SkeletonPose
+{
+    std::shared_ptr<struct Skeleton> Skeleton;
+    std::vector<JointPose> LocalPose;
+};
+
 struct AnimationSampler
 {
     enum class Interpolation
@@ -64,6 +90,7 @@ private:
     id<MTLBuffer> VertexBuffer;
     id<MTLBuffer> IndexBuffer;
     id<MTLTexture> Texture;
+    std::shared_ptr<struct Skeleton> Skeleton;
     std::vector<Vertex> Vertices;
     std::vector<uint16_t> Indices;
     std::vector<Animation> Animations;

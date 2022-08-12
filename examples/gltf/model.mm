@@ -121,26 +121,50 @@ static void cgltf_query_mesh_vertices_indices(const cgltf_mesh* mesh,
             }
             else if (attrib->type == cgltf_attribute_type_joints)
             {
-                assert(accessor->type == cgltf_type_vec4 && accessor->component_type == cgltf_component_type_r_8u);
+                assert(accessor->type == cgltf_type_vec4 &&
+                       (accessor->component_type == cgltf_component_type_r_8u ||
+                        accessor->component_type == cgltf_component_type_r_16u));
                 
                 NSString* vertexBinaryPath = [[[NSBundle mainBundle] resourcePath]
                     stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String:accessor->buffer_view->buffer->uri]];
                 NSData* vertexBinaryData = [NSData dataWithContentsOfFile:vertexBinaryPath];
                 
-                // Acces joint data
-                uint8_t* buffer = (uint8_t*)vertexBinaryData.bytes +
-                (accessor->buffer_view->offset / sizeof(uint8_t)) + (accessor->offset / sizeof(uint8_t));
-                
-                int n = 0;
-                const auto step = (int)(accessor->stride / sizeof(uint8_t));
-                for(uint32_t k = 0; k < accessor->count; k++)
+                // Support uint8_t joint indices
+                if(accessor->component_type == cgltf_component_type_r_8u)
                 {
-                    Vertex* v = &vertices[k];
+                    // Acces joint data
+                    uint8_t* buffer = (uint8_t*)vertexBinaryData.bytes +
+                    (accessor->buffer_view->offset / sizeof(uint8_t)) + (accessor->offset / sizeof(uint8_t));
                     
-                    v->Joints = XMUINT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
-                    
-                    n += step;
+                    int n = 0;
+                    const auto step = (int)(accessor->stride / sizeof(uint8_t));
+                    for(uint32_t k = 0; k < accessor->count; k++)
+                    {
+                        Vertex* v = &vertices[k];
+                        
+                        v->Joints = XMUINT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
+                        
+                        n += step;
+                    }
                 }
+                else if(accessor->component_type == cgltf_component_type_r_16u)
+                {
+                    // Acces joint data
+                    uint16_t* buffer = (uint16_t*)vertexBinaryData.bytes +
+                    (accessor->buffer_view->offset / sizeof(uint16_t)) + (accessor->offset / sizeof(uint16_t));
+                    
+                    int n = 0;
+                    const auto step = (int)(accessor->stride / sizeof(uint16_t));
+                    for(uint32_t k = 0; k < accessor->count; k++)
+                    {
+                        Vertex* v = &vertices[k];
+                        
+                        v->Joints = XMUINT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
+                        
+                        n += step;
+                    }
+                }
+                
             }
             else if (attrib->type == cgltf_attribute_type_weights)
             {
@@ -180,7 +204,7 @@ static void cgltf_query_animation_samplers(const cgltf_animation* animation,
         AnimationSampler animationSampler;
         
         const cgltf_animation_sampler* sampler = &animation->samplers[i];
-        printf("Test\n");
+        //printf("Test\n");
     }
 }
 
@@ -195,7 +219,7 @@ static void cgltf_query_animation_channels(const cgltf_animation* animation,
         AnimationChannel animationChannel;
         
         const cgltf_animation_channel* channel = &animation->channels[i];
-        printf("Test\n");
+        //printf("Test\n");
     }
 }
 
@@ -221,18 +245,48 @@ Model::Model(std::string file, id<MTLDevice> device)
     
     // Load skinning data
     const auto skinCount = modelData->skins_count;
+    assert(skinCount == 1);
+    if(skinCount == 1) {
+        Skeleton = std::make_shared<struct Skeleton>();
+    }
+    
     for(auto i = 0; i < skinCount; i++)
     {
         // Access each skin
         const cgltf_skin* skin = &modelData->skins[i];
         
+        // Cache skin name
+        if(skin->name != nullptr)
+            Skeleton->Name = skin->name;
+        
         const auto jointCount = skin->joints_count;
         for(auto j = 0; j < jointCount; j++)
         {
+            Joint skeletonJoint{};
+            
             const cgltf_node* joint = skin->joints[j];
-            printf("Joint: %s\n", joint->name);
+            
+            // Cache joint name
+            if(joint->name != nullptr)
+                skeletonJoint.Name = joint->name;
+            
+            printf("Joint: %s\n", skeletonJoint.Name.c_str());
+            
+            
+            // Does this joint have a parent?
+            if (j > 0 && joint->parent != nullptr)
+            {
+                const cgltf_node* parentJoint = joint->parent;
+                auto it = std::find_if(Skeleton->Joints.begin(), Skeleton->Joints.end(), [parentJoint](const Joint& _joint) {
+                    return _joint.Name == parentJoint->name;
+                });
+                auto parentIndex = std::distance(Skeleton->Joints.begin(), it);
+                skeletonJoint.ParentIndex = parentIndex;
+                printf("Parent: %s Index: %ld\n", parentJoint->name, parentIndex);
+            }
+            
+            Skeleton->Joints.push_back(skeletonJoint);
         }
-        printf("Test\n");
     }
     
     // Load animation data
@@ -250,9 +304,6 @@ Model::Model(std::string file, id<MTLDevice> device)
         // Query all channels
         cgltf_query_animation_channels(anim, animation);
         
-        
-        
-        printf("Test\n");
     }
     
     

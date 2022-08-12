@@ -24,9 +24,9 @@ class Example
 
     virtual void Init() = 0;
 
-    virtual void Update() = 0;
+    virtual void Update(double elapsed) = 0;
 
-    virtual void Render() = 0;
+    virtual void Render(double elapsed) = 0;
 
     // Run loop
     int Run(int argc, char* argv[]);
@@ -44,4 +44,6 @@ class Example
     uint32_t      Height;
     SDL_MetalView MetalView;
     SDL_Window* Window;
+    uint64_t CurrentClockTime = 0;
+    uint64_t LastClockTime = 0;
 };

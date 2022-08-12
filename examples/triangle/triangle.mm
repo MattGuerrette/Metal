@@ -30,9 +30,9 @@ class Triangle : public Example
 
     void Init() override;
 
-    void Update() override;
+    void Update(double elapsed) override;
 
-    void Render() override;
+    void Render(double elapsed) override;
 
  private:
     std::shared_ptr<class Camera> Camera;
@@ -239,14 +239,13 @@ void Triangle::MakeBuffers()
 
 }
 
-void Triangle::Update()
+void Triangle::Update(double elapsed)
 {
-    float delta = 1.0f / 60.0f;
-    RotationX = 0.0f;//+= delta; // * left_stick_y_;
-    RotationY += delta; //* left_stick_x_;
+    RotationX = 0.0f;
+    RotationY += elapsed;
 }
 
-void Triangle::Render()
+void Triangle::Render(double elapsed)
 {
     UpdateUniform();
 

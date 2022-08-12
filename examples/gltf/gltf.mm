@@ -24,9 +24,9 @@ class GLTF : public Example
 
     void Init() override;
 
-    void Update() override;
+    void Update(double elapsed) override;
 
-    void Render() override;
+    void Render(double elapsed) override;
 
  private:
     std::shared_ptr<class Camera> Camera;
@@ -223,7 +223,7 @@ void GLTF::UpdateUniform()
 void GLTF::MakeBuffers()
 {
     // Load GLTF model file
-    Model = std::make_unique<class Model>("CesiumMan.gltf", Device);
+    Model = std::make_unique<class Model>("SimpleSkin.gltf", Device);
     
     const auto& vertexList = Model->GetVertices();
     const auto& indexList = Model->GetIndices();
@@ -249,14 +249,13 @@ void GLTF::MakeBuffers()
     
 }
 
-void GLTF::Update()
+void GLTF::Update(double elapsed)
 {
-    float delta = 1.0f / 60.0f;
-    RotationX = 0.0f;//+= delta; // * left_stick_y_;
-    RotationY =0.0;//+= delta; //* left_stick_x_;
+    RotationX = 0.0f;
+    RotationY = 0.0f;
 }
 
-void GLTF::Render()
+void GLTF::Render(double elapsed)
 {
     
     @autoreleasepool
@@ -303,21 +302,11 @@ void GLTF::Render()
             [commandEncoder setDepthStencilState:DepthStencilState];
             [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
             [commandEncoder setCullMode:MTLCullModeBack];
-
-//            const NSUInteger uniformBufferOffset =
-//                                 kAlignedInstanceDataSize * FrameIndex;
-
             [commandEncoder setFragmentTexture:Model->GetTexture() atIndex:0];
             [commandEncoder setVertexBuffer:VertexBuffer offset:0 atIndex:0];
             [commandEncoder setVertexBuffer:instanceBuffer offset:0 atIndex:1];
 
             [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[IndexBuffer length] / sizeof(uint16_t) indexType:MTLIndexTypeUInt16 indexBuffer:IndexBuffer indexBufferOffset:0 instanceCount:INSTANCE_COUNT];
-//            [commandEncoder
-//                drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-//                           indexCount:[IndexBuffer length] / sizeof(uint16_t)
-//                            indexType:MTLIndexTypeUInt16
-//                          indexBuffer:IndexBuffer
-//                    indexBufferOffset:0];
             [commandEncoder endEncoding];
 
             [commandBuffer presentDrawable:drawable];

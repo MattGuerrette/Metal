@@ -41,8 +41,14 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
             ${CMAKE_CURRENT_SOURCE_DIR}/tvOS/LaunchScreen.storyboard)
 else ()
     set(RESOURCE_FILES
-                ${CMAKE_CURRENT_SOURCE_DIR}/single_bone.gltf
+            ${CMAKE_CURRENT_SOURCE_DIR}/single_bone.gltf
             ${CMAKE_CURRENT_SOURCE_DIR}/single_bone.bin
+            ${CMAKE_CURRENT_SOURCE_DIR}/SimpleSkin.gltf
+            ${CMAKE_CURRENT_SOURCE_DIR}/skinAnimation.bin
+            ${CMAKE_CURRENT_SOURCE_DIR}/skinGeometry.bin
+            ${CMAKE_CURRENT_SOURCE_DIR}/skinningData.bin
+            ${CMAKE_CURRENT_SOURCE_DIR}/SimpleSkin.bin
+            ${CMAKE_CURRENT_SOURCE_DIR}/inverseBindMatrices.bin
             ${CMAKE_CURRENT_SOURCE_DIR}/CesiumMan.gltf
             ${CMAKE_CURRENT_SOURCE_DIR}/CesiumMan.bin
             ${CMAKE_CURRENT_SOURCE_DIR}/CesiumMan_img0.jpg

@@ -35,9 +35,9 @@ class Instancing : public Example
 
     void Init() override;
 
-    void Update() override;
+    void Update(double elapsed) override;
 
-    void Render() override;
+    void Render(double elapsed) override;
 
  private:
     std::shared_ptr<class Camera> Camera;
@@ -250,14 +250,13 @@ void Instancing::MakeBuffers()
 
 }
 
-void Instancing::Update()
+void Instancing::Update(double elapsed)
 {
-    float delta = 1.0f / 60.0f;
-    RotationX += delta; // * left_stick_y_;
-    RotationY += delta; //* left_stick_x_;
+    RotationX += elapsed;
+    RotationY += elapsed;
 }
 
-void Instancing::Render()
+void Instancing::Render(double elapsed)
 {
 
     @autoreleasepool
