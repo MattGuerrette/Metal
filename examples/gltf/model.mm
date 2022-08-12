@@ -64,7 +64,6 @@ static void cgltf_query_mesh_vertices_indices(const cgltf_mesh* mesh,
                 
                 assert(accessor->type == cgltf_type_vec3 && accessor->component_type == cgltf_component_type_r_32f);
                 
-                
                 NSString* vertexBinaryPath = [[[NSBundle mainBundle] resourcePath]
                     stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String:accessor->buffer_view->buffer->uri]];
                 NSData* vertexBinaryData = [NSData dataWithContentsOfFile:vertexBinaryPath];
@@ -78,6 +77,26 @@ static void cgltf_query_mesh_vertices_indices(const cgltf_mesh* mesh,
                 {
                     Vertex* v = &vertices[k];
                     v->Position = XMFLOAT4(buffer[n+0], buffer[n+1], buffer[n+2], 1.0f);
+                    n += (int)(accessor->stride / sizeof(float));
+                }
+            }
+            else if (attrib->type == cgltf_attribute_type_color)
+            {
+                assert(accessor->type == cgltf_type_vec4 && accessor->component_type == cgltf_component_type_r_32f);
+                
+                NSString* vertexBinaryPath = [[[NSBundle mainBundle] resourcePath]
+                    stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String:accessor->buffer_view->buffer->uri]];
+                NSData* vertexBinaryData = [NSData dataWithContentsOfFile:vertexBinaryPath];
+                
+                // Access positional data
+                float* buffer = (float*)vertexBinaryData.bytes +
+                (accessor->buffer_view->offset / sizeof(float)) + (accessor->offset / sizeof(float));
+                
+                int n = 0;
+                for(uint32_t k = 0; k < accessor->count; k++)
+                {
+                    Vertex* v = &vertices[k];
+                    v->Color = XMFLOAT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
                     n += (int)(accessor->stride / sizeof(float));
                 }
             }
@@ -100,7 +119,83 @@ static void cgltf_query_mesh_vertices_indices(const cgltf_mesh* mesh,
                     n += (int)(accessor->stride / sizeof(float));
                 }
             }
+            else if (attrib->type == cgltf_attribute_type_joints)
+            {
+                assert(accessor->type == cgltf_type_vec4 && accessor->component_type == cgltf_component_type_r_8u);
+                
+                NSString* vertexBinaryPath = [[[NSBundle mainBundle] resourcePath]
+                    stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String:accessor->buffer_view->buffer->uri]];
+                NSData* vertexBinaryData = [NSData dataWithContentsOfFile:vertexBinaryPath];
+                
+                // Acces joint data
+                uint8_t* buffer = (uint8_t*)vertexBinaryData.bytes +
+                (accessor->buffer_view->offset / sizeof(uint8_t)) + (accessor->offset / sizeof(uint8_t));
+                
+                int n = 0;
+                const auto step = (int)(accessor->stride / sizeof(uint8_t));
+                for(uint32_t k = 0; k < accessor->count; k++)
+                {
+                    Vertex* v = &vertices[k];
+                    
+                    v->Joints = XMUINT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
+                    
+                    n += step;
+                }
+            }
+            else if (attrib->type == cgltf_attribute_type_weights)
+            {
+                assert(accessor->type == cgltf_type_vec4 && accessor->component_type == cgltf_component_type_r_32f);
+                
+                NSString* vertexBinaryPath = [[[NSBundle mainBundle] resourcePath]
+                    stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String:accessor->buffer_view->buffer->uri]];
+                NSData* vertexBinaryData = [NSData dataWithContentsOfFile:vertexBinaryPath];
+                
+                // Acces joint data
+                float* buffer = (float*)vertexBinaryData.bytes +
+                (accessor->buffer_view->offset / sizeof(float)) + (accessor->offset / sizeof(float));
+                
+                int n = 0;
+                const auto step = (int)(accessor->stride / sizeof(float));
+                for(uint32_t k = 0; k < accessor->count; k++)
+                {
+                    Vertex* v = &vertices[k];
+                    
+                    v->Weights = XMFLOAT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
+                    
+                    n += step;
+                }
+            }
         }
+    }
+}
+
+static void cgltf_query_animation_samplers(const cgltf_animation* animation,
+                                           Animation& output)
+{
+    assert(animation != nullptr);
+    
+    // Access each sampler
+    for(auto i = 0; i < animation->samplers_count; i++)
+    {
+        AnimationSampler animationSampler;
+        
+        const cgltf_animation_sampler* sampler = &animation->samplers[i];
+        printf("Test\n");
+    }
+}
+
+static void cgltf_query_animation_channels(const cgltf_animation* animation,
+                                           Animation& output)
+{
+    assert(animation != nullptr);
+    
+    // Access each channel
+    for(auto i = 0; i < animation->channels_count; i++)
+    {
+        AnimationChannel animationChannel;
+        
+        const cgltf_animation_channel* channel = &animation->channels[i];
+        printf("Test\n");
     }
 }
 
@@ -117,7 +212,6 @@ Model::Model(std::string file, id<MTLDevice> device)
     assert(result == cgltf_result_success);
     
     const auto meshCount = modelData->meshes_count;
-    assert(meshCount == 1);
     for(auto i = 0; i < meshCount; i++)
     {
         // Access each mesh
@@ -125,8 +219,45 @@ Model::Model(std::string file, id<MTLDevice> device)
         cgltf_query_mesh_vertices_indices(mesh, Vertices, Indices);
     }
     
-    MTKTextureLoader* textureLoader = [[MTKTextureLoader alloc] initWithDevice:device];
+    // Load skinning data
+    const auto skinCount = modelData->skins_count;
+    for(auto i = 0; i < skinCount; i++)
+    {
+        // Access each skin
+        const cgltf_skin* skin = &modelData->skins[i];
+        
+        const auto jointCount = skin->joints_count;
+        for(auto j = 0; j < jointCount; j++)
+        {
+            const cgltf_node* joint = skin->joints[j];
+            printf("Joint: %s\n", joint->name);
+        }
+        printf("Test\n");
+    }
     
+    // Load animation data
+    const auto animationCount = modelData->animations_count;
+    for(auto i = 0; i < animationCount; i++)
+    {
+        Animation animation;
+        
+        // Access each animation
+        const cgltf_animation* anim = &modelData->animations[i];
+        
+        // Query all samplers
+        cgltf_query_animation_samplers(anim, animation);
+        
+        // Query all channels
+        cgltf_query_animation_channels(anim, animation);
+        
+        
+        
+        printf("Test\n");
+    }
+    
+    
+    
+    MTKTextureLoader* textureLoader = [[MTKTextureLoader alloc] initWithDevice:device];
     const auto textureCount = modelData->textures_count;
     for(auto i = 0; i < textureCount; i++)
     {
@@ -134,7 +265,7 @@ Model::Model(std::string file, id<MTLDevice> device)
         const cgltf_image* image = texture->image;
         
         // Load image from URI
-        if(image->uri != nullptr && !strcmp(image->uri, "Default_albedo.jpg"))
+        if(image->uri != nullptr)
         {
             NSString* imageResourcePath = [[[NSBundle mainBundle] resourcePath]
                 stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String:image->uri]];

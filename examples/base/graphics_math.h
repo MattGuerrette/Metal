@@ -15,3 +15,5 @@
 #endif
 
 #include <DirectXMath.h>
+#include <DirectXColors.h>
+

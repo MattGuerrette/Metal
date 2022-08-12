@@ -149,6 +149,7 @@ void GLTF::Init()
         XMFLOAT3{ 0.0f, 1.0f, 0.0f }, fov, aspect, near, far);
     
     Semaphore = dispatch_semaphore_create(BUFFER_COUNT);
+    
 }
 
 MTLVertexDescriptor* GLTF::CreateVertexDescriptor()
@@ -160,15 +161,25 @@ MTLVertexDescriptor* GLTF::CreateVertexDescriptor()
     vertexDescriptor.attributes[0].offset      = 0;
     vertexDescriptor.attributes[0].bufferIndex = 0;
 
-    // Texture coordinates
+    // Color
     vertexDescriptor.attributes[1].format      = MTLVertexFormatFloat4;
-    vertexDescriptor.attributes[1].offset      = sizeof(XMFLOAT4);
+    vertexDescriptor.attributes[1].offset      = offsetof(Vertex, Position);
     vertexDescriptor.attributes[1].bufferIndex = 0;
     
     // UV coordinates
     vertexDescriptor.attributes[2].format      = MTLVertexFormatFloat2;
-    vertexDescriptor.attributes[2].offset      = sizeof(XMFLOAT4);
+    vertexDescriptor.attributes[2].offset      = offsetof(Vertex, Color);
     vertexDescriptor.attributes[2].bufferIndex = 0;
+    
+    // Joints
+    vertexDescriptor.attributes[3].format      = MTLVertexFormatUInt4;
+    vertexDescriptor.attributes[3].offset      = offsetof(Vertex, UV);
+    vertexDescriptor.attributes[3].bufferIndex = 0;
+    
+    // Weights
+    vertexDescriptor.attributes[4].format      = MTLVertexFormatFloat2;
+    vertexDescriptor.attributes[4].offset      = offsetof(Vertex, Joints);
+    vertexDescriptor.attributes[4].bufferIndex = 0;
 
     vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
     vertexDescriptor.layouts[0].stride       = sizeof(Vertex);
@@ -184,8 +195,8 @@ void GLTF::UpdateUniform()
     for(auto index = 0; index < INSTANCE_COUNT; ++index)
     {
         
-        auto scaleFactor = 1.0f;
-        auto translation = XMFLOAT3(0.0f, 0.0f, -5.0f);
+        auto scaleFactor = 1.5f;
+        auto translation = XMFLOAT3(0.0f, -1.0f, -5.0f);
         auto rotationX   = RotationX;
         auto rotationY   = RotationY;
 
@@ -207,28 +218,12 @@ void GLTF::UpdateUniform()
         
         pInstanceData[index].Transform = modelMatrix * cameraUniforms.ViewProjection;
     }
-    //[instanceBuffer didModifyRange:NSMakeRange(0, instanceBuffer.length)];
 }
 
 void GLTF::MakeBuffers()
 {
     // Load GLTF model file
-    Model = std::make_unique<class Model>("DamagedHelmet.gltf", Device);
-    
-    static const Vertex vertices[] = {
-        { .Position = { -1, 1, 1, 1 }, .Color = { 0, 1, 1, 1 }},
-        { .Position = { -1, -1, 1, 1 }, .Color = { 0, 0, 1, 1 }},
-        { .Position = { 1, -1, 1, 1 }, .Color = { 1, 0, 1, 1 }},
-        { .Position = { 1, 1, 1, 1 }, .Color = { 1, 1, 1, 1 }},
-        { .Position = { -1, 1, -1, 1 }, .Color = { 0, 1, 0, 1 }},
-        { .Position = { -1, -1, -1, 1 }, .Color = { 0, 0, 0, 1 }},
-        { .Position = { 1, -1, -1, 1 }, .Color = { 1, 0, 0, 1 }},
-        { .Position = { 1, 1, -1, 1 }, .Color = { 1, 1, 0, 1 }}};
-
-    static const uint16_t indices[] = { 3, 2, 6, 6, 7, 3, 4, 5, 1, 1, 0, 4,
-                                        4, 0, 3, 3, 7, 4, 1, 5, 6, 6, 2, 1,
-                                        0, 1, 2, 2, 3, 0, 7, 6, 5, 5, 4, 7 };
-
+    Model = std::make_unique<class Model>("CesiumMan.gltf", Device);
     
     const auto& vertexList = Model->GetVertices();
     const auto& indexList = Model->GetIndices();
@@ -258,7 +253,7 @@ void GLTF::Update()
 {
     float delta = 1.0f / 60.0f;
     RotationX = 0.0f;//+= delta; // * left_stick_y_;
-    RotationY += delta; //* left_stick_x_;
+    RotationY =0.0;//+= delta; //* left_stick_x_;
 }
 
 void GLTF::Render()

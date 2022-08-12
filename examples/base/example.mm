@@ -89,6 +89,18 @@ int Example::Run(int argc, char* argv[])
 		Running = false;
 		break;
 	  }
+     if (e.type == SDL_DROPFILE) {      // In case if dropped file
+          char* dropped_filedir = e.drop.file;
+          // Shows directory of dropped file
+          SDL_ShowSimpleMessageBox(
+              SDL_MESSAGEBOX_INFORMATION,
+              "File dropped on window",
+              dropped_filedir,
+              Window
+          );
+          SDL_free(dropped_filedir);    // Free dropped_filedir memory
+          break;
+     }
 
 	  Update();
 

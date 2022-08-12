@@ -38,10 +38,14 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
             ${CMAKE_CURRENT_SOURCE_DIR}/DamagedHelmet.gltf
             ${CMAKE_CURRENT_SOURCE_DIR}/DamagedHelmet.bin
             ${CMAKE_CURRENT_SOURCE_DIR}/Default_albedo.jpg
-            ${CMAKE_CURRENT_SOURCE_DIR}/Helmet.ktx
             ${CMAKE_CURRENT_SOURCE_DIR}/tvOS/LaunchScreen.storyboard)
 else ()
     set(RESOURCE_FILES
+                ${CMAKE_CURRENT_SOURCE_DIR}/single_bone.gltf
+            ${CMAKE_CURRENT_SOURCE_DIR}/single_bone.bin
+            ${CMAKE_CURRENT_SOURCE_DIR}/CesiumMan.gltf
+            ${CMAKE_CURRENT_SOURCE_DIR}/CesiumMan.bin
+            ${CMAKE_CURRENT_SOURCE_DIR}/CesiumMan_img0.jpg
             ${CMAKE_CURRENT_SOURCE_DIR}/DamagedHelmet.gltf
             ${CMAKE_CURRENT_SOURCE_DIR}/DamagedHelmet.bin
             ${CMAKE_CURRENT_SOURCE_DIR}/Default_albedo.jpg

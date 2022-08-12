@@ -6,6 +6,8 @@ struct Vertex {
     float4 position [[position]];
     float4 color;
     float2 uv;
+    uint4 joints;
+    float4 weights;
 };
 
 struct InstanceData {
@@ -35,6 +37,7 @@ fragment half4 fragment_flatcolor(Vertex vertexIn [[stage_in]],
     constexpr sampler s( address::repeat, filter::linear );
     half3 color = tex.sample(s, vertexIn.uv).rgb;
     
+   //color *= half3(vertexIn.color.rgb);
     return half4(color, 1.0f);
     //return half4(1.0, 0.0, 0.0, 1.0);
     //return half4(vertexIn.color);

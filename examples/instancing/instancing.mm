@@ -2,10 +2,16 @@
 #include "example.h"
 
 #import <Metal/Metal.h>
+#include <DirectXColors.h>
 
 #include "camera_x.h"
 
 using namespace DirectX;
+
+inline MTLClearColor XMColorToClearColor(DirectX::XMVECTORF32 color)
+{
+    return MTLClearColorMake(color.f[0], color.f[1], color.f[2], color.f[3]);
+}
 
 typedef XM_ALIGNED_STRUCT(16)
 {
@@ -20,7 +26,7 @@ typedef XM_ALIGNED_STRUCT(16)
 
 class Instancing : public Example
 {
-    static constexpr int BUFFER_COUNT = 3;
+    static constexpr int BUFFER_COUNT   = 3;
     static constexpr int INSTANCE_COUNT = 3;
  public:
     Instancing();
@@ -46,7 +52,7 @@ class Instancing : public Example
     id<MTLRenderPipelineState> PipelineState{};
     id<MTLLibrary>             PipelineLibrary{};
     NSUInteger                 FrameIndex{};
-    dispatch_semaphore_t Semaphore{};
+    dispatch_semaphore_t       Semaphore{};
 
     void MakeBuffers();
 
@@ -67,7 +73,7 @@ Instancing::~Instancing() = default;
 
 void Instancing::Init()
 {
-    Device      = MTLCreateSystemDefaultDevice();
+    Device = MTLCreateSystemDefaultDevice();
 
     // Metal initialization
     CAMetalLayer* layer = GetMetalLayer();
@@ -95,11 +101,10 @@ void Instancing::Init()
     depthStencilTexDesc.resourceOptions =
         MTLResourceOptionCPUCacheModeDefault | MTLResourceStorageModePrivate;
     depthStencilTexDesc.storageMode = MTLStorageModeMemoryless;
-    
+
     DepthStencilTexture =
         [Device newTextureWithDescriptor:depthStencilTexDesc];
 
-    
     MakeBuffers();
 
     NSString* libraryPath = [[[NSBundle mainBundle] resourcePath]
@@ -141,17 +146,17 @@ void Instancing::Init()
     {
         NSLog(@"Error occurred when creating render pipeline state: %@", error);
     }
-
+    
     const CGSize drawableSize = layer.drawableSize;
     const float  aspect       = (float)drawableSize.width / (float)drawableSize.height;
-    const float  fov          = (75.0f * (float)M_PI) / 180.0f;
+    const float  fov          = XMConvertToRadians(75);
     const float  near         = 0.01f;
     const float  far          = 1000.0f;
 
     Camera = std::make_shared<class Camera>(
         XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, -1.0f },
         XMFLOAT3{ 0.0f, 1.0f, 0.0f }, fov, aspect, near, far);
-    
+
     Semaphore = dispatch_semaphore_create(BUFFER_COUNT);
 }
 
@@ -178,9 +183,9 @@ MTLVertexDescriptor* Instancing::CreateVertexDescriptor()
 void Instancing::UpdateUniform()
 {
     id<MTLBuffer> instanceBuffer = InstanceBuffer[FrameIndex];
-    
-    InstanceData* pInstanceData = reinterpret_cast< InstanceData *>( [instanceBuffer contents] );
-    for(auto index = 0; index < INSTANCE_COUNT; ++index)
+
+    InstanceData* pInstanceData = reinterpret_cast< InstanceData*>( [instanceBuffer contents] );
+    for (auto index = 0; index < INSTANCE_COUNT; ++index)
     {
         auto translation = XMFLOAT3(-5.0f + (index * 5.0f), 0.0f, -10.0f);
         auto rotationX   = RotationX;
@@ -202,10 +207,9 @@ void Instancing::UpdateUniform()
         XMMATRIX modelMatrix = XMMatrixMultiply(scale, XMMatrixMultiply(rot, trans));
 
         CameraUniforms cameraUniforms = Camera->GetUniforms();
-        
+
         pInstanceData[index].Transform = modelMatrix * cameraUniforms.ViewProjection;
     }
-    //[instanceBuffer didModifyRange:NSMakeRange(0, instanceBuffer.length)];
 }
 
 void Instancing::MakeBuffers()
@@ -237,13 +241,13 @@ void Instancing::MakeBuffers()
     [IndexBuffer setLabel:@"Indices"];
 
     const size_t instanceDataSize = BUFFER_COUNT * INSTANCE_COUNT * sizeof(InstanceData);
-    for(auto index = 0; index < BUFFER_COUNT; ++index)
+    for (auto    index            = 0; index < BUFFER_COUNT; ++index)
     {
         InstanceBuffer[index] = [Device newBufferWithLength:instanceDataSize options:MTLResourceOptionCPUCacheModeDefault];
         NSString* label = [NSString stringWithFormat:@"InstanceBuffer: %d", index];
         [InstanceBuffer[index] setLabel:label];
     }
-    
+
 }
 
 void Instancing::Update()
@@ -255,27 +259,26 @@ void Instancing::Update()
 
 void Instancing::Render()
 {
-    
+
     @autoreleasepool
     {
-
         FrameIndex = (FrameIndex + 1) % BUFFER_COUNT;
-        
+
         id<MTLBuffer> instanceBuffer = InstanceBuffer[FrameIndex];
-        
-        id<MTLCommandBuffer>        commandBuffer  = [CommandQueue commandBuffer];
+
+        id<MTLCommandBuffer> commandBuffer = [CommandQueue commandBuffer];
         dispatch_semaphore_wait(Semaphore, DISPATCH_TIME_FOREVER);
-        [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-            dispatch_semaphore_signal(Semaphore);
+        [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull)
+        {
+          dispatch_semaphore_signal(Semaphore);
         }];
-        
+
         UpdateUniform();
-        
+
         CAMetalLayer* layer = GetMetalLayer();
         id<CAMetalDrawable> drawable = [layer nextDrawable];
         if (drawable != nil)
         {
-
             id<MTLTexture> texture = drawable.texture;
 
             MTLRenderPassDescriptor* passDesc =
@@ -283,8 +286,8 @@ void Instancing::Render()
             passDesc.colorAttachments[0].texture     = texture;
             passDesc.colorAttachments[0].loadAction  = MTLLoadActionClear;
             passDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
-            passDesc.colorAttachments[0].clearColor =
-                MTLClearColorMake(.39, .58, .92, 1.0);
+            passDesc.colorAttachments[0].clearColor = XMColorToClearColor(DirectX::Colors::CornflowerBlue);
+               // MTLClearColorMake(.39, .58, .92, 1.0);
             passDesc.depthAttachment.texture        = DepthStencilTexture;
             passDesc.depthAttachment.loadAction     = MTLLoadActionClear;
             passDesc.depthAttachment.storeAction    = MTLStoreActionDontCare;
@@ -293,27 +296,21 @@ void Instancing::Render()
             passDesc.stencilAttachment.loadAction   = MTLLoadActionClear;
             passDesc.stencilAttachment.storeAction  = MTLStoreActionDontCare;
             passDesc.stencilAttachment.clearStencil = 0;
-            
+
             id<MTLRenderCommandEncoder> commandEncoder =
                                             [commandBuffer renderCommandEncoderWithDescriptor:passDesc];
             [commandEncoder setRenderPipelineState:PipelineState];
             [commandEncoder setDepthStencilState:DepthStencilState];
             [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
             [commandEncoder setCullMode:MTLCullModeBack];
-
-//            const NSUInteger uniformBufferOffset =
-//                                 kAlignedInstanceDataSize * FrameIndex;
-
             [commandEncoder setVertexBuffer:VertexBuffer offset:0 atIndex:0];
             [commandEncoder setVertexBuffer:instanceBuffer offset:0 atIndex:1];
 
-            [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[IndexBuffer length] / sizeof(uint16_t) indexType:MTLIndexTypeUInt16 indexBuffer:IndexBuffer indexBufferOffset:0 instanceCount:INSTANCE_COUNT];
-//            [commandEncoder
-//                drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-//                           indexCount:[IndexBuffer length] / sizeof(uint16_t)
-//                            indexType:MTLIndexTypeUInt16
-//                          indexBuffer:IndexBuffer
-//                    indexBufferOffset:0];
+            [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:
+                    [IndexBuffer length]
+                    / sizeof(uint16_t)  indexType:MTLIndexTypeUInt16
+                                      indexBuffer:IndexBuffer indexBufferOffset:0
+                                    instanceCount:INSTANCE_COUNT];
             [commandEncoder endEncoding];
 
             [commandBuffer presentDrawable:drawable];
