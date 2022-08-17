@@ -2,28 +2,6 @@
 
 #import "Example.h"
 
-int eventFilter(void* data, SDL_Event* e)
-{
-    Example* example = (__bridge Example*)data;
-
-    switch (e->type)
-    {
-    case SDL_APP_WILLENTERBACKGROUND:
-    {
-        break;
-    }
-
-    case SDL_APP_WILLENTERFOREGROUND:
-    {
-        break;
-    }
-
-    default:
-        break;
-    }
-
-    return 1;
-}
 
 
 
@@ -35,9 +13,40 @@ int eventFilter(void* data, SDL_Event* e)
     BOOL _running;
     double _lastClockTime;
     double _currentClockTime;
+    Example* _hold;
 }
 
 @end
+
+int eventFilter(void* data, SDL_Event* e)
+{
+    Example* example = (__bridge Example*)data;
+
+    switch (e->type)
+    {
+        case SDL_APP_WILLENTERBACKGROUND:
+        {
+            break;
+        }
+
+        case SDL_APP_WILLENTERFOREGROUND:
+        {
+            break;
+        }
+            
+        case SDL_APP_TERMINATING:
+        {
+            example->_hold = nil;
+            break;
+        }
+
+    default:
+        break;
+    }
+
+    return 1;
+}
+
 
 void frameTick(void* data)
 {
@@ -67,7 +76,13 @@ void frameTick(void* data)
         abort();
     }
     
-    _window = SDL_CreateWindow([title UTF8String], SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_METAL);
+    _hold = self;
+    
+    int flags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_METAL;
+#if defined(__IPHONEOS__) || defined(__TVOS__)
+    flags |= SDL_WINDOW_FULLSCREEN;
+#endif
+    _window = SDL_CreateWindow([title UTF8String], SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)width, (int)height, flags);
     _view = SDL_Metal_CreateView(_window);
     _running = YES;
     
@@ -100,10 +115,10 @@ void frameTick(void* data)
 - (NSInteger)run:(int)argc :(const char **)argv {
     [self load];
     #if defined(__IPHONEOS__) || defined(__TVOS__)
-        SDL_SetEventFilter(eventFilter, self);
+        SDL_SetEventFilter(eventFilter, (__bridge void*)self);
     
         // Use application callback for iOS/iPadOS
-        SDL_iPhoneSetAnimationCallback(_window, 1, frameTick, self);
+        SDL_iPhoneSetAnimationCallback(_window, 1, frameTick, (__bridge void*)self);
     #else
     
         // Run normal application loop

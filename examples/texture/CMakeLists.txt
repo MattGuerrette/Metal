@@ -43,9 +43,10 @@ endif ()
 target_link_libraries(${EXAMPLE} base)
 set_target_properties(${EXAMPLE}
         PROPERTIES
-        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_GUI_IDENTIFIER com.mpg.texture
         XCODE_GENERATE_SCHEME YES
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
-        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.mpg.metal.texture
-        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/examples/Info.plist.in
+        XCODE_ATTRIBUTE_PRODUCT_NAME texture
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.mpg.texture
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
         RESOURCE "${RESOURCE_FILES}")

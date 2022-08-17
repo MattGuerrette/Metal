@@ -254,7 +254,7 @@ XM_ALIGNED_STRUCT(16) InstanceData
 
 - (void)update:(double)elapsed {
     _rotationX = 0.0f;
-    _rotationY += 5.0f * elapsed;
+    _rotationY += elapsed;
 }
 
 - (void)render:(double)elasped {
@@ -326,15 +326,15 @@ XM_ALIGNED_STRUCT(16) InstanceData
 @end
 
 #if defined(__IPHONEOS__) || defined(__TVOS__)
-int SDL_main(int argc, const char** argv)
+int SDL_main(int argc, char** argv)
 #else
-int main(int argc, const char** argv)
+int main(int argc, char** argv)
 #endif
 {
     NSInteger result = EXIT_FAILURE;
     @autoreleasepool {
         Instancing* example = [[Instancing alloc] init];
-        result = [example run:argc :argv];
+        result = [example run:argc :(const char**)argv];
     }
-    return result;
+    return (int)result;
 }

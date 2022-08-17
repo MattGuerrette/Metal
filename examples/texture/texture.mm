@@ -322,21 +322,17 @@ constexpr NSUInteger kAlignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
 
 @end
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCInconsistentNamingInspection"
 
 #if defined(__IPHONEOS__) || defined(__TVOS__)
-int SDL_main(int argc, const char** argv)
+int SDL_main(int argc, char** argv)
 #else
-int main(int argc, const char** argv)
+int main(int argc, char** argv)
 #endif
 {
     NSInteger result = EXIT_FAILURE;
     @autoreleasepool {
         Texture* example = [[Texture alloc] init];
-        result = [example run:argc :argv];
+        result = [example run:argc :(const char**)argv];
     }
-    return result;
+    return (int)result;
 }
-
-#pragma clang diagnostic pop
