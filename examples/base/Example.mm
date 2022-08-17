@@ -18,21 +18,22 @@
 
 @end
 
+
 int eventFilter(void* data, SDL_Event* e)
 {
     Example* example = (__bridge Example*)data;
 
     switch (e->type)
     {
+        case SDL_APP_WILLENTERFOREGROUND:
+        {
+            break;
+        }
         case SDL_APP_WILLENTERBACKGROUND:
         {
             break;
         }
 
-        case SDL_APP_WILLENTERFOREGROUND:
-        {
-            break;
-        }
             
         case SDL_APP_TERMINATING:
         {
@@ -60,7 +61,6 @@ void frameTick(void* data)
     // Update
     [example update:elapsed];
 
-    // Render
     [example render:elapsed];
 }
 
@@ -85,6 +85,7 @@ void frameTick(void* data)
     _window = SDL_CreateWindow([title UTF8String], SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)width, (int)height, flags);
     _view = SDL_Metal_CreateView(_window);
     _running = YES;
+
     
     return self;
 }
@@ -131,6 +132,16 @@ void frameTick(void* data)
                 _running = NO;
                 break;
             }
+            if(e.type == SDL_WINDOWEVENT)
+            {
+                switch(e.window.event)
+                {
+                    case SDL_WINDOWEVENT_SHOWN:
+                    {
+                        break;
+                    }
+                }
+            }
             if (e.type == SDL_DROPFILE)
             {      // In case if dropped file
                 char* dropped_filedir = e.drop.file;
@@ -152,6 +163,7 @@ void frameTick(void* data)
                              / static_cast<double>(SDL_GetPerformanceFrequency());
     
             [self update:elapsed];
+            
             [self render:elapsed];
         }
     #endif

@@ -258,7 +258,6 @@ XM_ALIGNED_STRUCT(16) InstanceData
 }
 
 - (void)render:(double)elasped {
-    [self updateUniform];
 
     @autoreleasepool
     {
@@ -270,6 +269,8 @@ XM_ALIGNED_STRUCT(16) InstanceData
         {
           dispatch_semaphore_signal(_semaphore);
         }];
+        
+        [self updateUniform];
 
         CAMetalLayer* layer = [self metalLayer];
         id<CAMetalDrawable> drawable = [layer nextDrawable];

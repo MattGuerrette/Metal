@@ -247,11 +247,11 @@ constexpr NSUInteger kAlignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
 
 - (void)update:(double)elapsed {
     _rotationX = 0.0f;
-    _rotationY += elapsed;
+    _rotationY += 1.0f * elapsed;
 }
 
 - (void)render:(double)elasped {
-    [self updateUniform];
+    
 
     @autoreleasepool
     {
@@ -263,6 +263,8 @@ constexpr NSUInteger kAlignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
         {
           dispatch_semaphore_signal(_semaphore);
         }];
+        
+        [self updateUniform];
 
         CAMetalLayer* layer = [self metalLayer];
         id<CAMetalDrawable> drawable = [layer nextDrawable];
