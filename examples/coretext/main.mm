@@ -1,7 +1,7 @@
-#include "example.h"
+#include "Example.h"
 
 #import <Metal/Metal.h>
-#import <camera.h>
+#import <camera_c.h>
 #import <simd/simd.h>
 #import <simd_matrix.h>
 

@@ -1,5 +1,5 @@
 
-#include "example.h"
+#include "Example.h"
 
 #import <Metal/Metal.h>
 
@@ -223,7 +223,7 @@ void GLTF::UpdateUniform()
 void GLTF::MakeBuffers()
 {
     // Load GLTF model file
-    Model = std::make_unique<class Model>("SimpleSkin.gltf", Device);
+    Model = std::make_unique<class Model>("CesiumMan.gltf", Device);
     
     const auto& vertexList = Model->GetVertices();
     const auto& indexList = Model->GetIndices();

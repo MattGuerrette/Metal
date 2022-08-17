@@ -1,92 +1,176 @@
 
-#include "example.h"
+#import "Example.h"
 
 #import <Metal/Metal.h>
-#include <DirectXColors.h>
+#import <MetalKit/MetalKit.h>
 
-#include "camera_x.h"
+#import "Camera.h"
 
 using namespace DirectX;
 
-inline MTLClearColor XMColorToClearColor(DirectX::XMVECTORF32 color)
+#define BUFFER_COUNT 3
+#define INSTANCE_COUNT 3
+
+XM_ALIGNED_STRUCT(16) Vertex
 {
-    return MTLClearColorMake(color.f[0], color.f[1], color.f[2], color.f[3]);
-}
-
-typedef XM_ALIGNED_STRUCT(16)
-{
-    XMFLOAT4 Position;
-    XMFLOAT4 Color;
-} Vertex;
-
-typedef XM_ALIGNED_STRUCT(16)
-{
-    XMMATRIX Transform;
-} InstanceData;
-
-class Instancing : public Example
-{
-    static constexpr int BUFFER_COUNT   = 3;
-    static constexpr int INSTANCE_COUNT = 3;
- public:
-    Instancing();
-
-    ~Instancing();
-
-    void Init() override;
-
-    void Update(double elapsed) override;
-
-    void Render(double elapsed) override;
-
- private:
-    std::shared_ptr<class Camera> Camera;
-
-    id<MTLDevice>              Device{};
-    id<MTLCommandQueue>        CommandQueue{};
-    id<MTLDepthStencilState>   DepthStencilState{};
-    id<MTLTexture>             DepthStencilTexture;
-    id<MTLBuffer>              VertexBuffer{};
-    id<MTLBuffer>              IndexBuffer{};
-    id<MTLBuffer>              InstanceBuffer[BUFFER_COUNT];
-    id<MTLRenderPipelineState> PipelineState{};
-    id<MTLLibrary>             PipelineLibrary{};
-    NSUInteger                 FrameIndex{};
-    dispatch_semaphore_t       Semaphore{};
-
-    void MakeBuffers();
-
-    void UpdateUniform();
-
-    MTLVertexDescriptor* CreateVertexDescriptor();
-
-    float RotationY = 0.0f;
-    float RotationX = 0.0f;
+    XMFLOAT4 position;
+    XMFLOAT4 color;
 };
 
-Instancing::Instancing() : Example("Instancing", 1280, 720)
+XM_ALIGNED_STRUCT(16) Uniforms
 {
+    XMMATRIX modelViewProj;
+};
 
+XM_ALIGNED_STRUCT(16) InstanceData
+{
+    XMMATRIX transform;
+};
+
+@interface Instancing : Example
+{
+    id<MTLDevice>              _device;
+    id<MTLCommandQueue>        _commandQueue;
+    id<MTLDepthStencilState>   _depthStencilState;
+    id<MTLTexture>             _depthStencilTexture;
+    id<MTLTexture>             _sampleTexture;
+    id<MTLBuffer>              _vertexBuffer;
+    id<MTLBuffer>              _indexBuffer;
+    id<MTLBuffer>              _uniformBuffer[BUFFER_COUNT];
+    id<MTLBuffer>              _instanceBuffer[BUFFER_COUNT];
+    id<MTLRenderPipelineState> _pipelineState;
+    id<MTLLibrary>             _pipelineLibrary;
+    NSUInteger                 _frameIndex;
+    dispatch_semaphore_t       _semaphore;
+    Camera* _camera;
+    float _rotationX;
+    float _rotationY;
 }
 
-Instancing::~Instancing() = default;
+- (instancetype)init;
 
-void Instancing::Init()
-{
-    Device = MTLCreateSystemDefaultDevice();
+- (BOOL)load;
+
+- (void)update:(double)elapsed;
+
+- (void)render:(double)elasped;
+
+@end
+
+@implementation Instancing
+
+- (instancetype)init {
+    self = [super initTitleWithDimensions:@"Instancing" :800 :600];
+    
+    return self;
+}
+
+- (void)updateUniform {
+    id<MTLBuffer> instanceBuffer = _instanceBuffer[_frameIndex];
+    
+    InstanceData* instanceData = (InstanceData*)[instanceBuffer contents];
+    for (auto index = 0; index < INSTANCE_COUNT; ++index)
+    {
+        auto translation = XMFLOAT3(-5.0f + (index * 5.0f), 0.0f, -10.0f);
+        auto rotationX   = _rotationX;
+        auto rotationY   = _rotationY;
+        auto scaleFactor = 1.0f;
+
+        const XMFLOAT3 xAxis = { 1, 0, 0 };
+        const XMFLOAT3 yAxis = { 0, 1, 0 };
+
+        XMVECTOR xRotAxis = XMLoadFloat3(&xAxis);
+        XMVECTOR yRotAxis = XMLoadFloat3(&yAxis);
+
+        XMMATRIX xRot        = XMMatrixRotationAxis(xRotAxis, rotationX);
+        XMMATRIX yRot        = XMMatrixRotationAxis(yRotAxis, rotationY);
+        XMMATRIX rot         = XMMatrixMultiply(xRot, yRot);
+        XMMATRIX trans       =
+                     XMMatrixTranslation(translation.x, translation.y, translation.z);
+        XMMATRIX scale       = XMMatrixScaling(scaleFactor, scaleFactor, scaleFactor);
+        XMMATRIX modelMatrix = XMMatrixMultiply(scale, XMMatrixMultiply(rot, trans));
+
+        CameraUniforms cameraUniforms = [_camera uniforms];
+
+        instanceData[index].transform = modelMatrix * cameraUniforms.viewProjection;
+    }
+}
+
+- (void)makeBuffers {
+    static const Vertex vertices[] = {
+        { .position = { -1, 1, 1, 1 },  .color = { 0, 1, 1, 1 }},
+        { .position = { -1, -1, 1, 1 }, .color = { 0, 0, 1, 1 }},
+        { .position = { 1, -1, 1, 1 },  .color = { 1, 0, 1, 1 }},
+        { .position = { 1, 1, 1, 1 },   .color = { 1, 1, 1, 1 }},
+        { .position = { -1, 1, -1, 1 }, .color = { 0, 1, 0, 1 }},
+        { .position = { -1, -1, -1, 1 },.color = { 0, 0, 0, 1 }},
+        { .position = { 1, -1, -1, 1 }, .color = { 1, 0, 0, 1 }},
+        { .position = { 1, 1, -1, 1 },  .color = { 1, 1, 0, 1 }}};
+
+    static const uint16_t indices[] = { 3, 2, 6, 6, 7, 3, 4, 5, 1, 1, 0, 4,
+                                        4, 0, 3, 3, 7, 4, 1, 5, 6, 6, 2, 1,
+                                        0, 1, 2, 2, 3, 0, 7, 6, 5, 5, 4, 7 };
+
+    _vertexBuffer =
+        [_device newBufferWithBytes:vertices
+                            length:sizeof(vertices)
+                           options:MTLResourceOptionCPUCacheModeDefault];
+    [_vertexBuffer setLabel:@"Vertices"];
+
+    _indexBuffer =
+        [_device newBufferWithBytes:indices
+                            length:sizeof(indices)
+                           options:MTLResourceOptionCPUCacheModeDefault];
+    [_indexBuffer setLabel:@"Indices"];
+
+    const size_t instanceDataSize = BUFFER_COUNT * INSTANCE_COUNT * sizeof(InstanceData);
+    for (auto index = 0; index < BUFFER_COUNT; ++index)
+    {
+        _instanceBuffer[index] = [_device newBufferWithLength:instanceDataSize options:MTLResourceOptionCPUCacheModeDefault];
+        NSString* label = [NSString stringWithFormat:@"InstanceBuffer: %d", index];
+        [_instanceBuffer[index] setLabel:label];
+    }
+}
+
+- (MTLVertexDescriptor*)createVertexDescriptor {
+    MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor new];
+    
+    // Position
+    vertexDescriptor.attributes[0].format      = MTLVertexFormatFloat4;
+    vertexDescriptor.attributes[0].offset      = 0;
+    vertexDescriptor.attributes[0].bufferIndex = 0;
+
+    // Color
+    vertexDescriptor.attributes[1].format      = MTLVertexFormatFloat4;
+    vertexDescriptor.attributes[1].offset      = sizeof(XMFLOAT4);
+    vertexDescriptor.attributes[1].bufferIndex = 0;
+    
+    // UV
+    vertexDescriptor.attributes[2].format      = MTLVertexFormatFloat4;
+    vertexDescriptor.attributes[2].offset      = sizeof(XMFLOAT4);
+    vertexDescriptor.attributes[2].bufferIndex = 0;
+
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+    vertexDescriptor.layouts[0].stride       = sizeof(Vertex);
+    
+    return vertexDescriptor;
+}
+
+- (BOOL)load {
+    _device = MTLCreateSystemDefaultDevice();
 
     // Metal initialization
-    CAMetalLayer* layer = GetMetalLayer();
-    layer.device = Device;
+    CAMetalLayer* layer = [self metalLayer];
+    layer.device = _device;
 
-    CommandQueue = [Device newCommandQueue];
+    _commandQueue = [_device newCommandQueue];
 
     MTLDepthStencilDescriptor* depthStencilDesc =
                                  [MTLDepthStencilDescriptor new];
     depthStencilDesc.depthCompareFunction = MTLCompareFunctionLess;
     depthStencilDesc.depthWriteEnabled    = true;
-    DepthStencilState =
-        [Device newDepthStencilStateWithDescriptor:depthStencilDesc];
+    _depthStencilState =
+        [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
 
     // Create depth and stencil textures
     uint32_t width  = static_cast<uint32_t>([layer drawableSize].width);
@@ -101,16 +185,15 @@ void Instancing::Init()
     depthStencilTexDesc.resourceOptions =
         MTLResourceOptionCPUCacheModeDefault | MTLResourceStorageModePrivate;
     depthStencilTexDesc.storageMode = MTLStorageModeMemoryless;
+    _depthStencilTexture =
+        [_device newTextureWithDescriptor:depthStencilTexDesc];
 
-    DepthStencilTexture =
-        [Device newTextureWithDescriptor:depthStencilTexDesc];
-
-    MakeBuffers();
+    [self makeBuffers];
 
     NSString* libraryPath = [[[NSBundle mainBundle] resourcePath]
         stringByAppendingPathComponent:@"shader.metallib"];
     NSError * error       = nil;
-    PipelineLibrary = [Device newLibraryWithFile:libraryPath error:&error];
+    _pipelineLibrary = [_device newLibraryWithFile:libraryPath error:&error];
     MTLRenderPipelineDescriptor* pipelineDescriptor =
                                    [MTLRenderPipelineDescriptor new];
 
@@ -134,150 +217,65 @@ void Instancing::Init()
     pipelineDescriptor.stencilAttachmentPixelFormat =
         MTLPixelFormatDepth32Float_Stencil8;
     pipelineDescriptor.vertexFunction   =
-        [PipelineLibrary newFunctionWithName:@"vertex_project"];
+        [_pipelineLibrary newFunctionWithName:@"vertex_project"];
     pipelineDescriptor.fragmentFunction =
-        [PipelineLibrary newFunctionWithName:@"fragment_flatcolor"];
-    pipelineDescriptor.vertexDescriptor = CreateVertexDescriptor();
+        [_pipelineLibrary newFunctionWithName:@"fragment_flatcolor"];
+    pipelineDescriptor.vertexDescriptor = [self createVertexDescriptor];
 
-    PipelineState =
-        [Device newRenderPipelineStateWithDescriptor:pipelineDescriptor
+    _pipelineState =
+        [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor
                                                error:&error];
-    if (!PipelineState)
+    if (!_pipelineState)
     {
         NSLog(@"Error occurred when creating render pipeline state: %@", error);
     }
     
+    MTKTextureLoader* textureLoader = [[MTKTextureLoader alloc] initWithDevice:_device];
+
+    NSString* texturePath = [[[NSBundle mainBundle] resourcePath]
+        stringByAppendingPathComponent:@"dirt.png"];
+
+    NSURL* url = [[NSURL alloc] initFileURLWithPath:texturePath];
+
+    _sampleTexture = [textureLoader newTextureWithContentsOfURL:url options:@{ MTKTextureLoaderOptionSRGB: @NO } error:nil];
+
     const CGSize drawableSize = layer.drawableSize;
     const float  aspect       = (float)drawableSize.width / (float)drawableSize.height;
-    const float  fov          = XMConvertToRadians(75);
+    const float  fov          = (75.0f * (float)M_PI) / 180.0f;
     const float  near         = 0.01f;
     const float  far          = 1000.0f;
 
-    Camera = std::make_shared<class Camera>(
-        XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, -1.0f },
-        XMFLOAT3{ 0.0f, 1.0f, 0.0f }, fov, aspect, near, far);
+    _camera = [[Camera alloc] initPerspectiveWithPosition:XMFLOAT3{0.0f, 0.0f, 0.0f} :XMFLOAT3{0.0f, 0.0f, -1.0f} :XMFLOAT3{0.0f, 1.0f, 0.0f} :fov :aspect :near :far];
 
-    Semaphore = dispatch_semaphore_create(BUFFER_COUNT);
+    _semaphore = dispatch_semaphore_create(BUFFER_COUNT);
+    
+    return YES;
 }
 
-MTLVertexDescriptor* Instancing::CreateVertexDescriptor()
-{
-    MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor new];
-
-    // Position
-    vertexDescriptor.attributes[0].format      = MTLVertexFormatFloat4;
-    vertexDescriptor.attributes[0].offset      = 0;
-    vertexDescriptor.attributes[0].bufferIndex = 0;
-
-    // Texture coordinates
-    vertexDescriptor.attributes[1].format      = MTLVertexFormatFloat4;
-    vertexDescriptor.attributes[1].offset      = sizeof(XMFLOAT4);
-    vertexDescriptor.attributes[1].bufferIndex = 0;
-
-    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-    vertexDescriptor.layouts[0].stride       = sizeof(Vertex);
-
-    return vertexDescriptor;
+- (void)update:(double)elapsed {
+    _rotationX = 0.0f;
+    _rotationY += elapsed;
 }
 
-void Instancing::UpdateUniform()
-{
-    id<MTLBuffer> instanceBuffer = InstanceBuffer[FrameIndex];
-
-    InstanceData* pInstanceData = reinterpret_cast< InstanceData*>( [instanceBuffer contents] );
-    for (auto index = 0; index < INSTANCE_COUNT; ++index)
-    {
-        auto translation = XMFLOAT3(-5.0f + (index * 5.0f), 0.0f, -10.0f);
-        auto rotationX   = RotationX;
-        auto rotationY   = RotationY;
-        auto scaleFactor = 1.0f;
-
-        const XMFLOAT3 xAxis = { 1, 0, 0 };
-        const XMFLOAT3 yAxis = { 0, 1, 0 };
-
-        XMVECTOR xRotAxis = XMLoadFloat3(&xAxis);
-        XMVECTOR yRotAxis = XMLoadFloat3(&yAxis);
-
-        XMMATRIX xRot        = XMMatrixRotationAxis(xRotAxis, rotationX);
-        XMMATRIX yRot        = XMMatrixRotationAxis(yRotAxis, rotationY);
-        XMMATRIX rot         = XMMatrixMultiply(xRot, yRot);
-        XMMATRIX trans       =
-                     XMMatrixTranslation(translation.x, translation.y, translation.z);
-        XMMATRIX scale       = XMMatrixScaling(scaleFactor, scaleFactor, scaleFactor);
-        XMMATRIX modelMatrix = XMMatrixMultiply(scale, XMMatrixMultiply(rot, trans));
-
-        CameraUniforms cameraUniforms = Camera->GetUniforms();
-
-        pInstanceData[index].Transform = modelMatrix * cameraUniforms.ViewProjection;
-    }
-}
-
-void Instancing::MakeBuffers()
-{
-    static const Vertex vertices[] = {
-        { .Position = { -1, 1, 1, 1 }, .Color = { 0, 1, 1, 1 }},
-        { .Position = { -1, -1, 1, 1 }, .Color = { 0, 0, 1, 1 }},
-        { .Position = { 1, -1, 1, 1 }, .Color = { 1, 0, 1, 1 }},
-        { .Position = { 1, 1, 1, 1 }, .Color = { 1, 1, 1, 1 }},
-        { .Position = { -1, 1, -1, 1 }, .Color = { 0, 1, 0, 1 }},
-        { .Position = { -1, -1, -1, 1 }, .Color = { 0, 0, 0, 1 }},
-        { .Position = { 1, -1, -1, 1 }, .Color = { 1, 0, 0, 1 }},
-        { .Position = { 1, 1, -1, 1 }, .Color = { 1, 1, 0, 1 }}};
-
-    static const uint16_t indices[] = { 3, 2, 6, 6, 7, 3, 4, 5, 1, 1, 0, 4,
-                                        4, 0, 3, 3, 7, 4, 1, 5, 6, 6, 2, 1,
-                                        0, 1, 2, 2, 3, 0, 7, 6, 5, 5, 4, 7 };
-
-    VertexBuffer =
-        [Device newBufferWithBytes:vertices
-                            length:sizeof(vertices)
-                           options:MTLResourceOptionCPUCacheModeDefault];
-    [VertexBuffer setLabel:@"Vertices"];
-
-    IndexBuffer =
-        [Device newBufferWithBytes:indices
-                            length:sizeof(indices)
-                           options:MTLResourceOptionCPUCacheModeDefault];
-    [IndexBuffer setLabel:@"Indices"];
-
-    const size_t instanceDataSize = BUFFER_COUNT * INSTANCE_COUNT * sizeof(InstanceData);
-    for (auto    index            = 0; index < BUFFER_COUNT; ++index)
-    {
-        InstanceBuffer[index] = [Device newBufferWithLength:instanceDataSize options:MTLResourceOptionCPUCacheModeDefault];
-        NSString* label = [NSString stringWithFormat:@"InstanceBuffer: %d", index];
-        [InstanceBuffer[index] setLabel:label];
-    }
-
-}
-
-void Instancing::Update(double elapsed)
-{
-    RotationX += elapsed;
-    RotationY += elapsed;
-}
-
-void Instancing::Render(double elapsed)
-{
+- (void)render:(double)elasped {
+    [self updateUniform];
 
     @autoreleasepool
     {
-        FrameIndex = (FrameIndex + 1) % BUFFER_COUNT;
+        _frameIndex = (_frameIndex + 1) % BUFFER_COUNT;
 
-        id<MTLBuffer> instanceBuffer = InstanceBuffer[FrameIndex];
-
-        id<MTLCommandBuffer> commandBuffer = [CommandQueue commandBuffer];
-        dispatch_semaphore_wait(Semaphore, DISPATCH_TIME_FOREVER);
+        id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+        dispatch_semaphore_wait(_semaphore, DISPATCH_TIME_FOREVER);
         [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull)
         {
-          dispatch_semaphore_signal(Semaphore);
+          dispatch_semaphore_signal(_semaphore);
         }];
 
-        UpdateUniform();
-
-        CAMetalLayer* layer = GetMetalLayer();
+        CAMetalLayer* layer = [self metalLayer];
         id<CAMetalDrawable> drawable = [layer nextDrawable];
         if (drawable != nil)
         {
+
             id<MTLTexture> texture = drawable.texture;
 
             MTLRenderPassDescriptor* passDesc =
@@ -285,31 +283,36 @@ void Instancing::Render(double elapsed)
             passDesc.colorAttachments[0].texture     = texture;
             passDesc.colorAttachments[0].loadAction  = MTLLoadActionClear;
             passDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
-            passDesc.colorAttachments[0].clearColor = XMColorToClearColor(DirectX::Colors::CornflowerBlue);
-               // MTLClearColorMake(.39, .58, .92, 1.0);
-            passDesc.depthAttachment.texture        = DepthStencilTexture;
+            passDesc.colorAttachments[0].clearColor =
+                MTLClearColorMake(.39, .58, .92, 1.0);
+            passDesc.depthAttachment.texture        = _depthStencilTexture;
             passDesc.depthAttachment.loadAction     = MTLLoadActionClear;
             passDesc.depthAttachment.storeAction    = MTLStoreActionDontCare;
             passDesc.depthAttachment.clearDepth     = 1.0;
-            passDesc.stencilAttachment.texture      = DepthStencilTexture;
+            passDesc.stencilAttachment.texture      = _depthStencilTexture;
             passDesc.stencilAttachment.loadAction   = MTLLoadActionClear;
             passDesc.stencilAttachment.storeAction  = MTLStoreActionDontCare;
             passDesc.stencilAttachment.clearStencil = 0;
 
             id<MTLRenderCommandEncoder> commandEncoder =
                                             [commandBuffer renderCommandEncoderWithDescriptor:passDesc];
-            [commandEncoder setRenderPipelineState:PipelineState];
-            [commandEncoder setDepthStencilState:DepthStencilState];
+            [commandEncoder setRenderPipelineState:_pipelineState];
+            [commandEncoder setDepthStencilState:_depthStencilState];
             [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-            [commandEncoder setCullMode:MTLCullModeBack];
-            [commandEncoder setVertexBuffer:VertexBuffer offset:0 atIndex:0];
-            [commandEncoder setVertexBuffer:instanceBuffer offset:0 atIndex:1];
+            [commandEncoder setCullMode:MTLCullModeNone];
+
+            const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
+            const NSUInteger uniformBufferOffset =
+                                 alignedUniformSize * _frameIndex;
+
+            [commandEncoder setVertexBuffer:_vertexBuffer offset:0 atIndex:0];
+            [commandEncoder setVertexBuffer:_instanceBuffer[_frameIndex] offset:0 atIndex:1];
 
             [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:
-                    [IndexBuffer length]
-                    / sizeof(uint16_t)  indexType:MTLIndexTypeUInt16
-                                      indexBuffer:IndexBuffer indexBufferOffset:0
-                                    instanceCount:INSTANCE_COUNT];
+                               [_indexBuffer length]
+                               / sizeof(uint16_t)  indexType:MTLIndexTypeUInt16
+                                                 indexBuffer:_indexBuffer indexBufferOffset:0
+                                               instanceCount:INSTANCE_COUNT];
             [commandEncoder endEncoding];
 
             [commandBuffer presentDrawable:drawable];
@@ -319,18 +322,19 @@ void Instancing::Render(double elapsed)
     }
 }
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCInconsistentNamingInspection"
+
+@end
 
 #if defined(__IPHONEOS__) || defined(__TVOS__)
-int SDL_main(int argc, char** argv)
+int SDL_main(int argc, const char** argv)
 #else
-int main(int argc, char** argv)
+int main(int argc, const char** argv)
 #endif
 {
-    auto* example = new Instancing;
-
-    return example->Run(argc, argv);
+    NSInteger result = EXIT_FAILURE;
+    @autoreleasepool {
+        Instancing* example = [[Instancing alloc] init];
+        result = [example run:argc :argv];
+    }
+    return result;
 }
-
-#pragma clang diagnostic pop
