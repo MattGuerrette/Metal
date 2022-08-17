@@ -254,7 +254,7 @@ XM_ALIGNED_STRUCT(16) InstanceData
 
 - (void)update:(double)elapsed {
     _rotationX = 0.0f;
-    _rotationY += elapsed;
+    _rotationY += 5.0f * elapsed;
 }
 
 - (void)render:(double)elasped {
