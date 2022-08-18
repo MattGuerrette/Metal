@@ -6,13 +6,12 @@
 //
 
 #define CGLTF_IMPLEMENTATION
-#include "cgltf.h"
+#import "cgltf.h"
 
-#include <vector>
-
-#include "model.h"
+#import "Model.h"
 
 #import <MetalKit/MetalKit.h>
+#import <vector>
 
 using namespace DirectX;
 
@@ -76,7 +75,7 @@ static void cgltf_query_mesh_vertices_indices(const cgltf_mesh* mesh,
                 for(uint32_t k = 0; k < accessor->count; k++)
                 {
                     Vertex* v = &vertices[k];
-                    v->Position = XMFLOAT4(buffer[n+0], buffer[n+1], buffer[n+2], 1.0f);
+                    v->position = XMFLOAT4(buffer[n+0], buffer[n+1], buffer[n+2], 1.0f);
                     n += (int)(accessor->stride / sizeof(float));
                 }
             }
@@ -96,7 +95,7 @@ static void cgltf_query_mesh_vertices_indices(const cgltf_mesh* mesh,
                 for(uint32_t k = 0; k < accessor->count; k++)
                 {
                     Vertex* v = &vertices[k];
-                    v->Color = XMFLOAT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
+                    v->color = XMFLOAT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
                     n += (int)(accessor->stride / sizeof(float));
                 }
             }
@@ -115,7 +114,7 @@ static void cgltf_query_mesh_vertices_indices(const cgltf_mesh* mesh,
                 for(uint32_t k = 0; k < accessor->count; k++)
                 {
                     Vertex* v = &vertices[k];
-                    v->UV = XMFLOAT2(buffer[n+0], buffer[n+1]);
+                    v->uv = XMFLOAT2(buffer[n+0], buffer[n+1]);
                     n += (int)(accessor->stride / sizeof(float));
                 }
             }
@@ -142,7 +141,7 @@ static void cgltf_query_mesh_vertices_indices(const cgltf_mesh* mesh,
                     {
                         Vertex* v = &vertices[k];
                         
-                        v->Joints = XMUINT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
+                        v->joints = XMUINT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
                         
                         n += step;
                     }
@@ -159,7 +158,7 @@ static void cgltf_query_mesh_vertices_indices(const cgltf_mesh* mesh,
                     {
                         Vertex* v = &vertices[k];
                         
-                        v->Joints = XMUINT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
+                        v->joints = XMUINT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
                         
                         n += step;
                     }
@@ -184,7 +183,7 @@ static void cgltf_query_mesh_vertices_indices(const cgltf_mesh* mesh,
                 {
                     Vertex* v = &vertices[k];
                     
-                    v->Weights = XMFLOAT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
+                    v->weights = XMFLOAT4(buffer[n+0], buffer[n+1], buffer[n+2], buffer[n+3]);
                     
                     n += step;
                 }
@@ -223,71 +222,89 @@ static void cgltf_query_animation_channels(const cgltf_animation* animation,
     }
 }
 
-Model::Model(std::string file, id<MTLDevice> device)
+@interface Model ()
 {
+    id<MTLBuffer> _vertexBuffer;
+    id<MTLBuffer> _indexBuffer;
+    id<MTLTexture> _texture;
+    
+    //std::shared_ptr<struct Skeleton> Skeleton;
+    //std::vector<Vertex> Vertices;
+    //std::vector<uint16_t> Indices;
+    //std::vector<Animation> Animations;
+}
+
+@end
+
+@implementation Model
+
+- (instancetype)initWithFile:(NSString *)file device:(id<MTLDevice>)device {
+    self = [super init];
+    
     cgltf_options options{};
     cgltf_data* modelData{};
     
-    NSString* modelPath = [[[NSBundle mainBundle] resourcePath]
-        stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String:file.c_str()]];
-    NSData* modelFileData = [NSData dataWithContentsOfFile:modelPath];
+    NSData* modelFileData = [NSData dataWithContentsOfFile:file];
     
     cgltf_result result = cgltf_parse(&options, [modelFileData bytes], [modelFileData length], &modelData);
     assert(result == cgltf_result_success);
+    
+    std::vector<Vertex> vertices;
+    std::vector<uint16_t> indices;
     
     const auto meshCount = modelData->meshes_count;
     for(auto i = 0; i < meshCount; i++)
     {
         // Access each mesh
         const cgltf_mesh* mesh = &modelData->meshes[i];
-        cgltf_query_mesh_vertices_indices(mesh, Vertices, Indices);
+        cgltf_query_mesh_vertices_indices(mesh, vertices, indices);
     }
     
     // Load skinning data
     const auto skinCount = modelData->skins_count;
     assert(skinCount == 1);
     if(skinCount == 1) {
-        Skeleton = std::make_shared<struct Skeleton>();
+        //Skeleton = std::make_shared<struct Skeleton>();
     }
     
-    for(auto i = 0; i < skinCount; i++)
-    {
-        // Access each skin
-        const cgltf_skin* skin = &modelData->skins[i];
-        
-        // Cache skin name
-        if(skin->name != nullptr)
-            Skeleton->Name = skin->name;
-        
-        const auto jointCount = skin->joints_count;
-        for(auto j = 0; j < jointCount; j++)
-        {
-            Joint skeletonJoint{};
-            
-            const cgltf_node* joint = skin->joints[j];
-            
-            // Cache joint name
-            if(joint->name != nullptr)
-                skeletonJoint.Name = joint->name;
-            
-            printf("Joint: %s\n", skeletonJoint.Name.c_str());
-            
-            
-            // Does this joint have a parent?
-            if (j > 0 && joint->parent != nullptr)
-            {
-                const cgltf_node* parentJoint = joint->parent;
-                auto it = std::find_if(Skeleton->Joints.begin(), Skeleton->Joints.end(), [parentJoint](const Joint& _joint) {
-                    return _joint.Name == parentJoint->name;
-                });
-                auto parentIndex = std::distance(Skeleton->Joints.begin(), it);
-                skeletonJoint.ParentIndex = parentIndex;
-                printf("Parent: %s Index: %ld\n", parentJoint->name, parentIndex);
-            }
-            
-            Skeleton->Joints.push_back(skeletonJoint);
-        }
-    }
+//    for(auto i = 0; i < skinCount; i++)
+//    {
+//        // Access each skin
+//        const cgltf_skin* skin = &modelData->skins[i];
+//
+//        // Cache skin name
+////        if(skin->name != nullptr)
+////            Skeleton->Name = skin->name;
+//
+//        const auto jointCount = skin->joints_count;
+//        for(auto j = 0; j < jointCount; j++)
+//        {
+//            Joint skeletonJoint{};
+//
+//            const cgltf_node* joint = skin->joints[j];
+//
+//            // Cache joint name
+//            if(joint->name != nullptr)
+//                skeletonJoint.Name = joint->name;
+//
+//            printf("Joint: %s\n", skeletonJoint.Name.c_str());
+//
+//
+//            // Does this joint have a parent?
+//            if (j > 0 && joint->parent != nullptr)
+//            {
+//                const cgltf_node* parentJoint = joint->parent;
+//                auto it = std::find_if(Skeleton->Joints.begin(), Skeleton->Joints.end(), [parentJoint](const Joint& _joint) {
+//                    return _joint.Name == parentJoint->name;
+//                });
+//                auto parentIndex = std::distance(Skeleton->Joints.begin(), it);
+//                skeletonJoint.ParentIndex = parentIndex;
+//                printf("Parent: %s Index: %ld\n", parentJoint->name, parentIndex);
+//            }
+//
+//            Skeleton->Joints.push_back(skeletonJoint);
+//        }
+//    }
     
     // Load animation data
     const auto animationCount = modelData->animations_count;
@@ -328,29 +345,39 @@ Model::Model(std::string file, id<MTLDevice> device)
                   MTKTextureLoaderOptionTextureUsage       : @(MTLTextureUsageShaderRead),
                   MTKTextureLoaderOptionTextureStorageMode : @(MTLStorageModePrivate)
                 };
-            Texture = [textureLoader newTextureWithContentsOfURL:url options:textureLoaderOptions error:&error];
+            _texture = [textureLoader newTextureWithContentsOfURL:url options:textureLoaderOptions error:&error];
         }
     }
     
     cgltf_free(modelData);
-}
-
-Model::~Model()
-{
     
+        
+    _vertexBuffer =
+        [device newBufferWithBytes:vertices.data()
+                            length:vertices.size() * sizeof(Vertex)
+                           options:MTLResourceOptionCPUCacheModeDefault];
+    [_vertexBuffer setLabel:@"Vertices"];
+
+    _indexBuffer =
+        [device newBufferWithBytes:indices.data()
+                            length:sizeof(uint16_t) * indices.size()
+                           options:MTLResourceOptionCPUCacheModeDefault];
+    [_indexBuffer setLabel:@"Indices"];
+    
+    return self;
 }
 
-const std::vector<Vertex>& Model::GetVertices() const
-{
-    return Vertices;
+- (id<MTLBuffer>)vertexBuffer {
+    return _vertexBuffer;
 }
 
-const std::vector<uint16_t>& Model::GetIndices() const
-{
-    return Indices;
+- (id<MTLBuffer>)indexBuffer {
+    return _indexBuffer;
 }
 
-id<MTLTexture> Model::GetTexture() const
-{
-    return Texture;
+- (id<MTLTexture>)texture {
+    return _texture;
 }
+
+@end
+

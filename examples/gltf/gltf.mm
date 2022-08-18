@@ -1,82 +1,154 @@
 
-#include "Example.h"
+#import "Example.h"
 
 #import <Metal/Metal.h>
+#import <MetalKit/MetalKit.h>
 
-#include "camera_x.h"
-#include "model.h"
+#import "Camera.h"
+#import "Model.h"
 
 using namespace DirectX;
 
-typedef XM_ALIGNED_STRUCT(16)
+#define BUFFER_COUNT 3
+#define INSTANCE_COUNT 1
+
+XM_ALIGNED_STRUCT(16) Uniforms
 {
-    XMMATRIX Transform;
-} InstanceData;
-
-class GLTF : public Example
-{
-    static constexpr int BUFFER_COUNT = 3;
-    static constexpr int INSTANCE_COUNT = 1;
- public:
-    GLTF();
-
-    ~GLTF();
-
-    void Init() override;
-
-    void Update(double elapsed) override;
-
-    void Render(double elapsed) override;
-
- private:
-    std::shared_ptr<class Camera> Camera;
-    std::unique_ptr<class Model> Model;
-
-    id<MTLDevice>              Device{};
-    id<MTLCommandQueue>        CommandQueue{};
-    id<MTLDepthStencilState>   DepthStencilState{};
-    id<MTLTexture>             DepthStencilTexture;
-    id<MTLBuffer>              VertexBuffer{};
-    id<MTLBuffer>              IndexBuffer{};
-    id<MTLBuffer>              InstanceBuffer[BUFFER_COUNT];
-    id<MTLRenderPipelineState> PipelineState{};
-    id<MTLLibrary>             PipelineLibrary{};
-    NSUInteger                 FrameIndex{};
-    dispatch_semaphore_t Semaphore{};
-
-    void MakeBuffers();
-
-    void UpdateUniform();
-
-    MTLVertexDescriptor* CreateVertexDescriptor();
-
-    float RotationY = 0.0f;
-    float RotationX = 0.0f;
+    XMMATRIX modelViewProj;
 };
 
-GLTF::GLTF() : Example("GLTF", 1280, 720)
-{
 
+XM_ALIGNED_STRUCT(16) InstanceData
+{
+    XMMATRIX transform;
+};
+
+@interface GLTF : Example
+{
+    id<MTLDevice>              _device;
+    id<MTLCommandQueue>        _commandQueue;
+    id<MTLDepthStencilState>   _depthStencilState;
+    id<MTLTexture>             _depthStencilTexture;
+    id<MTLTexture>             _sampleTexture;
+    id<MTLBuffer>              _vertexBuffer;
+    id<MTLBuffer>              _indexBuffer;
+    id<MTLBuffer>              _uniformBuffer[BUFFER_COUNT];
+    id<MTLBuffer>              _instanceBuffer[BUFFER_COUNT];
+    id<MTLRenderPipelineState> _pipelineState;
+    id<MTLLibrary>             _pipelineLibrary;
+    NSUInteger                 _frameIndex;
+    dispatch_semaphore_t       _semaphore;
+    Model* _model;
+    Camera* _camera;
+    float _rotationX;
+    float _rotationY;
 }
 
-GLTF::~GLTF() = default;
+- (instancetype)init;
 
-void GLTF::Init()
-{
-    Device      = MTLCreateSystemDefaultDevice();
+- (BOOL)load;
+
+- (void)update:(double)elapsed;
+
+- (void)render:(double)elasped;
+
+@end
+
+@implementation GLTF
+
+- (instancetype)init {
+    self = [super initTitleWithDimensions:@"GLTF" :800 :600];
+    
+    return self;
+}
+
+- (void)updateUniform {
+    id<MTLBuffer> instanceBuffer = _instanceBuffer[_frameIndex];
+    
+    InstanceData* instanceData = (InstanceData*)[instanceBuffer contents];
+    for (auto index = 0; index < INSTANCE_COUNT; ++index)
+    {
+        auto scaleFactor = 1.5f;
+        auto translation = XMFLOAT3(0.0f, -1.0f, -5.0f);
+        auto rotationX   = _rotationX;
+        auto rotationY   = _rotationY;
+        
+        const XMFLOAT3 xAxis = { 1, 0, 0 };
+        const XMFLOAT3 yAxis = { 0, 1, 0 };
+
+        XMVECTOR xRotAxis = XMLoadFloat3(&xAxis);
+        XMVECTOR yRotAxis = XMLoadFloat3(&yAxis);
+
+        XMMATRIX xRot        = XMMatrixRotationAxis(xRotAxis, rotationX);
+        XMMATRIX yRot        = XMMatrixRotationAxis(yRotAxis, rotationY);
+        XMMATRIX rot         = XMMatrixMultiply(xRot, yRot);
+        XMMATRIX trans       =
+                     XMMatrixTranslation(translation.x, translation.y, translation.z);
+        XMMATRIX scale       = XMMatrixScaling(scaleFactor, scaleFactor, scaleFactor);
+        XMMATRIX modelMatrix = XMMatrixMultiply(scale, XMMatrixMultiply(rot, trans));
+
+        CameraUniforms cameraUniforms = [_camera uniforms];
+
+        instanceData[index].transform = modelMatrix * cameraUniforms.viewProjection;
+    }
+}
+
+- (void)makeBuffers {
+    
+    NSString* filePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"CesiumMan.gltf"];
+    _model = [[Model alloc] initWithFile:filePath device:_device];
+    
+    _vertexBuffer = [_model vertexBuffer];
+    _indexBuffer = [_model indexBuffer];
+
+    const size_t instanceDataSize = BUFFER_COUNT * INSTANCE_COUNT * sizeof(InstanceData);
+    for (auto index = 0; index < BUFFER_COUNT; ++index)
+    {
+        _instanceBuffer[index] = [_device newBufferWithLength:instanceDataSize options:MTLResourceOptionCPUCacheModeDefault];
+        NSString* label = [NSString stringWithFormat:@"InstanceBuffer: %d", index];
+        [_instanceBuffer[index] setLabel:label];
+    }
+}
+
+- (MTLVertexDescriptor*)createVertexDescriptor {
+    MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor new];
+    
+    // Position
+    vertexDescriptor.attributes[0].format      = MTLVertexFormatFloat4;
+    vertexDescriptor.attributes[0].offset      = 0;
+    vertexDescriptor.attributes[0].bufferIndex = 0;
+
+    // Color
+    vertexDescriptor.attributes[1].format      = MTLVertexFormatFloat4;
+    vertexDescriptor.attributes[1].offset      = sizeof(XMFLOAT4);
+    vertexDescriptor.attributes[1].bufferIndex = 0;
+    
+    // UV
+    vertexDescriptor.attributes[2].format      = MTLVertexFormatFloat4;
+    vertexDescriptor.attributes[2].offset      = sizeof(XMFLOAT4);
+    vertexDescriptor.attributes[2].bufferIndex = 0;
+
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+    vertexDescriptor.layouts[0].stride       = sizeof(Vertex);
+    
+    return vertexDescriptor;
+}
+
+- (BOOL)load {
+    _device = MTLCreateSystemDefaultDevice();
 
     // Metal initialization
-    CAMetalLayer* layer = GetMetalLayer();
-    layer.device = Device;
+    CAMetalLayer* layer = [self metalLayer];
+    layer.device = _device;
 
-    CommandQueue = [Device newCommandQueue];
+    _commandQueue = [_device newCommandQueue];
 
     MTLDepthStencilDescriptor* depthStencilDesc =
                                  [MTLDepthStencilDescriptor new];
     depthStencilDesc.depthCompareFunction = MTLCompareFunctionLess;
     depthStencilDesc.depthWriteEnabled    = true;
-    DepthStencilState =
-        [Device newDepthStencilStateWithDescriptor:depthStencilDesc];
+    _depthStencilState =
+        [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
 
     // Create depth and stencil textures
     uint32_t width  = static_cast<uint32_t>([layer drawableSize].width);
@@ -91,17 +163,15 @@ void GLTF::Init()
     depthStencilTexDesc.resourceOptions =
         MTLResourceOptionCPUCacheModeDefault | MTLResourceStorageModePrivate;
     depthStencilTexDesc.storageMode = MTLStorageModeMemoryless;
-    
-    DepthStencilTexture =
-        [Device newTextureWithDescriptor:depthStencilTexDesc];
+    _depthStencilTexture =
+        [_device newTextureWithDescriptor:depthStencilTexDesc];
 
-    
-    MakeBuffers();
+    [self makeBuffers];
 
     NSString* libraryPath = [[[NSBundle mainBundle] resourcePath]
         stringByAppendingPathComponent:@"shader.metallib"];
     NSError * error       = nil;
-    PipelineLibrary = [Device newLibraryWithFile:libraryPath error:&error];
+    _pipelineLibrary = [_device newLibraryWithFile:libraryPath error:&error];
     MTLRenderPipelineDescriptor* pipelineDescriptor =
                                    [MTLRenderPipelineDescriptor new];
 
@@ -125,18 +195,27 @@ void GLTF::Init()
     pipelineDescriptor.stencilAttachmentPixelFormat =
         MTLPixelFormatDepth32Float_Stencil8;
     pipelineDescriptor.vertexFunction   =
-        [PipelineLibrary newFunctionWithName:@"vertex_project"];
+        [_pipelineLibrary newFunctionWithName:@"vertex_project"];
     pipelineDescriptor.fragmentFunction =
-        [PipelineLibrary newFunctionWithName:@"fragment_flatcolor"];
-    pipelineDescriptor.vertexDescriptor = CreateVertexDescriptor();
+        [_pipelineLibrary newFunctionWithName:@"fragment_flatcolor"];
+    pipelineDescriptor.vertexDescriptor = [self createVertexDescriptor];
 
-    PipelineState =
-        [Device newRenderPipelineStateWithDescriptor:pipelineDescriptor
+    _pipelineState =
+        [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor
                                                error:&error];
-    if (!PipelineState)
+    if (!_pipelineState)
     {
         NSLog(@"Error occurred when creating render pipeline state: %@", error);
     }
+    
+    MTKTextureLoader* textureLoader = [[MTKTextureLoader alloc] initWithDevice:_device];
+
+    NSString* texturePath = [[[NSBundle mainBundle] resourcePath]
+        stringByAppendingPathComponent:@"dirt.png"];
+
+    NSURL* url = [[NSURL alloc] initFileURLWithPath:texturePath];
+
+    _sampleTexture = [textureLoader newTextureWithContentsOfURL:url options:@{ MTKTextureLoaderOptionSRGB: @NO } error:nil];
 
     const CGSize drawableSize = layer.drawableSize;
     const float  aspect       = (float)drawableSize.width / (float)drawableSize.height;
@@ -144,136 +223,34 @@ void GLTF::Init()
     const float  near         = 0.01f;
     const float  far          = 1000.0f;
 
-    Camera = std::make_shared<class Camera>(
-        XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, -1.0f },
-        XMFLOAT3{ 0.0f, 1.0f, 0.0f }, fov, aspect, near, far);
+    _camera = [[Camera alloc] initPerspectiveWithPosition:XMFLOAT3{0.0f, 0.0f, 0.0f} :XMFLOAT3{0.0f, 0.0f, -1.0f} :XMFLOAT3{0.0f, 1.0f, 0.0f} :fov :aspect :near :far];
+
+    _semaphore = dispatch_semaphore_create(BUFFER_COUNT);
     
-    Semaphore = dispatch_semaphore_create(BUFFER_COUNT);
-    
+    return YES;
 }
 
-MTLVertexDescriptor* GLTF::CreateVertexDescriptor()
-{
-    MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor new];
-
-    // Position
-    vertexDescriptor.attributes[0].format      = MTLVertexFormatFloat4;
-    vertexDescriptor.attributes[0].offset      = 0;
-    vertexDescriptor.attributes[0].bufferIndex = 0;
-
-    // Color
-    vertexDescriptor.attributes[1].format      = MTLVertexFormatFloat4;
-    vertexDescriptor.attributes[1].offset      = offsetof(Vertex, Position);
-    vertexDescriptor.attributes[1].bufferIndex = 0;
-    
-    // UV coordinates
-    vertexDescriptor.attributes[2].format      = MTLVertexFormatFloat2;
-    vertexDescriptor.attributes[2].offset      = offsetof(Vertex, Color);
-    vertexDescriptor.attributes[2].bufferIndex = 0;
-    
-    // Joints
-    vertexDescriptor.attributes[3].format      = MTLVertexFormatUInt4;
-    vertexDescriptor.attributes[3].offset      = offsetof(Vertex, UV);
-    vertexDescriptor.attributes[3].bufferIndex = 0;
-    
-    // Weights
-    vertexDescriptor.attributes[4].format      = MTLVertexFormatFloat2;
-    vertexDescriptor.attributes[4].offset      = offsetof(Vertex, Joints);
-    vertexDescriptor.attributes[4].bufferIndex = 0;
-
-    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-    vertexDescriptor.layouts[0].stride       = sizeof(Vertex);
-
-    return vertexDescriptor;
+- (void)update:(double)elapsed {
+    _rotationX = 0.0f;
+    _rotationY += elapsed;
 }
 
-void GLTF::UpdateUniform()
-{
-    id<MTLBuffer> instanceBuffer = InstanceBuffer[FrameIndex];
-    
-    InstanceData* pInstanceData = reinterpret_cast< InstanceData *>( [instanceBuffer contents] );
-    for(auto index = 0; index < INSTANCE_COUNT; ++index)
-    {
-        
-        auto scaleFactor = 1.5f;
-        auto translation = XMFLOAT3(0.0f, -1.0f, -5.0f);
-        auto rotationX   = RotationX;
-        auto rotationY   = RotationY;
+- (void)render:(double)elasped {
 
-        const XMFLOAT3 xAxis = { 1, 0, 0 };
-        const XMFLOAT3 yAxis = { 0, 1, 0 };
-
-        XMVECTOR xRotAxis = XMLoadFloat3(&xAxis);
-        XMVECTOR yRotAxis = XMLoadFloat3(&yAxis);
-
-        XMMATRIX xRot        = XMMatrixRotationAxis(xRotAxis, rotationX);
-        XMMATRIX yRot        = XMMatrixRotationAxis(yRotAxis, rotationY);
-        XMMATRIX rot         = XMMatrixMultiply(xRot, yRot);
-        XMMATRIX trans       =
-                     XMMatrixTranslation(translation.x, translation.y, translation.z);
-        XMMATRIX scale       = XMMatrixScaling(scaleFactor, scaleFactor, scaleFactor);
-        XMMATRIX modelMatrix = XMMatrixMultiply(scale, XMMatrixMultiply(rot, trans));
-
-        CameraUniforms cameraUniforms = Camera->GetUniforms();
-        
-        pInstanceData[index].Transform = modelMatrix * cameraUniforms.ViewProjection;
-    }
-}
-
-void GLTF::MakeBuffers()
-{
-    // Load GLTF model file
-    Model = std::make_unique<class Model>("CesiumMan.gltf", Device);
-    
-    const auto& vertexList = Model->GetVertices();
-    const auto& indexList = Model->GetIndices();
-    VertexBuffer =
-        [Device newBufferWithBytes:vertexList.data()
-                            length:vertexList.size() * sizeof(Vertex)
-                           options:MTLResourceOptionCPUCacheModeDefault];
-    [VertexBuffer setLabel:@"Vertices"];
-
-    IndexBuffer =
-        [Device newBufferWithBytes:indexList.data()
-                            length:sizeof(uint16_t) * indexList.size()
-                           options:MTLResourceOptionCPUCacheModeDefault];
-    [IndexBuffer setLabel:@"Indices"];
-
-    const size_t instanceDataSize = BUFFER_COUNT * INSTANCE_COUNT * sizeof(InstanceData);
-    for(auto index = 0; index < BUFFER_COUNT; ++index)
-    {
-        InstanceBuffer[index] = [Device newBufferWithLength:instanceDataSize options:MTLResourceOptionCPUCacheModeDefault];
-        NSString* label = [NSString stringWithFormat:@"InstanceBuffer: %d", index];
-        [InstanceBuffer[index] setLabel:label];
-    }
-    
-}
-
-void GLTF::Update(double elapsed)
-{
-    RotationX = 0.0f;
-    RotationY = 0.0f;
-}
-
-void GLTF::Render(double elapsed)
-{
-    
     @autoreleasepool
     {
+        _frameIndex = (_frameIndex + 1) % BUFFER_COUNT;
 
-        FrameIndex = (FrameIndex + 1) % BUFFER_COUNT;
-        
-        id<MTLBuffer> instanceBuffer = InstanceBuffer[FrameIndex];
-        
-        id<MTLCommandBuffer>        commandBuffer  = [CommandQueue commandBuffer];
-        dispatch_semaphore_wait(Semaphore, DISPATCH_TIME_FOREVER);
-        [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-            dispatch_semaphore_signal(Semaphore);
+        id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+        dispatch_semaphore_wait(_semaphore, DISPATCH_TIME_FOREVER);
+        [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull)
+        {
+          dispatch_semaphore_signal(_semaphore);
         }];
         
-        UpdateUniform();
-        
-        CAMetalLayer* layer = GetMetalLayer();
+        [self updateUniform];
+
+        CAMetalLayer* layer = [self metalLayer];
         id<CAMetalDrawable> drawable = [layer nextDrawable];
         if (drawable != nil)
         {
@@ -287,26 +264,35 @@ void GLTF::Render(double elapsed)
             passDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
             passDesc.colorAttachments[0].clearColor =
                 MTLClearColorMake(.39, .58, .92, 1.0);
-            passDesc.depthAttachment.texture        = DepthStencilTexture;
+            passDesc.depthAttachment.texture        = _depthStencilTexture;
             passDesc.depthAttachment.loadAction     = MTLLoadActionClear;
             passDesc.depthAttachment.storeAction    = MTLStoreActionDontCare;
             passDesc.depthAttachment.clearDepth     = 1.0;
-            passDesc.stencilAttachment.texture      = DepthStencilTexture;
+            passDesc.stencilAttachment.texture      = _depthStencilTexture;
             passDesc.stencilAttachment.loadAction   = MTLLoadActionClear;
             passDesc.stencilAttachment.storeAction  = MTLStoreActionDontCare;
             passDesc.stencilAttachment.clearStencil = 0;
-            
+
             id<MTLRenderCommandEncoder> commandEncoder =
                                             [commandBuffer renderCommandEncoderWithDescriptor:passDesc];
-            [commandEncoder setRenderPipelineState:PipelineState];
-            [commandEncoder setDepthStencilState:DepthStencilState];
+            [commandEncoder setRenderPipelineState:_pipelineState];
+            [commandEncoder setDepthStencilState:_depthStencilState];
             [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-            [commandEncoder setCullMode:MTLCullModeBack];
-            [commandEncoder setFragmentTexture:Model->GetTexture() atIndex:0];
-            [commandEncoder setVertexBuffer:VertexBuffer offset:0 atIndex:0];
-            [commandEncoder setVertexBuffer:instanceBuffer offset:0 atIndex:1];
+            [commandEncoder setCullMode:MTLCullModeNone];
 
-            [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[IndexBuffer length] / sizeof(uint16_t) indexType:MTLIndexTypeUInt16 indexBuffer:IndexBuffer indexBufferOffset:0 instanceCount:INSTANCE_COUNT];
+            const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
+            const NSUInteger uniformBufferOffset =
+                                 alignedUniformSize * _frameIndex;
+
+            [commandEncoder setFragmentTexture:[_model texture] atIndex:0];
+            [commandEncoder setVertexBuffer:_vertexBuffer offset:0 atIndex:0];
+            [commandEncoder setVertexBuffer:_instanceBuffer[_frameIndex] offset:0 atIndex:1];
+
+            [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:
+                               [_indexBuffer length]
+                               / sizeof(uint16_t)  indexType:MTLIndexTypeUInt16
+                                                 indexBuffer:_indexBuffer indexBufferOffset:0
+                                               instanceCount:INSTANCE_COUNT];
             [commandEncoder endEncoding];
 
             [commandBuffer presentDrawable:drawable];
@@ -316,8 +302,8 @@ void GLTF::Render(double elapsed)
     }
 }
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCInconsistentNamingInspection"
+
+@end
 
 #if defined(__IPHONEOS__) || defined(__TVOS__)
 int SDL_main(int argc, char** argv)
@@ -325,9 +311,328 @@ int SDL_main(int argc, char** argv)
 int main(int argc, char** argv)
 #endif
 {
-    auto* example = new GLTF;
-
-    return example->Run(argc, argv);
+    NSInteger result;
+    @autoreleasepool {
+        GLTF* example = [[GLTF alloc] init];
+        result = [example run:argc :(const char**)argv];
+    }
+    return (int)result;
 }
 
-#pragma clang diagnostic pop
+
+//#include "Example.h"
+//
+//#import <Metal/Metal.h>
+//
+//#include "camera_x.h"
+//#include "model.h"
+//
+//using namespace DirectX;
+//
+//typedef XM_ALIGNED_STRUCT(16)
+//{
+//    XMMATRIX Transform;
+//} InstanceData;
+//
+//class GLTF : public Example
+//{
+//    static constexpr int BUFFER_COUNT = 3;
+//    static constexpr int INSTANCE_COUNT = 1;
+// public:
+//    GLTF();
+//
+//    ~GLTF();
+//
+//    void Init() override;
+//
+//    void Update(double elapsed) override;
+//
+//    void Render(double elapsed) override;
+//
+// private:
+//    std::shared_ptr<class Camera> Camera;
+//    std::unique_ptr<class Model> Model;
+//
+//    id<MTLDevice>              Device{};
+//    id<MTLCommandQueue>        CommandQueue{};
+//    id<MTLDepthStencilState>   DepthStencilState{};
+//    id<MTLTexture>             DepthStencilTexture;
+//    id<MTLBuffer>              VertexBuffer{};
+//    id<MTLBuffer>              IndexBuffer{};
+//    id<MTLBuffer>              InstanceBuffer[BUFFER_COUNT];
+//    id<MTLRenderPipelineState> PipelineState{};
+//    id<MTLLibrary>             PipelineLibrary{};
+//    NSUInteger                 FrameIndex{};
+//    dispatch_semaphore_t Semaphore{};
+//
+//    void MakeBuffers();
+//
+//    void UpdateUniform();
+//
+//    MTLVertexDescriptor* CreateVertexDescriptor();
+//
+//    float RotationY = 0.0f;
+//    float RotationX = 0.0f;
+//};
+//
+//GLTF::GLTF() : Example("GLTF", 1280, 720)
+//{
+//
+//}
+//
+//GLTF::~GLTF() = default;
+//
+//void GLTF::Init()
+//{
+//    Device      = MTLCreateSystemDefaultDevice();
+//
+//    // Metal initialization
+//    CAMetalLayer* layer = GetMetalLayer();
+//    layer.device = Device;
+//
+//    CommandQueue = [Device newCommandQueue];
+//
+//    MTLDepthStencilDescriptor* depthStencilDesc =
+//                                 [MTLDepthStencilDescriptor new];
+//    depthStencilDesc.depthCompareFunction = MTLCompareFunctionLess;
+//    depthStencilDesc.depthWriteEnabled    = true;
+//    DepthStencilState =
+//        [Device newDepthStencilStateWithDescriptor:depthStencilDesc];
+//
+//    // Create depth and stencil textures
+//    uint32_t width  = static_cast<uint32_t>([layer drawableSize].width);
+//    uint32_t height = static_cast<uint32_t>([layer drawableSize].height);
+//    MTLTextureDescriptor* depthStencilTexDesc = [MTLTextureDescriptor
+//        texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8
+//                                     width:width
+//                                    height:height
+//                                 mipmapped:NO];
+//    depthStencilTexDesc.sampleCount = 1;
+//    depthStencilTexDesc.usage       = MTLTextureUsageRenderTarget;
+//    depthStencilTexDesc.resourceOptions =
+//        MTLResourceOptionCPUCacheModeDefault | MTLResourceStorageModePrivate;
+//    depthStencilTexDesc.storageMode = MTLStorageModeMemoryless;
+//
+//    DepthStencilTexture =
+//        [Device newTextureWithDescriptor:depthStencilTexDesc];
+//
+//
+//    MakeBuffers();
+//
+//    NSString* libraryPath = [[[NSBundle mainBundle] resourcePath]
+//        stringByAppendingPathComponent:@"shader.metallib"];
+//    NSError * error       = nil;
+//    PipelineLibrary = [Device newLibraryWithFile:libraryPath error:&error];
+//    MTLRenderPipelineDescriptor* pipelineDescriptor =
+//                                   [MTLRenderPipelineDescriptor new];
+//
+//    pipelineDescriptor.colorAttachments[0].pixelFormat     = MTLPixelFormatBGRA8Unorm;
+//    pipelineDescriptor.colorAttachments[0].blendingEnabled = YES;
+//    pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor        =
+//        MTLBlendFactorSourceAlpha;
+//    pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor   =
+//        MTLBlendFactorOneMinusSourceAlpha;
+//    pipelineDescriptor.colorAttachments[0].rgbBlendOperation           =
+//        MTLBlendOperationAdd;
+//    pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor      =
+//        MTLBlendFactorSourceAlpha;
+//    pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor =
+//        MTLBlendFactorOneMinusSourceAlpha;
+//    pipelineDescriptor.colorAttachments[0].alphaBlendOperation         =
+//        MTLBlendOperationAdd;
+//
+//    pipelineDescriptor.depthAttachmentPixelFormat   =
+//        MTLPixelFormatDepth32Float_Stencil8;
+//    pipelineDescriptor.stencilAttachmentPixelFormat =
+//        MTLPixelFormatDepth32Float_Stencil8;
+//    pipelineDescriptor.vertexFunction   =
+//        [PipelineLibrary newFunctionWithName:@"vertex_project"];
+//    pipelineDescriptor.fragmentFunction =
+//        [PipelineLibrary newFunctionWithName:@"fragment_flatcolor"];
+//    pipelineDescriptor.vertexDescriptor = CreateVertexDescriptor();
+//
+//    PipelineState =
+//        [Device newRenderPipelineStateWithDescriptor:pipelineDescriptor
+//                                               error:&error];
+//    if (!PipelineState)
+//    {
+//        NSLog(@"Error occurred when creating render pipeline state: %@", error);
+//    }
+//
+//    const CGSize drawableSize = layer.drawableSize;
+//    const float  aspect       = (float)drawableSize.width / (float)drawableSize.height;
+//    const float  fov          = (75.0f * (float)M_PI) / 180.0f;
+//    const float  near         = 0.01f;
+//    const float  far          = 1000.0f;
+//
+//    Camera = std::make_shared<class Camera>(
+//        XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, -1.0f },
+//        XMFLOAT3{ 0.0f, 1.0f, 0.0f }, fov, aspect, near, far);
+//
+//    Semaphore = dispatch_semaphore_create(BUFFER_COUNT);
+//
+//}
+//
+//MTLVertexDescriptor* GLTF::CreateVertexDescriptor()
+//{
+//    MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor new];
+//
+//    // Position
+//    vertexDescriptor.attributes[0].format      = MTLVertexFormatFloat4;
+//    vertexDescriptor.attributes[0].offset      = 0;
+//    vertexDescriptor.attributes[0].bufferIndex = 0;
+//
+//    // Color
+//    vertexDescriptor.attributes[1].format      = MTLVertexFormatFloat4;
+//    vertexDescriptor.attributes[1].offset      = offsetof(Vertex, Position);
+//    vertexDescriptor.attributes[1].bufferIndex = 0;
+//
+//    // UV coordinates
+//    vertexDescriptor.attributes[2].format      = MTLVertexFormatFloat2;
+//    vertexDescriptor.attributes[2].offset      = offsetof(Vertex, Color);
+//    vertexDescriptor.attributes[2].bufferIndex = 0;
+//
+//    // Joints
+//    vertexDescriptor.attributes[3].format      = MTLVertexFormatUInt4;
+//    vertexDescriptor.attributes[3].offset      = offsetof(Vertex, UV);
+//    vertexDescriptor.attributes[3].bufferIndex = 0;
+//
+//    // Weights
+//    vertexDescriptor.attributes[4].format      = MTLVertexFormatFloat2;
+//    vertexDescriptor.attributes[4].offset      = offsetof(Vertex, Joints);
+//    vertexDescriptor.attributes[4].bufferIndex = 0;
+//
+//    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+//    vertexDescriptor.layouts[0].stride       = sizeof(Vertex);
+//
+//    return vertexDescriptor;
+//}
+//
+//void GLTF::UpdateUniform()
+//{
+//    id<MTLBuffer> instanceBuffer = InstanceBuffer[FrameIndex];
+//
+//    InstanceData* pInstanceData = reinterpret_cast< InstanceData *>( [instanceBuffer contents] );
+//    for(auto index = 0; index < INSTANCE_COUNT; ++index)
+//    {
+//
+//        auto scaleFactor = 1.5f;
+//        auto translation = XMFLOAT3(0.0f, -1.0f, -5.0f);
+//        auto rotationX   = RotationX;
+//        auto rotationY   = RotationY;
+//
+//        const XMFLOAT3 xAxis = { 1, 0, 0 };
+//        const XMFLOAT3 yAxis = { 0, 1, 0 };
+//
+//        XMVECTOR xRotAxis = XMLoadFloat3(&xAxis);
+//        XMVECTOR yRotAxis = XMLoadFloat3(&yAxis);
+//
+//        XMMATRIX xRot        = XMMatrixRotationAxis(xRotAxis, rotationX);
+//        XMMATRIX yRot        = XMMatrixRotationAxis(yRotAxis, rotationY);
+//        XMMATRIX rot         = XMMatrixMultiply(xRot, yRot);
+//        XMMATRIX trans       =
+//                     XMMatrixTranslation(translation.x, translation.y, translation.z);
+//        XMMATRIX scale       = XMMatrixScaling(scaleFactor, scaleFactor, scaleFactor);
+//        XMMATRIX modelMatrix = XMMatrixMultiply(scale, XMMatrixMultiply(rot, trans));
+//
+//        CameraUniforms cameraUniforms = Camera->GetUniforms();
+//
+//        pInstanceData[index].Transform = modelMatrix * cameraUniforms.ViewProjection;
+//    }
+//}
+//
+//void GLTF::MakeBuffers()
+//{
+//    // Load GLTF model file
+//    Model = std::make_unique<class Model>("CesiumMan.gltf", Device);
+//
+//    const auto& vertexList = Model->GetVertices();
+//    const auto& indexList = Model->GetIndices();
+//    VertexBuffer =
+//        [Device newBufferWithBytes:vertexList.data()
+//                            length:vertexList.size() * sizeof(Vertex)
+//                           options:MTLResourceOptionCPUCacheModeDefault];
+//    [VertexBuffer setLabel:@"Vertices"];
+//
+//    IndexBuffer =
+//        [Device newBufferWithBytes:indexList.data()
+//                            length:sizeof(uint16_t) * indexList.size()
+//                           options:MTLResourceOptionCPUCacheModeDefault];
+//    [IndexBuffer setLabel:@"Indices"];
+//
+//    const size_t instanceDataSize = BUFFER_COUNT * INSTANCE_COUNT * sizeof(InstanceData);
+//    for(auto index = 0; index < BUFFER_COUNT; ++index)
+//    {
+//        InstanceBuffer[index] = [Device newBufferWithLength:instanceDataSize options:MTLResourceOptionCPUCacheModeDefault];
+//        NSString* label = [NSString stringWithFormat:@"InstanceBuffer: %d", index];
+//        [InstanceBuffer[index] setLabel:label];
+//    }
+//
+//}
+//
+//void GLTF::Update(double elapsed)
+//{
+//    RotationX = 0.0f;
+//    RotationY = 0.0f;
+//}
+//
+//void GLTF::Render(double elapsed)
+//{
+//
+//    @autoreleasepool
+//    {
+//
+//        FrameIndex = (FrameIndex + 1) % BUFFER_COUNT;
+//
+//        id<MTLBuffer> instanceBuffer = InstanceBuffer[FrameIndex];
+//
+//        id<MTLCommandBuffer>        commandBuffer  = [CommandQueue commandBuffer];
+//        dispatch_semaphore_wait(Semaphore, DISPATCH_TIME_FOREVER);
+//        [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+//            dispatch_semaphore_signal(Semaphore);
+//        }];
+//
+//        UpdateUniform();
+//
+//        CAMetalLayer* layer = GetMetalLayer();
+//        id<CAMetalDrawable> drawable = [layer nextDrawable];
+//        if (drawable != nil)
+//        {
+//
+//            id<MTLTexture> texture = drawable.texture;
+//
+//            MTLRenderPassDescriptor* passDesc =
+//                                       [MTLRenderPassDescriptor renderPassDescriptor];
+//            passDesc.colorAttachments[0].texture     = texture;
+//            passDesc.colorAttachments[0].loadAction  = MTLLoadActionClear;
+//            passDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
+//            passDesc.colorAttachments[0].clearColor =
+//                MTLClearColorMake(.39, .58, .92, 1.0);
+//            passDesc.depthAttachment.texture        = DepthStencilTexture;
+//            passDesc.depthAttachment.loadAction     = MTLLoadActionClear;
+//            passDesc.depthAttachment.storeAction    = MTLStoreActionDontCare;
+//            passDesc.depthAttachment.clearDepth     = 1.0;
+//            passDesc.stencilAttachment.texture      = DepthStencilTexture;
+//            passDesc.stencilAttachment.loadAction   = MTLLoadActionClear;
+//            passDesc.stencilAttachment.storeAction  = MTLStoreActionDontCare;
+//            passDesc.stencilAttachment.clearStencil = 0;
+//
+//            id<MTLRenderCommandEncoder> commandEncoder =
+//                                            [commandBuffer renderCommandEncoderWithDescriptor:passDesc];
+//            [commandEncoder setRenderPipelineState:PipelineState];
+//            [commandEncoder setDepthStencilState:DepthStencilState];
+//            [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+//            [commandEncoder setCullMode:MTLCullModeBack];
+//            [commandEncoder setFragmentTexture:Model->GetTexture() atIndex:0];
+//            [commandEncoder setVertexBuffer:VertexBuffer offset:0 atIndex:0];
+//            [commandEncoder setVertexBuffer:instanceBuffer offset:0 atIndex:1];
+//
+//            [commandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[IndexBuffer length] / sizeof(uint16_t) indexType:MTLIndexTypeUInt16 indexBuffer:IndexBuffer indexBufferOffset:0 instanceCount:INSTANCE_COUNT];
+//            [commandEncoder endEncoding];
+//
+//            [commandBuffer presentDrawable:drawable];
+//
+//            [commandBuffer commit];
+//        }
+//    }
+//}

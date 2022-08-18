@@ -8,7 +8,6 @@
 #pragma once
 
 #include "graphics_math.h"
-#include "platform.h"
 
 /// @brief Camera uniform values
 XM_ALIGNED_STRUCT(16) CameraUniforms

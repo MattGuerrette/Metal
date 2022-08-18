@@ -59,9 +59,9 @@ else ()
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib)
 endif ()
 add_executable(${EXAMPLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/model.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/model.mm
-        ${CMAKE_CURRENT_SOURCE_DIR}/gltf.mm
+        Model.h
+        Model.mm
+        gltf.mm
         ${RESOURCE_FILES})
 target_include_directories(${EXAMPLE}
         PRIVATE
