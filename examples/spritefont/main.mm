@@ -2,9 +2,11 @@
 #import "Example.h"
 
 #import <Metal/Metal.h>
+#import <MetalKit/MetalKit.h>
 
 #import "Camera.h"
 #import "SpriteFont.h"
+#import "SpriteBatch.h"
 
 using namespace DirectX;
 
@@ -34,10 +36,12 @@ XM_ALIGNED_STRUCT(16) Uniforms
     id<MTLBuffer>              _uniformBuffer[BUFFER_COUNT];
     id<MTLRenderPipelineState> _pipelineState;
     id<MTLLibrary>             _pipelineLibrary;
+    id<MTLTexture> _basicSprite;
     NSUInteger                 _frameIndex;
     dispatch_semaphore_t       _semaphore;
     Camera* _camera;
     SpriteFont* _spriteFont;
+    SpriteBatch* _spriteBatch;
     float _rotationX;
     float _rotationY;
 }
@@ -85,8 +89,8 @@ XM_ALIGNED_STRUCT(16) Uniforms
     CameraUniforms cameraUniforms = [_camera uniforms];
 
     Uniforms uniforms;
-    auto     viewProj = cameraUniforms.viewProjection;
-    uniforms.modelViewProj = modelMatrix * viewProj;
+    auto     viewProj = cameraUniforms.projection;
+    uniforms.modelViewProj = viewProj;
 
     const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
     const NSUInteger uniformBufferOffset = alignedUniformSize * _frameIndex;
@@ -96,11 +100,13 @@ XM_ALIGNED_STRUCT(16) Uniforms
 }
 
 - (void)makeBuffers {
+    float scaleX = 227.0f;
+    float scaleY = 335.0f;
     static const Vertex vertices[] = {
-        { .position = { -1, 1, 0, 1 }, .color = { 0, 1, 1, 1 }, .uv = { 0, 0 }},
-        { .position = { -1, -1, 0, 1 }, .color = { 0, 0, 1, 1 }, .uv = { 0, 1 }},
-        { .position = { 1, -1, 0, 1 }, .color = { 1, 0, 1, 1 }, .uv = { 1, 1 }},
-        { .position = { 1, 1, 0, 1 }, .color = { 1, 1, 1, 1 }, .uv = { 1, 0 }}};
+        { .position = { 0.0f * scaleX, 1 *scaleY, 0, 1 }, .color = { 0, 1, 1, 1 }, .uv = { 0, 0 }},
+        { .position = { 0.0f * scaleX, 0.0f *scaleY, 0, 1 }, .color = { 0, 0, 1, 1 }, .uv = { 0, 1 }},
+        { .position = { 1* scaleX, 0.0f*scaleY, 0, 1 }, .color = { 1, 0, 1, 1 }, .uv = { 1, 1 }},
+        { .position = { 1*scaleX, 1*scaleY, 0, 1 }, .color = { 1, 1, 1, 1 }, .uv = { 1, 0 }}};
 
     static const uint16_t indices[] = { 0, 1, 2, 2, 3, 0 };
 
@@ -135,14 +141,14 @@ XM_ALIGNED_STRUCT(16) Uniforms
     vertexDescriptor.attributes[0].offset      = 0;
     vertexDescriptor.attributes[0].bufferIndex = 0;
 
-    // Color
-    vertexDescriptor.attributes[1].format      = MTLVertexFormatFloat4;
-    vertexDescriptor.attributes[1].offset      = sizeof(XMFLOAT4);
-    vertexDescriptor.attributes[1].bufferIndex = 0;
+//    // Color
+//    vertexDescriptor.attributes[1].format      = MTLVertexFormatFloat4;
+//    vertexDescriptor.attributes[1].offset      = sizeof(XMFLOAT4);
+//    vertexDescriptor.attributes[1].bufferIndex = 0;
     
     // UV
     vertexDescriptor.attributes[2].format      = MTLVertexFormatFloat4;
-    vertexDescriptor.attributes[2].offset      = sizeof(XMFLOAT4);
+    vertexDescriptor.attributes[2].offset      = sizeof(XMFLOAT2);
     vertexDescriptor.attributes[2].bufferIndex = 0;
 
     vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
@@ -226,12 +232,29 @@ XM_ALIGNED_STRUCT(16) Uniforms
     const float  near         = 0.01f;
     const float  far          = 1000.0f;
 
-    _camera = [[Camera alloc] initPerspectiveWithPosition:XMFLOAT3{0.0f, 0.0f, 0.0f} :XMFLOAT3{0.0f, 0.0f, -1.0f} :XMFLOAT3{0.0f, 1.0f, 0.0f} :fov :aspect :near :far];
+//    _camera = [[Camera alloc] initPerspectiveWithPosition:XMFLOAT3{0.0f, 0.0f, 0.0f} :XMFLOAT3{0.0f, 0.0f, -1.0f} :XMFLOAT3{0.0f, 1.0f, 0.0f} :fov :aspect :near :far];
 
+    _camera = [[Camera alloc] initOrthographic:800.0f :600.0f :0.0f :1.0f];
+    
     _semaphore = dispatch_semaphore_create(BUFFER_COUNT);
     
     NSString* fontFile = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"Arial.fnt"];
     _spriteFont = [[SpriteFont alloc] initWithFile:fontFile device:_device];
+    
+    _spriteBatch = [[SpriteBatch alloc] initWithDevice:_device];
+    
+    NSString* texturePath = [[[NSBundle mainBundle] resourcePath]
+        stringByAppendingPathComponent:@"BasicSprite.png"];
+    NSURL* url = [[NSURL alloc] initFileURLWithPath:texturePath];
+    
+    NSDictionary *textureLoaderOptions = @{
+          MTKTextureLoaderOptionSRGB: @NO,
+          MTKTextureLoaderOptionTextureUsage       : @(MTLTextureUsageShaderRead),
+          MTKTextureLoaderOptionTextureStorageMode : @(MTLStorageModePrivate)
+        };
+    
+    MTKTextureLoader* textureLoader = [[MTKTextureLoader alloc] initWithDevice:_device];
+    _basicSprite = [textureLoader newTextureWithContentsOfURL:url options:textureLoaderOptions error:nil];
     
     return YES;
 }
@@ -283,25 +306,35 @@ XM_ALIGNED_STRUCT(16) Uniforms
                                             [commandBuffer renderCommandEncoderWithDescriptor:passDesc];
             [commandEncoder setRenderPipelineState:_pipelineState];
             [commandEncoder setDepthStencilState:_depthStencilState];
-            [commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-            [commandEncoder setCullMode:MTLCullModeBack];
+            [commandEncoder setFrontFacingWinding:MTLWindingClockwise];
+            [commandEncoder setCullMode:MTLCullModeNone];
 
             const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
             const NSUInteger uniformBufferOffset =
                                  alignedUniformSize * _frameIndex;
 
+            //[commandEncoder setFragmentTexture:_basicSprite atIndex:0];
             [commandEncoder setFragmentTexture:[_spriteFont texture] atIndex:0];
-            [commandEncoder setVertexBuffer:_vertexBuffer offset:0 atIndex:0];
+            //[commandEncoder setVertexBuffer:_vertexBuffer offset:0 atIndex:0];
             [commandEncoder setVertexBuffer:_uniformBuffer[_frameIndex]
                                      offset:uniformBufferOffset
                                     atIndex:1];
 
-            [commandEncoder
-                drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                           indexCount:[_indexBuffer length] / sizeof(uint16_t)
-                            indexType:MTLIndexTypeUInt16
-                          indexBuffer:_indexBuffer
-                    indexBufferOffset:0];
+//            [commandEncoder
+//                drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+//                           indexCount:[_indexBuffer length] / sizeof(uint16_t)
+//                            indexType:MTLIndexTypeUInt16
+//                          indexBuffer:_indexBuffer
+//                    indexBufferOffset:0];
+            
+            [_spriteBatch begin:commandEncoder];
+            
+            // Draw sprites
+//            [_spriteBatch draw:_basicSprite position:DirectX::XMFLOAT2(0.0f, 0.0f) sourceRectangle:{}];
+            [_spriteBatch draw:[_spriteFont texture] position:DirectX::XMFLOAT2(0.0f, 0.0f) sourceRectangle:{}];
+            
+            [_spriteBatch end];
+            
             [commandEncoder endEncoding];
 
             [commandBuffer presentDrawable:drawable];

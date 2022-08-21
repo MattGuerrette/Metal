@@ -23,6 +23,11 @@ XM_ALIGNED_STRUCT(16) CameraUniforms
                                            :(float)nearPlane
                                            :(float)farPlane;
 
+- (instancetype)initOrthographic:(float)width
+                                :(float)height
+                                :(float)near
+                                :(float)far;
+
 @property (readonly) CameraUniforms uniforms;
 
 @end

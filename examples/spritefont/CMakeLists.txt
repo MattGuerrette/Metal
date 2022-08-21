@@ -27,14 +27,17 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
             ${CMAKE_CURRENT_SOURCE_DIR}/tvOS/LaunchScreen.storyboard)
 else ()
     set(RESOURCE_FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/BasicSprite.png
             ${CMAKE_CURRENT_SOURCE_DIR}/Arial.fnt
             ${CMAKE_CURRENT_SOURCE_DIR}/Arial.png
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib)
 endif ()
 add_executable(${EXAMPLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/shader.metal
-	    ${CMAKE_CURRENT_SOURCE_DIR}/SpriteFont.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/SpriteFont.mm
+	${CMAKE_CURRENT_SOURCE_DIR}/SpriteBatch.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/SpriteBatch.mm
+        ${CMAKE_CURRENT_SOURCE_DIR}/SpriteFont.h
+	${CMAKE_CURRENT_SOURCE_DIR}/SpriteFont.mm
         ${CMAKE_CURRENT_SOURCE_DIR}/main.mm
         ${RESOURCE_FILES})
 if ((${CMAKE_SYSTEM_NAME} MATCHES "iOS") OR (${CMAKE_SYSTEM_NAME} MATCHES "tvOS"))
@@ -47,7 +50,6 @@ set_target_properties(${EXAMPLE}
         MACOSX_BUNDLE_GUI_IDENTIFIER com.mpg.spritefont
         XCODE_GENERATE_SCHEME YES
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
-        XCODE_ATTRIBUTE_PRODUCT_NAME triangle
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.mpg.spritefont
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
         RESOURCE "${RESOURCE_FILES}")

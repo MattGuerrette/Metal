@@ -39,6 +39,16 @@ using namespace DirectX;
     return self;
 }
 
+- (instancetype)initOrthographic:(float)width :(float)height :(float)near :(float)far {
+    self = [super init];
+    
+    //_uniforms.projection = XMMatrixOrthographicRH(width, height, near, far);
+    
+    _uniforms.projection = XMMatrixOrthographicOffCenterRH(0.0f, 800.0f, 600.0f, 0.0f, near, far);
+    
+    return self;
+}
+
 - (CameraUniforms)uniforms {
     return _uniforms;
 }

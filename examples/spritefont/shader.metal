@@ -4,7 +4,6 @@ using namespace metal;
 
 struct Vertex {
     float4 position [[position]];
-    float4 color;
     float2 uv;
 };
 
@@ -19,8 +18,6 @@ vertex Vertex vertex_project(
 {
     Vertex vertexOut;
     vertexOut.position = uniforms->modelViewProjectionMatrix * vertices[vid].position;
-    vertexOut.color = vertices[vid].color;
-    vertexOut.color *= 1;
     vertexOut.uv = vertices[vid].uv;
 
     return vertexOut;
