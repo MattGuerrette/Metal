@@ -1,16 +1,5 @@
-set(EXAMPLE text)
 
-FetchContent_Declare(
-	fontstash
-	GIT_REPOSITORY https://github.com/MattGuerrette/fontstash.git
-)
-
-FetchContent_Declare(
-        cgltf
-        GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
-        GIT_TAG v1.12
-)
-FetchContent_MakeAvailable(cgltf fontstash)
+set(EXAMPLE spritefont)
 
 find_program(XCODE_RUN NAMES xcrun REQUIRED)
 if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
@@ -30,26 +19,24 @@ add_custom_command(
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
     set(RESOURCE_FILES
-            ${CMAKE_CURRENT_SOURCE_DIR}/DroidSerif-Regular.ttf
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib
             ${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
     set(RESOURCE_FILES
-            ${CMAKE_CURRENT_SOURCE_DIR}/DroidSerif-Regular.ttf
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib
             ${CMAKE_CURRENT_SOURCE_DIR}/tvOS/LaunchScreen.storyboard)
 else ()
     set(RESOURCE_FILES
-            ${CMAKE_CURRENT_SOURCE_DIR}/DroidSerif-Regular.ttf
+            ${CMAKE_CURRENT_SOURCE_DIR}/Arial.fnt
+            ${CMAKE_CURRENT_SOURCE_DIR}/Arial.png
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib)
 endif ()
 add_executable(${EXAMPLE}
-        text.mm
+        ${CMAKE_CURRENT_SOURCE_DIR}/shader.metal
+	    ${CMAKE_CURRENT_SOURCE_DIR}/SpriteFont.h
+	    ${CMAKE_CURRENT_SOURCE_DIR}/SpriteFont.mm
+        ${CMAKE_CURRENT_SOURCE_DIR}/main.mm
         ${RESOURCE_FILES})
-target_include_directories(${EXAMPLE}
-        PRIVATE
-        ${fontstash_SOURCE_DIR}/src
-	${cgltf_SOURCE_DIR})
 if ((${CMAKE_SYSTEM_NAME} MATCHES "iOS") OR (${CMAKE_SYSTEM_NAME} MATCHES "tvOS"))
     target_sources(${EXAMPLE} PRIVATE ${SDL2_SOURCE_DIR}/src/main/uikit/SDL_uikit_main.c)
 endif ()
@@ -57,10 +44,10 @@ target_link_libraries(${EXAMPLE} base)
 set_target_properties(${EXAMPLE}
         PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_GUI_IDENTIFIER com.mpg.text
+        MACOSX_BUNDLE_GUI_IDENTIFIER com.mpg.spritefont
         XCODE_GENERATE_SCHEME YES
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
-        XCODE_ATTRIBUTE_PRODUCT_NAME text
-        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.mpg.text
+        XCODE_ATTRIBUTE_PRODUCT_NAME triangle
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.mpg.spritefont
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
         RESOURCE "${RESOURCE_FILES}")
