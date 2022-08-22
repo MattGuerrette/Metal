@@ -61,6 +61,7 @@ XM_ALIGNED_STRUCT(16) SpriteVertex
 - (instancetype)initWithDevice:(id<MTLDevice>)device {
     self = [super init];
     _inBeginEnd = NO;
+    _activeTexture = nil;
     
     const NSUInteger vertexBufferSize = sizeof(SpriteVertex) * VERTICES_PER_SPRITE;
     _vertexBuffer = [device newBufferWithLength:vertexBufferSize options:MTLResourceOptionCPUCacheModeDefault];
@@ -97,20 +98,23 @@ XM_ALIGNED_STRUCT(16) SpriteVertex
 - (void)begin:(id<MTLRenderCommandEncoder>)encoder {
     NSAssert(!_inBeginEnd, @"begin must align with corresponding call to end");
     
+    _activeTexture = nil;
     _inBeginEnd = YES;
     _commandEncoder = encoder;
+    
+    [_commandEncoder setVertexBuffer:_vertexBuffer offset:0 atIndex:0];
 }
 
 - (void)draw:(id<MTLTexture>)texture position:(DirectX::XMFLOAT2)position sourceRectangle:(Rect)rect {
     
-    _activeTexture = texture;
-    
-    if (_batches.size() >= MAX_BATCH_SIZE)
+
+    if (_batches.size() >= MAX_BATCH_SIZE || (_activeTexture != nil && _activeTexture != texture))
     {
         // Flush
         [self flush];
     }
     
+    _activeTexture = texture;
     
     // Add batch info to queue
     BatchInfo info;
@@ -124,8 +128,6 @@ XM_ALIGNED_STRUCT(16) SpriteVertex
 //    info.source.origin.y = rect.top;
 //    info.source.
     _batches.push_back(info);
-    
-    
 }
 
 - (void)end {
@@ -133,6 +135,7 @@ XM_ALIGNED_STRUCT(16) SpriteVertex
     
     [self flush];
     
+    _activeTexture = nil;
     _inBeginEnd = NO;
     _commandEncoder = nil;
 }
@@ -147,10 +150,11 @@ XM_ALIGNED_STRUCT(16) SpriteVertex
         offset += sizeof(SpriteVertex) * VERTICES_PER_SPRITE;
     }
     
-    [_commandEncoder setVertexBuffer:_vertexBuffer offset:0 atIndex:0];
+
+    [_commandEncoder setFragmentTexture:_activeTexture atIndex:0];
     [_commandEncoder
         drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                   indexCount:6
+                   indexCount:_batches.size() * INDICES_PER_SPRITE
                     indexType:MTLIndexTypeUInt16
                   indexBuffer:_indexBuffer
             indexBufferOffset:0];
@@ -191,14 +195,14 @@ XM_ALIGNED_STRUCT(16) SpriteVertex
     float fy = -info.origin.y;
     float fx2;
     float fy2;
-    if (info.source.bounds.x != 0 || info.source.bounds.y != 0) {
-        fx2 = info.source.bounds.x - info.origin.x;
-        fy2 = info.source.bounds.y - info.origin.y;
-    }
-    else {
+//    if (info.source.bounds.x != 0 || info.source.bounds.y != 0) {
+//        fx2 = info.source.bounds.x - info.origin.x;
+//        fy2 = info.source.bounds.y - info.origin.y;
+//    }
+//    else {
         fx2 = tex_width - info.origin.x;
         fy2 = tex_height - info.origin.y;
-    }
+   // }
 
     /*apply scale*/
     fx *= info.scale.x;

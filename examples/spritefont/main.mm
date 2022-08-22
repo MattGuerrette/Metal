@@ -42,6 +42,7 @@ XM_ALIGNED_STRUCT(16) Uniforms
     Camera* _camera;
     SpriteFont* _spriteFont;
     SpriteBatch* _spriteBatch;
+    SpriteBatch* _spriteBatch2;
     float _rotationX;
     float _rotationY;
 }
@@ -243,6 +244,8 @@ XM_ALIGNED_STRUCT(16) Uniforms
     
     _spriteBatch = [[SpriteBatch alloc] initWithDevice:_device];
     
+    _spriteBatch2 = [[SpriteBatch alloc] initWithDevice:_device];
+    
     NSString* texturePath = [[[NSBundle mainBundle] resourcePath]
         stringByAppendingPathComponent:@"BasicSprite.png"];
     NSURL* url = [[NSURL alloc] initFileURLWithPath:texturePath];
@@ -314,7 +317,7 @@ XM_ALIGNED_STRUCT(16) Uniforms
                                  alignedUniformSize * _frameIndex;
 
             //[commandEncoder setFragmentTexture:_basicSprite atIndex:0];
-            [commandEncoder setFragmentTexture:[_spriteFont texture] atIndex:0];
+            //[commandEncoder setFragmentTexture:[_spriteFont texture] atIndex:0];
             //[commandEncoder setVertexBuffer:_vertexBuffer offset:0 atIndex:0];
             [commandEncoder setVertexBuffer:_uniformBuffer[_frameIndex]
                                      offset:uniformBufferOffset
@@ -328,12 +331,31 @@ XM_ALIGNED_STRUCT(16) Uniforms
 //                    indexBufferOffset:0];
             
             [_spriteBatch begin:commandEncoder];
+            //[_spriteBatch draw:_basicSprite position:DirectX::XMFLOAT2(0.0f, 0.0f) sourceRectangle:{}];
             
+            float xOffset = 0.0f;
+            float yOffset = 0.0f;
+            for(uint32_t i = 0; i < 3; i++)
+            {
+                [_spriteBatch draw:_basicSprite position:DirectX::XMFLOAT2(xOffset, yOffset) sourceRectangle:{}];
+                xOffset += 75.0f;
+
+                if (i == 5) {
+                    xOffset = 0.0f;
+                    yOffset += 150.0f;
+                }
+            }
             // Draw sprites
 //            [_spriteBatch draw:_basicSprite position:DirectX::XMFLOAT2(0.0f, 0.0f) sourceRectangle:{}];
-            [_spriteBatch draw:[_spriteFont texture] position:DirectX::XMFLOAT2(0.0f, 0.0f) sourceRectangle:{}];
-            
+//
+//            //[_spriteBatch begin:commandEncoder];
+//            [_spriteBatch draw:_basicSprite position:DirectX::XMFLOAT2(100.0f, 100.0f) sourceRectangle:{}];
             [_spriteBatch end];
+            
+//            [_spriteBatch2 begin:commandEncoder];
+//            [_spriteBatch2 draw:[_spriteFont texture] position:DirectX::XMFLOAT2(100.0f, 100.0f) sourceRectangle:{}];
+//            [_spriteBatch2 end];
+            
             
             [commandEncoder endEncoding];
 
