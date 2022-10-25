@@ -13,6 +13,7 @@ XM_ALIGNED_STRUCT(16) CameraUniforms
     DirectX::XMMATRIX invView;
 };
 
+
 @interface Camera : NSObject
 
 - (instancetype)initPerspectiveWithPosition:(DirectX::XMFLOAT3)position

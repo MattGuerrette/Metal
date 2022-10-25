@@ -1,7 +1,8 @@
 
 #import <Foundation/Foundation.h>
 #import <QuartzCore/QuartzCore.h>
-#import <SDL.h>
+
+#import <SDL2/SDL.h>
 
 @interface Example : NSObject
 

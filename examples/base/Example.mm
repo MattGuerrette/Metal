@@ -3,8 +3,6 @@
 #import "Example.h"
 
 
-
-
 @interface Example ()
 {
 @public

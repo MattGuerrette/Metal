@@ -103,13 +103,13 @@ XM_ALIGNED_STRUCT(16) Uniforms
     _vertexBuffer =
         [_device newBufferWithBytes:vertices
                             length:sizeof(vertices)
-                           options:MTLResourceOptionCPUCacheModeDefault];
+                            options:MTLResourceCPUCacheModeDefaultCache];
     [_vertexBuffer setLabel:@"Vertices"];
 
     _indexBuffer =
         [_device newBufferWithBytes:indices
                             length:sizeof(indices)
-                           options:MTLResourceOptionCPUCacheModeDefault];
+                            options:MTLResourceCPUCacheModeDefaultCache];
     [_indexBuffer setLabel:@"Indices"];
 
     const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
@@ -117,7 +117,7 @@ XM_ALIGNED_STRUCT(16) Uniforms
     {
         _uniformBuffer[index] =
             [_device newBufferWithLength:alignedUniformSize * BUFFER_COUNT
-                                options:MTLResourceOptionCPUCacheModeDefault];
+                                 options:MTLResourceCPUCacheModeDefaultCache];
         NSString* label = [NSString stringWithFormat:@"Uniform: %d", index];
         [_uniformBuffer[index] setLabel:label];
     }
@@ -169,17 +169,18 @@ XM_ALIGNED_STRUCT(16) Uniforms
     depthStencilTexDesc.sampleCount = 1;
     depthStencilTexDesc.usage       = MTLTextureUsageRenderTarget;
     depthStencilTexDesc.resourceOptions =
-        MTLResourceOptionCPUCacheModeDefault | MTLResourceStorageModePrivate;
+    MTLResourceCPUCacheModeDefaultCache | MTLResourceStorageModePrivate;
     depthStencilTexDesc.storageMode = MTLStorageModeMemoryless;
     _depthStencilTexture =
         [_device newTextureWithDescriptor:depthStencilTexDesc];
 
     [self makeBuffers];
 
-    NSString* libraryPath = [[[NSBundle mainBundle] resourcePath]
-        stringByAppendingPathComponent:@"shader.metallib"];
-    NSError * error       = nil;
-    _pipelineLibrary = [_device newLibraryWithFile:libraryPath error:&error];
+    _pipelineLibrary = [_device newDefaultLibrary];
+//    NSString* libraryPath = [[[NSBundle mainBundle] resourcePath]
+//        stringByAppendingPathComponent:@"shader.metallib"];
+//    NSError * error       = nil;
+//    _pipelineLibrary = [_device newLibraryWithFile:libraryPath error:&error];
     MTLRenderPipelineDescriptor* pipelineDescriptor =
                                    [MTLRenderPipelineDescriptor new];
 
@@ -208,6 +209,7 @@ XM_ALIGNED_STRUCT(16) Uniforms
         [_pipelineLibrary newFunctionWithName:@"fragment_flatcolor"];
     pipelineDescriptor.vertexDescriptor = [self createVertexDescriptor];
 
+    NSError* error = nil;
     _pipelineState =
         [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor
                                                error:&error];
@@ -244,7 +246,7 @@ XM_ALIGNED_STRUCT(16) Uniforms
         dispatch_semaphore_wait(_semaphore, DISPATCH_TIME_FOREVER);
         [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull)
         {
-          dispatch_semaphore_signal(_semaphore);
+            dispatch_semaphore_signal(self->_semaphore);
         }];
         
         [self updateUniform];

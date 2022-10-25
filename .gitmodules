@@ -1,0 +1,3 @@
+[submodule "ThirdParty/DirectXMath"]
+	path = ThirdParty/DirectXMath
+	url = https://github.com/microsoft/DirectXMath.git

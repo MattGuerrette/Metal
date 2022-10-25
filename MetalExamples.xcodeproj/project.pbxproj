@@ -6,22 +6,260 @@
 	objectVersion = 56;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A7064F3429088C03003C778E /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7064F3329088C03003C778E /* SDL2.framework */; };
+		A7064F3529088C03003C778E /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A7064F3329088C03003C778E /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A77797A72908A80B00667319 /* SDL_uikit_main.c in Sources */ = {isa = PBXBuildFile; fileRef = A77797A62908A80B00667319 /* SDL_uikit_main.c */; };
+		A77797A82908A80B00667319 /* SDL_uikit_main.c in Sources */ = {isa = PBXBuildFile; fileRef = A77797A62908A80B00667319 /* SDL_uikit_main.c */; };
+		A77797A92908A82D00667319 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7AC716B290897BA00A60013 /* Metal.framework */; };
+		A7AC7149290893D600A60013 /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7AC7148290893D600A60013 /* SDL2.framework */; };
+		A7AC714A290893D600A60013 /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A7AC7148290893D600A60013 /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A7AC71552908969400A60013 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A7AC71542908969400A60013 /* LaunchScreen.storyboard */; };
+		A7AC7157290896A300A60013 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A7AC7156290896A300A60013 /* LaunchScreen.storyboard */; };
+		A7AC715B2908975200A60013 /* shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = A7AC71592908975200A60013 /* shader.metal */; };
+		A7AC715C2908975200A60013 /* shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = A7AC71592908975200A60013 /* shader.metal */; };
+		A7AC715D2908975200A60013 /* shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = A7AC71592908975200A60013 /* shader.metal */; };
+		A7AC715E2908975200A60013 /* triangle.mm in Sources */ = {isa = PBXBuildFile; fileRef = A7AC715A2908975200A60013 /* triangle.mm */; };
+		A7AC715F2908975200A60013 /* triangle.mm in Sources */ = {isa = PBXBuildFile; fileRef = A7AC715A2908975200A60013 /* triangle.mm */; };
+		A7AC71602908975200A60013 /* triangle.mm in Sources */ = {isa = PBXBuildFile; fileRef = A7AC715A2908975200A60013 /* triangle.mm */; };
+		A7AC71652908978A00A60013 /* Example.mm in Sources */ = {isa = PBXBuildFile; fileRef = A7AC71612908978A00A60013 /* Example.mm */; };
+		A7AC71662908978A00A60013 /* Example.mm in Sources */ = {isa = PBXBuildFile; fileRef = A7AC71612908978A00A60013 /* Example.mm */; };
+		A7AC71672908978A00A60013 /* Example.mm in Sources */ = {isa = PBXBuildFile; fileRef = A7AC71612908978A00A60013 /* Example.mm */; };
+		A7AC71682908978A00A60013 /* Camera.mm in Sources */ = {isa = PBXBuildFile; fileRef = A7AC71642908978A00A60013 /* Camera.mm */; };
+		A7AC71692908978A00A60013 /* Camera.mm in Sources */ = {isa = PBXBuildFile; fileRef = A7AC71642908978A00A60013 /* Camera.mm */; };
+		A7AC716A2908978A00A60013 /* Camera.mm in Sources */ = {isa = PBXBuildFile; fileRef = A7AC71642908978A00A60013 /* Camera.mm */; };
+		A7AC716E2908980600A60013 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7AC716D2908980600A60013 /* Metal.framework */; };
+		A7AC717329089B0200A60013 /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7AC714C290893E900A60013 /* SDL2.framework */; };
+		A7AC717429089B0200A60013 /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A7AC714C290893E900A60013 /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A7064F3629088C03003C778E /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				A7064F3529088C03003C778E /* SDL2.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7AC714B290893D600A60013 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				A7AC714A290893D600A60013 /* SDL2.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7AC717529089B0200A60013 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				A7AC717429089B0200A60013 /* SDL2.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A7064EDF290889E8003C778E /* Triangle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Triangle.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A7064EF3290889E8003C778E /* Triangle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Triangle.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A7064F07290889E8003C778E /* Triangle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Triangle.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A7064F3329088C03003C778E /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ThirdParty/Frameworks/macOS/SDL2.framework; sourceTree = "<group>"; };
+		A77797A62908A80B00667319 /* SDL_uikit_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SDL_uikit_main.c; path = examples/base/SDL_uikit_main.c; sourceTree = "<group>"; };
+		A7AC7148290893D600A60013 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ThirdParty/Frameworks/appletvos/SDL2.framework; sourceTree = "<group>"; };
+		A7AC714C290893E900A60013 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ThirdParty/Frameworks/iphoneos/SDL2.framework; sourceTree = "<group>"; };
+		A7AC71532908965F00A60013 /* Triangle_macOS.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; name = Triangle_macOS.entitlements; path = examples/triangle/macOS/Triangle_macOS.entitlements; sourceTree = "<group>"; };
+		A7AC71542908969400A60013 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = examples/triangle/tvOS/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A7AC7156290896A300A60013 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = examples/triangle/iOS/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A7AC71592908975200A60013 /* shader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shader.metal; path = examples/triangle/shader.metal; sourceTree = "<group>"; };
+		A7AC715A2908975200A60013 /* triangle.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = triangle.mm; path = examples/triangle/triangle.mm; sourceTree = "<group>"; };
+		A7AC71612908978A00A60013 /* Example.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Example.mm; path = examples/base/Example.mm; sourceTree = "<group>"; };
+		A7AC71622908978A00A60013 /* Camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Camera.h; path = examples/base/Camera.h; sourceTree = "<group>"; };
+		A7AC71632908978A00A60013 /* Example.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Example.h; path = examples/base/Example.h; sourceTree = "<group>"; };
+		A7AC71642908978A00A60013 /* Camera.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Camera.mm; path = examples/base/Camera.mm; sourceTree = "<group>"; };
+		A7AC716B290897BA00A60013 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS16.1.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
+		A7AC716D2908980600A60013 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		A7AC716F2908992400A60013 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ThirdParty/Frameworks/maccatalyst/SDL2.framework; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A7064EDC290889E8003C778E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7AC717329089B0200A60013 /* SDL2.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7064EF0290889E8003C778E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A77797A92908A82D00667319 /* Metal.framework in Frameworks */,
+				A7AC7149290893D600A60013 /* SDL2.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7064F04290889E8003C778E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7AC716E2908980600A60013 /* Metal.framework in Frameworks */,
+				A7064F3429088C03003C778E /* SDL2.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXGroup section */
 		A7064E7B290888FA003C778E = {
 			isa = PBXGroup;
 			children = (
+				A7064F27290889F8003C778E /* Triangle */,
 				A7064E8B290888FB003C778E /* Products */,
+				A7064F3229088C03003C778E /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
 		A7064E8B290888FB003C778E /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				A7064EDF290889E8003C778E /* Triangle.app */,
+				A7064EF3290889E8003C778E /* Triangle.app */,
+				A7064F07290889E8003C778E /* Triangle.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
+		A7064F27290889F8003C778E /* Triangle */ = {
+			isa = PBXGroup;
+			children = (
+				A7AC7158290896B200A60013 /* Triangle Shared */,
+				A7AC71522908964C00A60013 /* Triangle macOS */,
+				A7AC71512908963C00A60013 /* Triangle tvOS */,
+				A7AC71502908962700A60013 /* Triangle iOS */,
+			);
+			name = Triangle;
+			sourceTree = "<group>";
+		};
+		A7064F3229088C03003C778E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A7AC716F2908992400A60013 /* SDL2.framework */,
+				A7AC716B290897BA00A60013 /* Metal.framework */,
+				A7AC716D2908980600A60013 /* Metal.framework */,
+				A7AC714C290893E900A60013 /* SDL2.framework */,
+				A7AC7148290893D600A60013 /* SDL2.framework */,
+				A7064F3329088C03003C778E /* SDL2.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A7AC71502908962700A60013 /* Triangle iOS */ = {
+			isa = PBXGroup;
+			children = (
+				A7AC7156290896A300A60013 /* LaunchScreen.storyboard */,
+			);
+			name = "Triangle iOS";
+			sourceTree = "<group>";
+		};
+		A7AC71512908963C00A60013 /* Triangle tvOS */ = {
+			isa = PBXGroup;
+			children = (
+				A7AC71542908969400A60013 /* LaunchScreen.storyboard */,
+			);
+			name = "Triangle tvOS";
+			sourceTree = "<group>";
+		};
+		A7AC71522908964C00A60013 /* Triangle macOS */ = {
+			isa = PBXGroup;
+			children = (
+				A7AC71532908965F00A60013 /* Triangle_macOS.entitlements */,
+			);
+			name = "Triangle macOS";
+			sourceTree = "<group>";
+		};
+		A7AC7158290896B200A60013 /* Triangle Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A77797A62908A80B00667319 /* SDL_uikit_main.c */,
+				A7AC71622908978A00A60013 /* Camera.h */,
+				A7AC71642908978A00A60013 /* Camera.mm */,
+				A7AC71632908978A00A60013 /* Example.h */,
+				A7AC71612908978A00A60013 /* Example.mm */,
+				A7AC71592908975200A60013 /* shader.metal */,
+				A7AC715A2908975200A60013 /* triangle.mm */,
+			);
+			name = "Triangle Shared";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A7064EDE290889E8003C778E /* Triangle iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A7064F24290889E8003C778E /* Build configuration list for PBXNativeTarget "Triangle iOS" */;
+			buildPhases = (
+				A7064EDB290889E8003C778E /* Sources */,
+				A7064EDC290889E8003C778E /* Frameworks */,
+				A7064EDD290889E8003C778E /* Resources */,
+				A7AC717529089B0200A60013 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Triangle iOS";
+			productName = "Triangle iOS";
+			productReference = A7064EDF290889E8003C778E /* Triangle.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A7064EF2290889E8003C778E /* Triangle tvOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A7064F25290889E8003C778E /* Build configuration list for PBXNativeTarget "Triangle tvOS" */;
+			buildPhases = (
+				A7064EEF290889E8003C778E /* Sources */,
+				A7064EF0290889E8003C778E /* Frameworks */,
+				A7064EF1290889E8003C778E /* Resources */,
+				A7AC714B290893D600A60013 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Triangle tvOS";
+			productName = "Triangle tvOS";
+			productReference = A7064EF3290889E8003C778E /* Triangle.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A7064F06290889E8003C778E /* Triangle macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A7064F26290889E8003C778E /* Build configuration list for PBXNativeTarget "Triangle macOS" */;
+			buildPhases = (
+				A7064F03290889E8003C778E /* Sources */,
+				A7064F04290889E8003C778E /* Frameworks */,
+				A7064F05290889E8003C778E /* Resources */,
+				A7064F3629088C03003C778E /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Triangle macOS";
+			productName = "Triangle macOS";
+			productReference = A7064F07290889E8003C778E /* Triangle.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		A7064E7C290888FA003C778E /* Project object */ = {
@@ -29,6 +267,17 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1410;
+				TargetAttributes = {
+					A7064EDE290889E8003C778E = {
+						CreatedOnToolsVersion = 14.1;
+					};
+					A7064EF2290889E8003C778E = {
+						CreatedOnToolsVersion = 14.1;
+					};
+					A7064F06290889E8003C778E = {
+						CreatedOnToolsVersion = 14.1;
+					};
+				};
 			};
 			buildConfigurationList = A7064E7F290888FA003C778E /* Build configuration list for PBXProject "MetalExamples" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -43,9 +292,76 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				A7064EDE290889E8003C778E /* Triangle iOS */,
+				A7064EF2290889E8003C778E /* Triangle tvOS */,
+				A7064F06290889E8003C778E /* Triangle macOS */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A7064EDD290889E8003C778E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7AC7157290896A300A60013 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7064EF1290889E8003C778E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7AC71552908969400A60013 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7064F05290889E8003C778E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A7064EDB290889E8003C778E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7AC715B2908975200A60013 /* shader.metal in Sources */,
+				A77797A72908A80B00667319 /* SDL_uikit_main.c in Sources */,
+				A7AC71652908978A00A60013 /* Example.mm in Sources */,
+				A7AC71682908978A00A60013 /* Camera.mm in Sources */,
+				A7AC715E2908975200A60013 /* triangle.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7064EEF290889E8003C778E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7AC715C2908975200A60013 /* shader.metal in Sources */,
+				A77797A82908A80B00667319 /* SDL_uikit_main.c in Sources */,
+				A7AC71662908978A00A60013 /* Example.mm in Sources */,
+				A7AC71692908978A00A60013 /* Camera.mm in Sources */,
+				A7AC715F2908975200A60013 /* triangle.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7064F03290889E8003C778E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7AC715D2908975200A60013 /* shader.metal in Sources */,
+				A7AC71672908978A00A60013 /* Example.mm in Sources */,
+				A7AC716A2908978A00A60013 /* Camera.mm in Sources */,
+				A7AC71602908975200A60013 /* triangle.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
 		A7064ECA290888FB003C778E /* Debug */ = {
@@ -153,6 +469,220 @@
 			};
 			name = Release;
 		};
+		A7064F1E290889E8003C778E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8GA7VC9FYY;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ThirdParty/Frameworks/iphoneos",
+					"$(PROJECT_DIR)/ThirdParty/Frameworks/maccatalyst",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/ThirdParty/DirectXMath/Inc",
+					"$(PROJECT_DIR)/examples/base",
+				);
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
+				PRODUCT_NAME = Triangle;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A7064F1F290889E8003C778E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8GA7VC9FYY;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ThirdParty/Frameworks/iphoneos",
+					"$(PROJECT_DIR)/ThirdParty/Frameworks/maccatalyst",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/ThirdParty/DirectXMath/Inc",
+					"$(PROJECT_DIR)/examples/base",
+				);
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
+				PRODUCT_NAME = Triangle;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A7064F20290889E8003C778E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "tvOS App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8GA7VC9FYY;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ThirdParty/Frameworks/appletvos",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/examples/base",
+					"$(PROJECT_DIR)/ThirdParty/DirectXMath/Inc",
+				);
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
+				PRODUCT_NAME = Triangle;
+				SDKROOT = appletvos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 16.1;
+			};
+			name = Debug;
+		};
+		A7064F21290889E8003C778E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "tvOS App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8GA7VC9FYY;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ThirdParty/Frameworks/appletvos",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/examples/base",
+					"$(PROJECT_DIR)/ThirdParty/DirectXMath/Inc",
+				);
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
+				PRODUCT_NAME = Triangle;
+				SDKROOT = appletvos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 16.1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A7064F22290889E8003C778E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = examples/triangle/macOS/Triangle_macOS.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8GA7VC9FYY;
+				ENABLE_HARDENED_RUNTIME = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ThirdParty/Frameworks/macOS",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/ThirdParty/DirectXMath/Inc",
+					"$(PROJECT_DIR)/examples/base",
+				);
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
+				PRODUCT_NAME = Triangle;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		A7064F23290889E8003C778E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = examples/triangle/macOS/Triangle_macOS.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8GA7VC9FYY;
+				ENABLE_HARDENED_RUNTIME = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ThirdParty/Frameworks/macOS",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/ThirdParty/DirectXMath/Inc",
+					"$(PROJECT_DIR)/examples/base",
+				);
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
+				PRODUCT_NAME = Triangle;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -161,6 +691,33 @@
 			buildConfigurations = (
 				A7064ECA290888FB003C778E /* Debug */,
 				A7064ECB290888FB003C778E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A7064F24290889E8003C778E /* Build configuration list for PBXNativeTarget "Triangle iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A7064F1E290889E8003C778E /* Debug */,
+				A7064F1F290889E8003C778E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A7064F25290889E8003C778E /* Build configuration list for PBXNativeTarget "Triangle tvOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A7064F20290889E8003C778E /* Debug */,
+				A7064F21290889E8003C778E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A7064F26290889E8003C778E /* Build configuration list for PBXNativeTarget "Triangle macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A7064F22290889E8003C778E /* Debug */,
+				A7064F23290889E8003C778E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
