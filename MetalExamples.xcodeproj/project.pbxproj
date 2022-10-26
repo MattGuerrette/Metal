@@ -90,7 +90,6 @@
 		A7AC71642908978A00A60013 /* Camera.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Camera.mm; path = examples/base/Camera.mm; sourceTree = "<group>"; };
 		A7AC716B290897BA00A60013 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS16.1.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		A7AC716D2908980600A60013 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		A7AC716F2908992400A60013 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ThirdParty/Frameworks/maccatalyst/SDL2.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -158,7 +157,6 @@
 			isa = PBXGroup;
 			children = (
 				A7A28E5D2908E543009342C7 /* Metal.framework */,
-				A7AC716F2908992400A60013 /* SDL2.framework */,
 				A7AC716B290897BA00A60013 /* Metal.framework */,
 				A7AC716D2908980600A60013 /* Metal.framework */,
 				A7AC714C290893E900A60013 /* SDL2.framework */,
