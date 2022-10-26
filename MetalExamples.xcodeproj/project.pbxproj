@@ -12,6 +12,7 @@
 		A77797A72908A80B00667319 /* SDL_uikit_main.c in Sources */ = {isa = PBXBuildFile; fileRef = A77797A62908A80B00667319 /* SDL_uikit_main.c */; };
 		A77797A82908A80B00667319 /* SDL_uikit_main.c in Sources */ = {isa = PBXBuildFile; fileRef = A77797A62908A80B00667319 /* SDL_uikit_main.c */; };
 		A77797A92908A82D00667319 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7AC716B290897BA00A60013 /* Metal.framework */; };
+		A7A28E5E2908E544009342C7 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7A28E5D2908E543009342C7 /* Metal.framework */; };
 		A7AC7149290893D600A60013 /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7AC7148290893D600A60013 /* SDL2.framework */; };
 		A7AC714A290893D600A60013 /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A7AC7148290893D600A60013 /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A7AC71552908969400A60013 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A7AC71542908969400A60013 /* LaunchScreen.storyboard */; };
@@ -75,6 +76,7 @@
 		A7064F07290889E8003C778E /* Triangle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Triangle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A7064F3329088C03003C778E /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ThirdParty/Frameworks/macOS/SDL2.framework; sourceTree = "<group>"; };
 		A77797A62908A80B00667319 /* SDL_uikit_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SDL_uikit_main.c; path = examples/base/SDL_uikit_main.c; sourceTree = "<group>"; };
+		A7A28E5D2908E543009342C7 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.1.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		A7AC7148290893D600A60013 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ThirdParty/Frameworks/appletvos/SDL2.framework; sourceTree = "<group>"; };
 		A7AC714C290893E900A60013 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ThirdParty/Frameworks/iphoneos/SDL2.framework; sourceTree = "<group>"; };
 		A7AC71532908965F00A60013 /* Triangle_macOS.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; name = Triangle_macOS.entitlements; path = examples/triangle/macOS/Triangle_macOS.entitlements; sourceTree = "<group>"; };
@@ -96,6 +98,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A7A28E5E2908E544009342C7 /* Metal.framework in Frameworks */,
 				A7AC717329089B0200A60013 /* SDL2.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -154,6 +157,7 @@
 		A7064F3229088C03003C778E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				A7A28E5D2908E543009342C7 /* Metal.framework */,
 				A7AC716F2908992400A60013 /* SDL2.framework */,
 				A7AC716B290897BA00A60013 /* Metal.framework */,
 				A7AC716D2908980600A60013 /* Metal.framework */,
@@ -490,8 +494,7 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -527,8 +530,7 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
