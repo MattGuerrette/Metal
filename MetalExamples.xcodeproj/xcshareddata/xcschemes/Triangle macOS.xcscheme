@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A7064EF2290889E8003C778E"
+               BlueprintIdentifier = "A7064F06290889E8003C778E"
                BuildableName = "MetalExamples_Triangle.app"
-               BlueprintName = "Triangle tvOS"
+               BlueprintName = "Triangle macOS"
                ReferencedContainer = "container:MetalExamples.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -39,16 +39,14 @@
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
-      enableGPUFrameCaptureMode = "1"
-      enableGPUShaderValidationMode = "2"
       allowLocationSimulation = "YES">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A7064EF2290889E8003C778E"
+            BlueprintIdentifier = "A7064F06290889E8003C778E"
             BuildableName = "MetalExamples_Triangle.app"
-            BlueprintName = "Triangle tvOS"
+            BlueprintName = "Triangle macOS"
             ReferencedContainer = "container:MetalExamples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -63,9 +61,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A7064EF2290889E8003C778E"
+            BlueprintIdentifier = "A7064F06290889E8003C778E"
             BuildableName = "MetalExamples_Triangle.app"
-            BlueprintName = "Triangle tvOS"
+            BlueprintName = "Triangle macOS"
             ReferencedContainer = "container:MetalExamples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

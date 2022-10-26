@@ -71,9 +71,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		A7064EDF290889E8003C778E /* Triangle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Triangle.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A7064EF3290889E8003C778E /* Triangle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Triangle.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A7064F07290889E8003C778E /* Triangle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Triangle.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A7064EDF290889E8003C778E /* MetalExamples_Triangle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetalExamples_Triangle.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A7064EF3290889E8003C778E /* MetalExamples_Triangle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetalExamples_Triangle.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A7064F07290889E8003C778E /* MetalExamples_Triangle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetalExamples_Triangle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A7064F3329088C03003C778E /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ThirdParty/Frameworks/macOS/SDL2.framework; sourceTree = "<group>"; };
 		A77797A62908A80B00667319 /* SDL_uikit_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SDL_uikit_main.c; path = examples/base/SDL_uikit_main.c; sourceTree = "<group>"; };
 		A7A28E5D2908E543009342C7 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.1.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
@@ -136,9 +136,9 @@
 		A7064E8B290888FB003C778E /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A7064EDF290889E8003C778E /* Triangle.app */,
-				A7064EF3290889E8003C778E /* Triangle.app */,
-				A7064F07290889E8003C778E /* Triangle.app */,
+				A7064EDF290889E8003C778E /* MetalExamples_Triangle.app */,
+				A7064EF3290889E8003C778E /* MetalExamples_Triangle.app */,
+				A7064F07290889E8003C778E /* MetalExamples_Triangle.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -224,7 +224,7 @@
 			);
 			name = "Triangle iOS";
 			productName = "Triangle iOS";
-			productReference = A7064EDF290889E8003C778E /* Triangle.app */;
+			productReference = A7064EDF290889E8003C778E /* MetalExamples_Triangle.app */;
 			productType = "com.apple.product-type.application";
 		};
 		A7064EF2290889E8003C778E /* Triangle tvOS */ = {
@@ -242,7 +242,7 @@
 			);
 			name = "Triangle tvOS";
 			productName = "Triangle tvOS";
-			productReference = A7064EF3290889E8003C778E /* Triangle.app */;
+			productReference = A7064EF3290889E8003C778E /* MetalExamples_Triangle.app */;
 			productType = "com.apple.product-type.application";
 		};
 		A7064F06290889E8003C778E /* Triangle macOS */ = {
@@ -260,7 +260,7 @@
 			);
 			name = "Triangle macOS";
 			productName = "Triangle macOS";
-			productReference = A7064F07290889E8003C778E /* Triangle.app */;
+			productReference = A7064F07290889E8003C778E /* MetalExamples_Triangle.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -501,8 +501,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
-				PRODUCT_NAME = Triangle;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.MetalExamples.Triangle;
+				PRODUCT_NAME = MetalExamples_Triangle;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -537,8 +537,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
-				PRODUCT_NAME = Triangle;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.MetalExamples.Triangle;
+				PRODUCT_NAME = MetalExamples_Triangle;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -570,8 +570,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
-				PRODUCT_NAME = Triangle;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.MetalExamples.Triangle;
+				PRODUCT_NAME = MetalExamples_Triangle;
 				SDKROOT = appletvos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = 3;
@@ -603,8 +603,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
-				PRODUCT_NAME = Triangle;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.MetalExamples.Triangle;
+				PRODUCT_NAME = MetalExamples_Triangle;
 				SDKROOT = appletvos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = 3;
@@ -634,6 +634,7 @@
 					"$(PROJECT_DIR)/ThirdParty/DirectXMath/Inc",
 					"$(PROJECT_DIR)/examples/base",
 				);
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -642,8 +643,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
-				PRODUCT_NAME = Triangle;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.MetalExamples.Triangle;
+				PRODUCT_NAME = MetalExamples_Triangle;
 				SDKROOT = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -670,6 +671,7 @@
 					"$(PROJECT_DIR)/ThirdParty/DirectXMath/Inc",
 					"$(PROJECT_DIR)/examples/base",
 				);
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -678,8 +680,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.Triangle;
-				PRODUCT_NAME = Triangle;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mguerrette.MetalExamples.Triangle;
+				PRODUCT_NAME = MetalExamples_Triangle;
 				SDKROOT = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
