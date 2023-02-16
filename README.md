@@ -8,7 +8,8 @@ These example applications use [CMake](https://www.cmake.org) and [Xcode](https:
 
 **Xcode is a requirement. Other CMake generators will not work**
 
-```git clone --recursive https://github.com/MattGuerrette/Metal.git
+```
+   git clone --recursive https://github.com/MattGuerrette/Metal.git
    cd Metal
    mkdir cmake-build-xcode
    cd cmake-build-xcode
