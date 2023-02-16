@@ -1,3 +1,6 @@
 [submodule "ThirdParty/DirectXMath"]
 	path = thirdparty/DirectXMath
 	url = https://github.com/microsoft/DirectXMath.git
+[submodule "thirdparty/metalcpp"]
+	path = thirdparty/metalcpp
+	url = https://github.com/MattGuerrette/metalcpp.git
