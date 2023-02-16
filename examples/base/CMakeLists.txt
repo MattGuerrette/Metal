@@ -1,9 +1,14 @@
 
 add_library(base STATIC
-		Camera.h
-		Camera.mm
-		Example.h
-		Example.mm)
+                LinkImpl.cpp
+		Camera.hpp
+		Camera.cpp
+                Camera.h
+                Camera.mm
+		Example.hpp
+		Example.cpp
+                Example.h
+                Example.mm)
 
 set_target_properties(base PROPERTIES
 	XCODE_GENERATE_SCHEME YES
@@ -11,5 +16,7 @@ set_target_properties(base PROPERTIES
 
 target_link_libraries(base PUBLIC 
      "-framework SDL2"
+     "-framework Foundation"
      "-framework Metal"
-     "-framework MetalKit")
+     "-framework MetalKit"
+     "-framework QuartzCore")
