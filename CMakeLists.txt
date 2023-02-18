@@ -26,6 +26,6 @@ include_directories(
 add_subdirectory(examples/base)
 add_subdirectory(examples/triangle)
 #add_subdirectory(examples/texture)
-#add_subdirectory(examples/instancing)
+add_subdirectory(examples/instancing)
 #add_subdirectory(examples/spritefont)
 #add_subdirectory(examples/gltf)

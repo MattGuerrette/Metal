@@ -17,8 +17,6 @@ vertex Vertex vertex_project(
     uint vid [[vertex_id]],
     uint iid [[instance_id]])
 {
-    //float4 position = vertices[vid.position];
-    
     Vertex vertexOut;
     vertexOut.position = instanceData[iid].transform * vertices[vid].position;
     vertexOut.color = vertices[vid].color;
