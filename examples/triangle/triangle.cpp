@@ -5,7 +5,7 @@
 #include <QuartzCore/QuartzCore.hpp>
 
 #include "Example.hpp"
-#include "graphics_math.h"
+#include "Camera.hpp"
 
 using namespace DirectX;
 
@@ -41,6 +41,8 @@ private:
     
     void CreatePipelineState();
     
+    void UpdateUniforms();
+    
     NS::SharedPtr<MTL::Device> Device;
     NS::SharedPtr<MTL::CommandQueue> CommandQueue;
     NS::SharedPtr<MTL::Texture> DepthStencilTexture;
@@ -50,15 +52,18 @@ private:
     NS::SharedPtr<MTL::Buffer> VertexBuffer;
     NS::SharedPtr<MTL::Buffer> IndexBuffer;
     NS::SharedPtr<MTL::Buffer> UniformBuffer[BUFFER_COUNT];
+    std::unique_ptr<Camera> MainCamera;
     
     uint32_t FrameIndex = 0;
     dispatch_semaphore_t FrameSemaphore;
+    float RotationX = 0.0f;
+    float RotationY = 0.0f;
 };
 
 Triangle::Triangle()
  : Example("Triangle", 800, 600)
 {
-    
+   
 }
 
 Triangle::~Triangle()
@@ -72,6 +77,20 @@ bool Triangle::Load()
 
     CA::MetalLayer* layer = (CA::MetalLayer*)(SDL_Metal_GetLayer(View));
     layer->setDevice(Device.get());
+    
+    
+    const auto width = GetFrameWidth();
+    const auto height = GetFrameHeight();
+    const float  aspect       = (float)width / (float)height;
+    const float  fov          = (75.0f * (float)M_PI) / 180.0f;
+    const float  near         = 0.01f;
+    const float  far          = 1000.0f;
+    
+    
+    MainCamera = std::make_unique<Camera>(XMFLOAT3{0.0f, 0.0f, 0.0f},
+                                          XMFLOAT3{0.0f, 0.0f, -1.0f},
+                                          XMFLOAT3{0.0f, 1.0f, 0.0f},
+                                          fov, aspect, near, far);
     
     CommandQueue = NS::TransferPtr(Device->newCommandQueue());
     
@@ -88,7 +107,7 @@ bool Triangle::Load()
 
 void Triangle::Update(float elapsed)
 {
-    
+    RotationY += elapsed;
 }
 
 void Triangle::Render(float elapsed)
@@ -103,6 +122,8 @@ void Triangle::Render(float elapsed)
     commandBuffer->addCompletedHandler([this](MTL::CommandBuffer* buffer) {
         dispatch_semaphore_signal(FrameSemaphore);
     });
+    
+    UpdateUniforms();
     
     CA::MetalLayer* layer = (CA::MetalLayer*)(SDL_Metal_GetLayer(View));
     CA::MetalDrawable* drawable = layer->nextDrawable();
@@ -130,7 +151,16 @@ void Triangle::Render(float elapsed)
         commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
         commandEncoder->setCullMode(MTL::CullModeNone);
         
-        // TODO: draw something
+        const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
+        const auto uniformBufferOffset =
+                             alignedUniformSize * FrameIndex;
+
+        commandEncoder->setVertexBuffer(VertexBuffer.get(), 0, 0);
+        commandEncoder->setVertexBuffer(UniformBuffer[FrameIndex].get(), uniformBufferOffset, 1);
+        
+        commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
+                                              IndexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
+                                              IndexBuffer.get(), 0);
         
         commandEncoder->endEncoding();
         
@@ -235,6 +265,40 @@ void Triangle::CreateBuffers()
         UniformBuffer[index]->setLabel(prefix->stringByAppendingString(NS::String::string(temp, NS::ASCIIStringEncoding)));
     }
     prefix->release();
+}
+
+void Triangle::UpdateUniforms()
+{
+    auto translation = XMFLOAT3(0.0f, 0.0f, -10.0f);
+    auto rotationX   = 0.0f;
+    auto rotationY   = RotationY;
+    auto scaleFactor = 3.0f;
+
+    const XMFLOAT3 xAxis = { 1, 0, 0 };
+    const XMFLOAT3 yAxis = { 0, 1, 0 };
+
+    XMVECTOR xRotAxis = XMLoadFloat3(&xAxis);
+    XMVECTOR yRotAxis = XMLoadFloat3(&yAxis);
+
+    XMMATRIX xRot        = XMMatrixRotationAxis(xRotAxis, rotationX);
+    XMMATRIX yRot        = XMMatrixRotationAxis(yRotAxis, rotationY);
+    XMMATRIX rot         = XMMatrixMultiply(xRot, yRot);
+    XMMATRIX trans       =
+                 XMMatrixTranslation(translation.x, translation.y, translation.z);
+    XMMATRIX scale       = XMMatrixScaling(scaleFactor, scaleFactor, scaleFactor);
+    XMMATRIX modelMatrix = XMMatrixMultiply(scale, XMMatrixMultiply(rot, trans));
+
+    CameraUniforms cameraUniforms = MainCamera->GetUniforms();
+
+    Uniforms uniforms;
+    auto     viewProj = cameraUniforms.viewProjection;
+    uniforms.modelViewProj = modelMatrix * viewProj;
+
+    const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
+    const size_t uniformBufferOffset = alignedUniformSize * FrameIndex;
+
+    char* buffer = reinterpret_cast<char*>(this->UniformBuffer[FrameIndex]->contents());
+    memcpy(buffer + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
 
 
