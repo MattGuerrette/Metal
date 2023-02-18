@@ -1,3 +1,4 @@
+
 set(EXAMPLE instancing)
 
 find_program(XCODE_RUN NAMES xcrun REQUIRED)
@@ -32,8 +33,11 @@ else ()
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib)
 endif ()
 add_executable(${EXAMPLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/instancing.mm
+        ${CMAKE_CURRENT_SOURCE_DIR}/instancing.cpp
         ${RESOURCE_FILES})
+set_target_properties(${EXAMPLE} PROPERTIES
+    XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/../Frameworks")
+
 if ((${CMAKE_SYSTEM_NAME} MATCHES "iOS") OR (${CMAKE_SYSTEM_NAME} MATCHES "tvOS"))
     target_sources(${EXAMPLE} PRIVATE ${SDL2_SOURCE_DIR}/src/main/uikit/SDL_uikit_main.c)
 endif ()
@@ -43,6 +47,8 @@ set_target_properties(${EXAMPLE}
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_GUI_IDENTIFIER com.mpg.instancing
         XCODE_GENERATE_SCHEME YES
+        XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY NO
+        XCODE_EMBED_FRAMEWORKS "${CMAKE_SOURCE_DIR}/ThirdParty/Frameworks/macOS/SDL2.framework"
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
         XCODE_ATTRIBUTE_PRODUCT_NAME instancing
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.mpg.instancing

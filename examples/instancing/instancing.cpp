@@ -20,13 +20,19 @@ XM_ALIGNED_STRUCT(16) Uniforms
     XMMATRIX modelViewProj;
 };
 
-class Triangle : public Example
+XM_ALIGNED_STRUCT(16) InstanceData
+{
+    XMMATRIX transform;
+};
+
+class Instancing : public Example
 {
     static constexpr int BUFFER_COUNT = 3;
+    static constexpr int INSTANCE_COUNT = 3;
 public:
-    Triangle();
+    Instancing();
     
-    ~Triangle() override;
+    ~Instancing() override;
     
     bool Load() override;
     
@@ -51,7 +57,7 @@ private:
     NS::SharedPtr<MTL::Library> PipelineLibrary;
     NS::SharedPtr<MTL::Buffer> VertexBuffer;
     NS::SharedPtr<MTL::Buffer> IndexBuffer;
-    NS::SharedPtr<MTL::Buffer> UniformBuffer[BUFFER_COUNT];
+    NS::SharedPtr<MTL::Buffer> InstanceBuffer[BUFFER_COUNT];
     std::unique_ptr<Camera> MainCamera;
     
     uint32_t FrameIndex = 0;
@@ -60,18 +66,18 @@ private:
     float RotationY = 0.0f;
 };
 
-Triangle::Triangle()
- : Example("Triangle", 800, 600)
+Instancing::Instancing()
+ : Example("Instancing", 800, 600)
 {
    
 }
 
-Triangle::~Triangle()
+Instancing::~Instancing()
 {
     
 }
 
-bool Triangle::Load()
+bool Instancing::Load()
 {
     Device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
 
@@ -103,12 +109,12 @@ bool Triangle::Load()
     return true;
 }
 
-void Triangle::Update(float elapsed)
+void Instancing::Update(float elapsed)
 {
     RotationY += elapsed;
 }
 
-void Triangle::Render(float elapsed)
+void Instancing::Render(float elapsed)
 {
     NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
     
@@ -154,11 +160,12 @@ void Triangle::Render(float elapsed)
                              alignedUniformSize * FrameIndex;
 
         commandEncoder->setVertexBuffer(VertexBuffer.get(), 0, 0);
-        commandEncoder->setVertexBuffer(UniformBuffer[FrameIndex].get(), uniformBufferOffset, 1);
+        commandEncoder->setVertexBuffer(InstanceBuffer[FrameIndex].get(), 0, 1);
         
+    
         commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
                                               IndexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
-                                              IndexBuffer.get(), 0);
+                                              IndexBuffer.get(), 0, INSTANCE_COUNT);
         
         commandEncoder->endEncoding();
         
@@ -169,7 +176,7 @@ void Triangle::Render(float elapsed)
     pool->release();
 }
 
-void Triangle::CreateDepthStencil()
+void Instancing::CreateDepthStencil()
 {
     MTL::DepthStencilDescriptor* depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
     depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
@@ -191,7 +198,7 @@ void Triangle::CreateDepthStencil()
     textureDescriptor->release();
 }
 
-void Triangle::CreatePipelineState()
+void Instancing::CreatePipelineState()
 {
     PipelineLibrary = NS::TransferPtr(Device->newDefaultLibrary());
     
@@ -236,14 +243,21 @@ void Triangle::CreatePipelineState()
     pipelineDescriptor->release();
 }
 
-void Triangle::CreateBuffers()
+void Instancing::CreateBuffers()
 {
     static const Vertex vertices[] = {
-        { .position = { 0, 1, 0, 1 }, .color = { 1, 0, 0, 1 }},
-        { .position = { -1, -1, 0, 1 }, .color = { 0, 1, 0, 1 }},
-        { .position = { 1, -1, 0, 1 }, .color = { 0, 0, 1, 1 }}};
+        { .position = { -1, 1, 1, 1 },  .color = { 0, 1, 1, 1 }},
+        { .position = { -1, -1, 1, 1 }, .color = { 0, 0, 1, 1 }},
+        { .position = { 1, -1, 1, 1 },  .color = { 1, 0, 1, 1 }},
+        { .position = { 1, 1, 1, 1 },   .color = { 1, 1, 1, 1 }},
+        { .position = { -1, 1, -1, 1 }, .color = { 0, 1, 0, 1 }},
+        { .position = { -1, -1, -1, 1 },.color = { 0, 0, 0, 1 }},
+        { .position = { 1, -1, -1, 1 }, .color = { 1, 0, 0, 1 }},
+        { .position = { 1, 1, -1, 1 },  .color = { 1, 1, 0, 1 }}};
 
-    static const uint16_t indices[] = { 0, 1, 2 };
+    static const uint16_t indices[] = { 3, 2, 6, 6, 7, 3, 4, 5, 1, 1, 0, 4,
+                                        4, 0, 3, 3, 7, 4, 1, 5, 6, 6, 2, 1,
+                                        0, 1, 2, 2, 3, 0, 7, 6, 5, 5, 4, 7 };
     
     
     VertexBuffer = NS::TransferPtr(Device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
@@ -252,51 +266,49 @@ void Triangle::CreateBuffers()
     IndexBuffer = NS::TransferPtr(Device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
     IndexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
     
-    const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
-    NS::String* prefix = NS::String::string("Unform: ", NS::ASCIIStringEncoding);
+    const size_t instanceDataSize = BUFFER_COUNT * INSTANCE_COUNT * sizeof(InstanceData);
+    NS::String* prefix = NS::String::string("Instance Buffer: ", NS::ASCIIStringEncoding);
     for (auto index = 0; index < BUFFER_COUNT; index++)
     {
         char temp[12];
         snprintf(temp, sizeof(temp), "%d", index);
         
-        UniformBuffer[index] = NS::TransferPtr(Device->newBuffer(alignedUniformSize * BUFFER_COUNT, MTL::ResourceOptionCPUCacheModeDefault));
-        UniformBuffer[index]->setLabel(prefix->stringByAppendingString(NS::String::string(temp, NS::ASCIIStringEncoding)));
+        InstanceBuffer[index] = NS::TransferPtr(Device->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
+        InstanceBuffer[index]->setLabel(prefix->stringByAppendingString(NS::String::string(temp, NS::ASCIIStringEncoding)));
     }
     prefix->release();
 }
 
-void Triangle::UpdateUniforms()
+void Instancing::UpdateUniforms()
 {
-    auto translation = XMFLOAT3(0.0f, 0.0f, -10.0f);
-    auto rotationX   = 0.0f;
-    auto rotationY   = RotationY;
-    auto scaleFactor = 3.0f;
+    MTL::Buffer* instanceBuffer = InstanceBuffer[FrameIndex].get();
+    
+    InstanceData* instanceData = (InstanceData*)instanceBuffer->contents();
+    for (auto index = 0; index < INSTANCE_COUNT; ++index)
+    {
+        auto translation = XMFLOAT3(-5.0f + (index * 5.0f), 0.0f, -10.0f);
+        auto rotationX   = RotationX;
+        auto rotationY   = RotationY;
+        auto scaleFactor = 1.0f;
 
-    const XMFLOAT3 xAxis = { 1, 0, 0 };
-    const XMFLOAT3 yAxis = { 0, 1, 0 };
+        const XMFLOAT3 xAxis = { 1, 0, 0 };
+        const XMFLOAT3 yAxis = { 0, 1, 0 };
 
-    XMVECTOR xRotAxis = XMLoadFloat3(&xAxis);
-    XMVECTOR yRotAxis = XMLoadFloat3(&yAxis);
+        XMVECTOR xRotAxis = XMLoadFloat3(&xAxis);
+        XMVECTOR yRotAxis = XMLoadFloat3(&yAxis);
 
-    XMMATRIX xRot        = XMMatrixRotationAxis(xRotAxis, rotationX);
-    XMMATRIX yRot        = XMMatrixRotationAxis(yRotAxis, rotationY);
-    XMMATRIX rot         = XMMatrixMultiply(xRot, yRot);
-    XMMATRIX trans       =
-                 XMMatrixTranslation(translation.x, translation.y, translation.z);
-    XMMATRIX scale       = XMMatrixScaling(scaleFactor, scaleFactor, scaleFactor);
-    XMMATRIX modelMatrix = XMMatrixMultiply(scale, XMMatrixMultiply(rot, trans));
+        XMMATRIX xRot        = XMMatrixRotationAxis(xRotAxis, rotationX);
+        XMMATRIX yRot        = XMMatrixRotationAxis(yRotAxis, rotationY);
+        XMMATRIX rot         = XMMatrixMultiply(xRot, yRot);
+        XMMATRIX trans       =
+                     XMMatrixTranslation(translation.x, translation.y, translation.z);
+        XMMATRIX scale       = XMMatrixScaling(scaleFactor, scaleFactor, scaleFactor);
+        XMMATRIX modelMatrix = XMMatrixMultiply(scale, XMMatrixMultiply(rot, trans));
 
-    CameraUniforms cameraUniforms = MainCamera->GetUniforms();
+        CameraUniforms cameraUniforms = MainCamera->GetUniforms();
 
-    Uniforms uniforms;
-    auto     viewProj = cameraUniforms.viewProjection;
-    uniforms.modelViewProj = modelMatrix * viewProj;
-
-    const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
-    const size_t uniformBufferOffset = alignedUniformSize * FrameIndex;
-
-    char* buffer = reinterpret_cast<char*>(this->UniformBuffer[FrameIndex]->contents());
-    memcpy(buffer + uniformBufferOffset, &uniforms, sizeof(uniforms));
+        instanceData[index].transform = modelMatrix * cameraUniforms.viewProjection;
+    }
 }
 
 
@@ -306,7 +318,7 @@ int SDL_main(int argc, char** argv)
 int main(int argc, char** argv)
 #endif
 {
-    std::unique_ptr<Triangle> example = std::make_unique<Triangle>();
+    std::unique_ptr<Instancing> example = std::make_unique<Instancing>();
     return example->Run(argc, argv);
 }
 
