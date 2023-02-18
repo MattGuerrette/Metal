@@ -1,6 +1,6 @@
-# Metal Objective-C/C++ examples and demos
+# Metal C++ examples
 
-A collection of open source Objective-C++ examples for [Metal](https://developer.apple.com/metal)
+A collection of open source C++ examples for [Metal](https://developer.apple.com/metal)
 
 ## Building
 

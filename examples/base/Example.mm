@@ -140,19 +140,6 @@ void frameTick(void* data)
                     }
                 }
             }
-            if (e.type == SDL_DROPFILE)
-            {      // In case if dropped file
-                char* dropped_filedir = e.drop.file;
-                // Shows directory of dropped file
-                SDL_ShowSimpleMessageBox(
-                    SDL_MESSAGEBOX_INFORMATION,
-                    "File dropped on window",
-                    dropped_filedir,
-                    _window
-                );
-                SDL_free(dropped_filedir);    // Free dropped_filedir memory
-                break;
-            }
     
             _lastClockTime = _currentClockTime;
             _currentClockTime = SDL_GetPerformanceCounter();

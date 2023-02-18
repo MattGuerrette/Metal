@@ -3,6 +3,8 @@
 
 #import <Metal/Metal.h>
 
+#import <Metal/Metal.hpp>
+
 #import "Camera.h"
 
 using namespace DirectX;

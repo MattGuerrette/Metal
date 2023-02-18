@@ -33,7 +33,7 @@ else ()
             ${CMAKE_CURRENT_BINARY_DIR}/shader.metallib)
 endif ()
 add_executable(${EXAMPLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/triangle.mm
+        ${CMAKE_CURRENT_SOURCE_DIR}/triangle.cpp
         ${RESOURCE_FILES})
 set_target_properties(${EXAMPLE} PROPERTIES
     XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/../Frameworks")
