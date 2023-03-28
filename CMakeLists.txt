@@ -5,11 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_XCODE_GENERATE_SCHEME TRUE)
 enable_language(OBJC OBJCXX)
 
-# Global include
-include_directories(
-    ${CMAKE_SOURCE_DIR}/thirdparty/DirectXMath/Inc
-    ${CMAKE_SOURCE_DIR}/source/base)
+# DXMathKit
+add_subdirectory(thirdparty/DXMathKit)
 
 # Examples
-add_subdirectory(source/base)
 add_subdirectory(source/triangle)
