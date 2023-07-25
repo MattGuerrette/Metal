@@ -1,12 +1,12 @@
-# Metal C++ examples
+# Metal and Direct3D 12 C++ examples
 
-A collection of open source C++ examples for [Metal](https://developer.apple.com/metal)
+A collection of open source C++ examples for [Metal](https://developer.apple.com/metal) and [Direct3D 12](https://learn.microsoft.com/en-us/windows/win32/direct3d12/direct3d-12-graphics)
 
 ## Building
 
-These example applications use [CMake](https://www.cmake.org) and [Xcode](https://developer.apple.com/xcode/). 
+These example applications use [CMake](https://www.cmake.org). . 
 
-**Xcode is a requirement. Other CMake generators will not work**
+**[Xcode](https://developer.apple.com/xcode/) is a requirement for Metal examples. Other CMake generators will not work**
 
 ```
    git clone --recursive https://github.com/MattGuerrette/Metal.git
