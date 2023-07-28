@@ -14,5 +14,5 @@ file(GLOB_RECURSE METAL_SHADERS ${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.metal)
 CompileMetalShaders("${METAL_SHADERS}")
 
 # Examples
-add_subdirectory(examples)
+add_subdirectory(source)
 

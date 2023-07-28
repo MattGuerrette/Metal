@@ -4,7 +4,7 @@ A collection of open source C++ examples for [Metal](https://developer.apple.com
 
 ## Building
 
-These example applications use [CMake](https://www.cmake.org) and [Xcode](https://developer.apple.com/xcode/). 
+These example applications use [CMake](https://www.cmake.org) and [Xcode](https://developer.apple.com/xcode/).
 
 ```
    git clone https://github.com/MattGuerrette/Metal.git
@@ -18,18 +18,18 @@ These example applications use [CMake](https://www.cmake.org) and [Xcode](https:
 For codesigning purposes, you will want to specify the development team ID as shown above to avoid needing
 to manually set the development team for each target project.
 
-
 ## Table of Contents
+
 + [Examples](#Examples)
 
 ## Examples
 
 ### Basics
 
-#### [01 - Triangle](examples/triangle/)
+#### [01 - Triangle](source/triangle/)
 
 Basic example for rendering a colored triangle using Metal
 
-#### [02 - Instancing](examples/instancing/)
+#### [02 - Instancing](source/instancing/)
 
 Rendering of multiple cube geometry instances
