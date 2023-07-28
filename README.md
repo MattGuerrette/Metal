@@ -32,10 +32,6 @@ to manually set the development team for each target project.
 
 Basic example for rendering a colored triangle using Metal
 
-#### [02 - Texture](examples/texture/)
-
-Simple textured quad using MTKTextureLoader to load a sample png
-
-#### [03 - Instancing](examples/instancing/)
+#### [02 - Instancing](examples/instancing/)
 
 Rendering of multiple cube geometry instances
