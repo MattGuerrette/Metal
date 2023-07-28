@@ -1,8 +1,7 @@
 
 #import "graphics_math.h"
 
-XM_ALIGNED_STRUCT(16) CameraUniforms
-{
+XM_ALIGNED_STRUCT(16) CameraUniforms {
     DirectX::XMMATRIX view;
     DirectX::XMMATRIX projection;
     DirectX::XMMATRIX viewProjection;
@@ -12,24 +11,23 @@ XM_ALIGNED_STRUCT(16) CameraUniforms
 };
 
 
-class Camera
-{
+class Camera {
 public:
     Camera(DirectX::XMFLOAT3 position,
-    DirectX::XMFLOAT3 direction,
-    DirectX::XMFLOAT3 up,
-    float fov,
-    float aspectRatio,
-    float nearPlane,
-    float farPlane);
-    
-    const CameraUniforms& GetUniforms() const;
-    
+           DirectX::XMFLOAT3 direction,
+           DirectX::XMFLOAT3 up,
+           float fov,
+           float aspectRatio,
+           float nearPlane,
+           float farPlane);
+
+    [[nodiscard]] const CameraUniforms &GetUniforms() const;
+
 private:
     void UpdateBasisVectors(DirectX::XMFLOAT3 direction);
-    
+
     void UpdateUniforms();
-    
+
     CameraUniforms Uniforms;
     DirectX::XMFLOAT3 Position;
     DirectX::XMFLOAT3 Direction;
