@@ -25,7 +25,7 @@ public:
 
     virtual void Update(float elapsed) = 0;
 
-    virtual void Render(CA::MetalDrawable *drawable, float elapsed) = 0;
+    virtual void Render(CA::MetalDrawable *drawable, MTL::CommandBuffer *commandBuffer, float elapsed) = 0;
 
 protected:
     static constexpr int BUFFER_COUNT = 3;

@@ -145,7 +145,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
         auto *layer = static_cast<CA::MetalLayer *>(SDL_Metal_GetLayer(View));
         CA::MetalDrawable *drawable = layer->nextDrawable();
         if (drawable) {
-            Render(drawable, elapsed);
+            Render(drawable, commandBuffer, elapsed);
         }
 
 
