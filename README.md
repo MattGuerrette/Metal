@@ -26,7 +26,7 @@ to manually set the development team for each target project.
 
 ### Basics
 
-#### [01 - Triangle](source/triangle/)
+#### [01 - HelloWorld](source/helloworld/)
 
 Basic example for rendering a colored triangle using Metal
 
