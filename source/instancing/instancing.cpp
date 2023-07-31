@@ -38,7 +38,7 @@ public:
 
     void Update(float elapsed) override;
 
-    void Render(CA::MetalDrawable *drawable, float elapsed) override;
+    void Render(CA::MetalDrawable *drawable, MTL::CommandBuffer *commandBuffer, float elapsed) override;
 
 private:
     void CreateBuffers();
@@ -91,11 +91,9 @@ void Instancing::Update(float elapsed) {
     RotationY += elapsed;
 }
 
-void Instancing::Render(CA::MetalDrawable *drawable, float elapsed) {
+void Instancing::Render(CA::MetalDrawable *drawable, MTL::CommandBuffer *commandBuffer, float elapsed) {
 
     UpdateUniforms();
-
-    MTL::CommandBuffer *commandBuffer = CommandQueue->commandBuffer();
 
     auto texture = drawable->texture();
 
