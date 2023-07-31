@@ -1,4 +1,9 @@
 
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) Matt Guerrette 2023.
+// SPDX-License-Identifier: MIT
+////////////////////////////////////////////////////////////////////////////////
+
 #include <memory>
 
 #include <Metal/Metal.hpp>
@@ -15,7 +20,7 @@ XM_ALIGNED_STRUCT(16) Vertex {
 };
 
 XM_ALIGNED_STRUCT(16) Uniforms {
-    XMMATRIX modelViewProj;
+    [[maybe_unused]] XMMATRIX modelViewProj;
 };
 
 XM_ALIGNED_STRUCT(16) InstanceData {
@@ -74,7 +79,7 @@ Instancing::~Instancing() {
 bool Instancing::Load() {
     Device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
 
-    CA::MetalLayer *layer = (CA::MetalLayer *) (SDL_Metal_GetLayer(View));
+    auto *layer = static_cast<CA::MetalLayer *>((SDL_Metal_GetLayer(View)));
     layer->setDevice(Device.get());
 
     const auto width = GetFrameWidth();

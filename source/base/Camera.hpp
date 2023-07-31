@@ -1,5 +1,10 @@
 
-#import "graphics_math.h"
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) Matt Guerrette 2023.
+// SPDX-License-Identifier: MIT
+////////////////////////////////////////////////////////////////////////////////
+
+#import "GraphicsMath.h"
 
 XM_ALIGNED_STRUCT(16) CameraUniforms {
     DirectX::XMMATRIX view;
@@ -28,7 +33,7 @@ private:
 
     void UpdateUniforms();
 
-    CameraUniforms Uniforms;
+    CameraUniforms Uniforms{};
     DirectX::XMFLOAT3 Position;
     DirectX::XMFLOAT3 Direction;
     DirectX::XMFLOAT3 Up;

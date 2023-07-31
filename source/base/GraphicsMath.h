@@ -1,12 +1,18 @@
-
 ////////////////////////////////////////////////////////////////////////////////
 // Copyright (c) Matt Guerrette 2023.
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
-#define NS_PRIVATE_IMPLEMENTATION
-#define MTL_PRIVATE_IMPLEMENTATION
-#define CA_PRIVATE_IMPLEMENTATION
+#pragma once
 
-#include "Metal/Metal.hpp"
-#include "QuartzCore/QuartzCore.hpp"
+#include <cstdint>
+
+#ifdef __APPLE__
+#ifdef __arm__
+#define _XM_ARM_NEON_INTRINSICS_ // Apple architecture
+#endif
+#endif
+
+#include <DirectXMath.h>
+#include <DirectXColors.h>
+

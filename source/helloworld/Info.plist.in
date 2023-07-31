@@ -32,6 +32,11 @@
 	<true/>
 	<key>UIRequiresFullScreen</key>
 	<true/>
+    <key>UISupportedInterfaceOrientations</key>
+        <array>
+            <string>UIInterfaceOrientationLandscapeLeft</string>
+            <string>UIInterfaceOrientationLandscapeRight</string>
+        </array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen.storyboard</string>
 	<key>NSHumanReadableCopyright</key>

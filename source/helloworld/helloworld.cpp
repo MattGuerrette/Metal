@@ -1,4 +1,9 @@
 
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) Matt Guerrette 2023.
+// SPDX-License-Identifier: MIT
+////////////////////////////////////////////////////////////////////////////////
+
 #include <memory>
 
 #include <Metal/Metal.hpp>
@@ -15,15 +20,15 @@ XM_ALIGNED_STRUCT(16) Vertex {
 };
 
 XM_ALIGNED_STRUCT(16) Uniforms {
-    XMMATRIX modelViewProj;
+    [[maybe_unused]] XMMATRIX modelViewProj;
 };
 
-class Triangle : public Example {
+class HelloWorld : public Example {
     static constexpr int BUFFER_COUNT = 3;
 public:
-    Triangle();
+    HelloWorld();
 
-    ~Triangle() override;
+    ~HelloWorld() override;
 
     bool Load() override;
 
@@ -52,24 +57,21 @@ private:
     std::unique_ptr<Camera> MainCamera;
 
     uint32_t FrameIndex = 0;
-    dispatch_semaphore_t FrameSemaphore;
-    float RotationX = 0.0f;
+    dispatch_semaphore_t FrameSemaphore = nullptr;
     float RotationY = 0.0f;
 };
 
-Triangle::Triangle()
-        : Example("Triangle", 800, 600) {
+HelloWorld::HelloWorld()
+        : Example("Hello, Metal", 800, 600) {
 
 }
 
-Triangle::~Triangle() {
+HelloWorld::~HelloWorld() = default;
 
-}
-
-bool Triangle::Load() {
+bool HelloWorld::Load() {
     Device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
 
-    CA::MetalLayer *layer = (CA::MetalLayer *) (SDL_Metal_GetLayer(View));
+    auto *layer = static_cast<CA::MetalLayer *>(SDL_Metal_GetLayer(View));
     layer->setDevice(Device.get());
 
     const auto width = GetFrameWidth();
@@ -97,11 +99,11 @@ bool Triangle::Load() {
     return true;
 }
 
-void Triangle::Update(float elapsed) {
+void HelloWorld::Update(float elapsed) {
     RotationY += elapsed;
 }
 
-void Triangle::Render(float elapsed) {
+void HelloWorld::Render(float elapsed) {
     NS::AutoreleasePool *pool = NS::AutoreleasePool::alloc()->init();
 
     FrameIndex = (FrameIndex + 1) % BUFFER_COUNT;
@@ -115,7 +117,7 @@ void Triangle::Render(float elapsed) {
 
     UpdateUniforms();
 
-    CA::MetalLayer *layer = (CA::MetalLayer *) (SDL_Metal_GetLayer(View));
+    auto *layer = static_cast<CA::MetalLayer *> (SDL_Metal_GetLayer(View));
     CA::MetalDrawable *drawable = layer->nextDrawable();
     if (drawable) {
         auto texture = drawable->texture();
@@ -160,7 +162,7 @@ void Triangle::Render(float elapsed) {
     pool->release();
 }
 
-void Triangle::CreateDepthStencil() {
+void HelloWorld::CreateDepthStencil() {
     MTL::DepthStencilDescriptor *depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
     depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
     depthStencilDescriptor->setDepthWriteEnabled(true);
@@ -182,7 +184,7 @@ void Triangle::CreateDepthStencil() {
     textureDescriptor->release();
 }
 
-void Triangle::CreatePipelineState() {
+void HelloWorld::CreatePipelineState() {
 
     CFBundleRef main_bundle = CFBundleGetMainBundle();
     CFURLRef url = CFBundleCopyResourcesDirectoryURL(main_bundle);
@@ -192,11 +194,14 @@ void Triangle::CreatePipelineState() {
     auto path = NS::Bundle::mainBundle()->resourcePath();
     NS::String *library = path->stringByAppendingString(
             NS::String::string("/default.metallib", NS::ASCIIStringEncoding));
-    NS::Error *error = nullptr;
 
-    auto std_str = library->utf8String();
+    NS::Error *error = nullptr;
     PipelineLibrary = NS::TransferPtr(Device->newLibrary(library, &error));
-    //PipelineLibrary = NS::TransferPtr(Device->newDefaultLibrary());
+    if (error != nullptr) {
+        fprintf(stderr, "Failed to create pipeline library: %s\n",
+                error->localizedFailureReason()->utf8String());
+        abort();
+    }
 
     MTL::VertexDescriptor *vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
 
@@ -236,13 +241,14 @@ void Triangle::CreatePipelineState() {
     if (error) {
         fprintf(stderr, "Failed to create pipeline state object: %s\n",
                 error->description()->cString(NS::ASCIIStringEncoding));
+        abort();
     }
 
     vertexDescriptor->release();
     pipelineDescriptor->release();
 }
 
-void Triangle::CreateBuffers() {
+void HelloWorld::CreateBuffers() {
     static const Vertex vertices[] = {
             {.position = {0, 1, 0, 1}, .color = {1, 0, 0, 1}},
             {.position = {-1, -1, 0, 1}, .color = {0, 1, 0, 1}},
@@ -259,7 +265,7 @@ void Triangle::CreateBuffers() {
     IndexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
-    NS::String *prefix = NS::String::string("Unform: ", NS::ASCIIStringEncoding);
+    NS::String *prefix = NS::String::string("Uniform: ", NS::ASCIIStringEncoding);
     for (auto index = 0; index < BUFFER_COUNT; index++) {
         char temp[12];
         snprintf(temp, sizeof(temp), "%d", index);
@@ -272,7 +278,7 @@ void Triangle::CreateBuffers() {
     prefix->release();
 }
 
-void Triangle::UpdateUniforms() {
+void HelloWorld::UpdateUniforms() {
     auto translation = XMFLOAT3(0.0f, 0.0f, -10.0f);
     auto rotationX = 0.0f;
     auto rotationY = RotationY;
@@ -294,7 +300,7 @@ void Triangle::UpdateUniforms() {
 
     CameraUniforms cameraUniforms = MainCamera->GetUniforms();
 
-    Uniforms uniforms;
+    Uniforms uniforms{};
     auto viewProj = cameraUniforms.viewProjection;
     uniforms.modelViewProj = modelMatrix * viewProj;
 
@@ -313,7 +319,7 @@ int SDL_main(int argc, char** argv)
 int main(int argc, char **argv)
 #endif
 {
-    std::unique_ptr<Triangle> example = std::make_unique<Triangle>();
+    std::unique_ptr<HelloWorld> example = std::make_unique<HelloWorld>();
     return example->Run(argc, argv);
 }
 
