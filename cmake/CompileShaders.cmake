@@ -4,10 +4,13 @@
 find_program(XCODE_RUN NAMES xcrun REQUIRED)
 if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
     set(XCODE_RUN_SDK iphoneos)
+    set(XCODE_METAL_EXTRA_ARGS "-mios-version-min=16.0")
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
     set(XCODE_RUN_SDK appletvos)
+    set(XCODE_METAL_EXTRA_ARGS "-mios-version-min=16.0")
 else ()
     set(XCODE_RUN_SDK macosx)
+    set(XCODE_METAL_EXTRA_ARGS "")
 endif ()
 
 
@@ -30,7 +33,7 @@ function(CompileMetalShaders SHADER_FILES)
         list(APPEND COMPILED_METAL_AIR_FILES ${PROJECT_BINARY_DIR}/generated/${dirname}/${name}.air)
         add_custom_command(
                 OUTPUT "${PROJECT_BINARY_DIR}/generated/${dirname}/${name}.air"
-                COMMAND ${XCODE_RUN} -sdk ${XCODE_RUN_SDK} metal -c ${file} -o ${PROJECT_BINARY_DIR}/generated/${dirname}/${name}.air
+                COMMAND ${XCODE_RUN} -sdk ${XCODE_RUN_SDK} metal -c ${file} ${XCODE_METAL_EXTRA_ARGS} -o ${PROJECT_BINARY_DIR}/generated/${dirname}/${name}.air
                 COMMENT "Compiling ${name} to METAL-AIR"
                 DEPENDS ${file} ${directory})
     endforeach ()

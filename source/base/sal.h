@@ -1,3 +1,4 @@
+
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -2862,8 +2863,8 @@ __inner_fallthrough_dec
 #define _Analysis_noreturn_ _SAL2_Source_(_Analysis_noreturn_, (), _SA_annotes0(SAL_terminates))
 
 #ifdef _PREFAST_ // [
-    __inline __nothrow void
-    __AnalysisAssumeNullterminated(_Post_ __nullterminated void* p);
+__inline __nothrow void
+__AnalysisAssumeNullterminated(_Post_ __nullterminated void* p);
 
 #define _Analysis_assume_nullterminated_(x) __AnalysisAssumeNullterminated(x)
 #else // ][
@@ -2881,7 +2882,7 @@ __inner_fallthrough_dec
 #define __MKID(x, y) ___MKID(x, y)
 #define __GENSYM(x) __MKID(x, __COUNTER__)
 
-__ANNOTATION(SAL_analysisMode(__AuToQuOtE __In_impl_ char* mode);)
+__ANNOTATION(SAL_analysisMode(__AuToQuOtE __In_impl_ char *mode);)
 
 #define _Analysis_mode_impl_(mode) _SA_annotes1(SAL_analysisMode, #mode)
 
