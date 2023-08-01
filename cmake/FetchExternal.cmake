@@ -1,5 +1,10 @@
 include(FetchContent)
 
+FetchContent_Declare(sal
+        GIT_REPOSITORY "https://github.com/MattGuerrette/sal.git"
+        GIT_TAG main
+)
+
 FetchContent_Declare(directxmath
         GIT_REPOSITORY "https://github.com/Microsoft/DirectXMath.git"
         GIT_TAG dec2022
@@ -15,6 +20,7 @@ FetchContent_Declare(metalcpp
         GIT_TAG main
 )
 
-FetchContent_MakeAvailable(directxmath sdl2 metalcpp)
 
-include_directories(${metalcpp_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)
+FetchContent_MakeAvailable(sal directxmath sdl2 metalcpp)
+
+include_directories(${sal_SOURCE_DIR} ${metalcpp_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)
