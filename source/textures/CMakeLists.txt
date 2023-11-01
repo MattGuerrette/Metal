@@ -1,5 +1,5 @@
 
-set(EXAMPLE instancing)
+set(EXAMPLE textures)
 set(RESOURCE_FILES "${PROJECT_BINARY_DIR}/generated/default.metallib")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
@@ -7,6 +7,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
     list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/tvOS/LaunchScreen.storyboard)
 endif ()
+
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/tilesheet.png)
 
 add_executable(${EXAMPLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp

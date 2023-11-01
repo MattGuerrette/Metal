@@ -1,5 +1,5 @@
 
-set(EXAMPLE instancing)
+set(EXAMPLE distancefieldfont)
 set(RESOURCE_FILES "${PROJECT_BINARY_DIR}/generated/default.metallib")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")

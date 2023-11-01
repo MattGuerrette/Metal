@@ -16,3 +16,8 @@
 #include <DirectXMath.h>
 #include <DirectXColors.h>
 
+#include "SimpleMath.h"
+
+using namespace DirectX;
+using namespace DirectX::SimpleMath;
+

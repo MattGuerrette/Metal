@@ -4,42 +4,44 @@
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
-#import "GraphicsMath.h"
+#import "GraphicsMath.hpp"
 
-XM_ALIGNED_STRUCT(16) CameraUniforms {
-    DirectX::XMMATRIX view;
-    DirectX::XMMATRIX projection;
-    DirectX::XMMATRIX viewProjection;
-    DirectX::XMMATRIX invViewProjection;
-    DirectX::XMMATRIX invProjection;
-    DirectX::XMMATRIX invView;
+XM_ALIGNED_STRUCT(16) CameraUniforms
+{
+	Matrix View;
+	Matrix Projection;
+	Matrix ViewProjection;
+	Matrix InvProjection;
+	Matrix InvView;
+	Matrix InvViewProjection;
 };
 
-
-class Camera {
+// TODO: Improve this Camera class to use Quaternion rotation
+class Camera
+{
 public:
-    Camera(DirectX::XMFLOAT3 position,
-           DirectX::XMFLOAT3 direction,
-           DirectX::XMFLOAT3 up,
-           float fov,
-           float aspectRatio,
-           float nearPlane,
-           float farPlane);
+	Camera(Vector3 position,
+		Vector3 direction,
+		Vector3 up,
+		float fov,
+		float aspectRatio,
+		float nearPlane,
+		float farPlane);
 
-    [[nodiscard]] const CameraUniforms &GetUniforms() const;
+	[[nodiscard]] const CameraUniforms& GetUniforms() const;
 
 private:
-    void UpdateBasisVectors(DirectX::XMFLOAT3 direction);
+	void UpdateBasisVectors(Vector3 direction);
 
-    void UpdateUniforms();
+	void UpdateUniforms();
 
-    CameraUniforms Uniforms{};
-    DirectX::XMFLOAT3 Position;
-    DirectX::XMFLOAT3 Direction;
-    DirectX::XMFLOAT3 Up;
-    float FieldOfView;
-    float AspectRatio;
-    float NearPlane;
-    float FarPlane;
+	CameraUniforms Uniforms{};
+	Vector3 Position;
+	Vector3 Direction;
+	Vector3 Up;
+	float FieldOfView;
+	float AspectRatio;
+	float NearPlane;
+	float FarPlane;
 };
 

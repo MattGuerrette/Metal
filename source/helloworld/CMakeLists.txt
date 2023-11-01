@@ -10,7 +10,7 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
 endif ()
 
 add_executable(${EXAMPLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/helloworld.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${RESOURCE_FILES})
 
 # Ensure shader library is available
@@ -24,10 +24,10 @@ target_link_libraries(${EXAMPLE} base)
 set_target_properties(${EXAMPLE}
         PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_GUI_IDENTIFIER com.github.MattGuerrette.helloworld
+        MACOSX_BUNDLE_GUI_IDENTIFIER com.github.MattGuerrette.${EXAMPLE}
         XCODE_GENERATE_SCHEME YES
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
-        XCODE_ATTRIBUTE_PRODUCT_NAME helloworld
-        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.github.MattGuerrette.helloworld
+        XCODE_ATTRIBUTE_PRODUCT_NAME ${EXAMPLE}
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.github.MattGuerrette.${EXAMPLE}
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
         RESOURCE "${RESOURCE_FILES}")

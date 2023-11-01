@@ -6,47 +6,40 @@
 
 #include "Camera.hpp"
 
-using namespace DirectX;
-
-Camera::Camera(XMFLOAT3 position,
-               XMFLOAT3 direction,
-               XMFLOAT3 up,
-               float fov,
-               float aspectRatio,
-               float nearPlane,
-               float farPlane)
-    : Position(position), Direction(direction), Up(up), FieldOfView(fov),
-    AspectRatio(aspectRatio), NearPlane(nearPlane), FarPlane(farPlane)
+Camera::Camera(Vector3 position,
+	Vector3 direction,
+	Vector3 up,
+	float fov,
+	float aspectRatio,
+	float nearPlane,
+	float farPlane)
+	: Position(position), Direction(direction), Up(up), FieldOfView(fov),
+	  AspectRatio(aspectRatio), NearPlane(nearPlane), FarPlane(farPlane)
 {
-    UpdateBasisVectors(Direction);
-    UpdateUniforms();
+	UpdateBasisVectors(Direction);
+	UpdateUniforms();
 }
 
 const CameraUniforms& Camera::GetUniforms() const
 {
-    return Uniforms;
+	return Uniforms;
 }
 
-void Camera::UpdateBasisVectors(DirectX::XMFLOAT3 direction)
+void Camera::UpdateBasisVectors(Vector3 direction)
 {
-    Direction = direction;
-    XMVECTOR v = XMLoadFloat3(&Direction);
-    v = XMVector3Normalize(v);
-    XMStoreFloat3(&Direction, v);
+	Direction = direction;
+	Direction.Normalize();
 
-    XMVECTOR upVector = XMLoadFloat3(&Up);
-    XMVECTOR right = XMVector3Cross(v, upVector);
-    XMVECTOR newUp = XMVector3Cross(right, v);
-    XMStoreFloat3(&Up, newUp);
+	Vector3 up = Up;
+	Vector3 right = up.Cross(Direction);
+	Vector3 newUp = right.Cross(Direction);
+	Up = up;
 }
 
 void Camera::UpdateUniforms()
 {
-    XMVECTOR pos = XMLoadFloat3(&Position);
-    XMVECTOR dir = XMLoadFloat3(&Direction);
-    XMVECTOR up = XMLoadFloat3(&Up);
-    Uniforms.view = XMMatrixLookAtRH(pos, dir, up);
-    Uniforms.projection = XMMatrixPerspectiveFovRH(FieldOfView,
-        AspectRatio, NearPlane, FarPlane);
-    Uniforms.viewProjection = Uniforms.projection * Uniforms.view;
+	Uniforms.View = Matrix::CreateLookAt(Position, Direction, Up);
+	Uniforms.Projection = Matrix::CreatePerspectiveFieldOfView(FieldOfView,
+		AspectRatio, NearPlane, FarPlane);
+	Uniforms.ViewProjection = Uniforms.Projection * Uniforms.View;
 }
