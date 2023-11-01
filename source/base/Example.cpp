@@ -27,11 +27,8 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	View = SDL_Metal_CreateView(Window);
 	Running = true;
 
-	LastClockTimestamp = 0;
-	CurrentClockTimestamp = SDL_GetPerformanceCounter();
 	Width = width;
 	Height = height;
-
 
 	Device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
 
@@ -56,8 +53,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 		abort();
 	}
 
-
-	FrameSemaphore = dispatch_semaphore_create(BUFFER_COUNT);
+	FrameSemaphore = dispatch_semaphore_create(BufferCount);
 }
 
 Example::~Example()
@@ -155,7 +151,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 			Update(static_cast<float>(Timer.GetElapsedSeconds()));
 		});
 
-		FrameIndex = (FrameIndex + 1) % BUFFER_COUNT;
+		FrameIndex = (FrameIndex + 1) % BufferCount;
 
 		MTL::CommandBuffer* commandBuffer = CommandQueue->commandBuffer();
 

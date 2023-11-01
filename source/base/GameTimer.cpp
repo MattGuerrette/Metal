@@ -2,72 +2,72 @@
 
 
 GameTimer::GameTimer()
-	: m_elapsedTicks(0), m_totalTicks(0), m_leftOverTicks(0), m_frameCount(0), m_framesPerSecond(0),
-	  m_framesThisSecond(0),
-	  m_qpcSecondCounter(0),
-	  m_isFixedTimeStep(false),
-	  m_targetElapsedTicks(0)
+	: ElapsedTicks(0), TotalTicks(0), LeftOverTicks(0), FrameCount(0), FramesPerSecond(0),
+	  FramesThisSecond(0),
+	  QpcSecondCounter(0),
+	  IsFixedTimeStep(false),
+	  TargetElapsedTicks(0)
 {
-	m_qpcFrequency = SDL_GetPerformanceFrequency();
-	m_qpcLastTime = SDL_GetPerformanceCounter();
+	QpcFrequency = SDL_GetPerformanceFrequency();
+	QpcLastTime = SDL_GetPerformanceCounter();
 
 
 	// Max delta 1/10th of a second
-	m_qpcMaxDelta = m_qpcFrequency / 10;
+	QpcMaxDelta = QpcFrequency / 10;
 }
 
 uint64_t GameTimer::GetElapsedTicks() const noexcept
 {
-	return m_elapsedTicks;
+	return ElapsedTicks;
 }
 
 double GameTimer::GetElapsedSeconds() const noexcept
 {
-	return TicksToSeconds(m_elapsedTicks);
+	return TicksToSeconds(ElapsedTicks);
 }
 
 uint64_t GameTimer::GetTotalTicks() const noexcept
 {
-	return m_totalTicks;
+	return TotalTicks;
 }
 
 double GameTimer::GetTotalSeconds() const noexcept
 {
-	return TicksToSeconds(m_totalTicks);
+	return TicksToSeconds(TotalTicks);
 }
 
 uint32_t GameTimer::GetFrameCount() const noexcept
 {
-	return m_frameCount;
+	return FrameCount;
 }
 
 uint32_t GameTimer::GetFramesPerSecond() const noexcept
 {
-	return m_framesPerSecond;
+	return FramesPerSecond;
 }
 
 void GameTimer::SetFixedTimeStep(const bool isFixedTimeStep) noexcept
 {
-	m_isFixedTimeStep = isFixedTimeStep;
+	IsFixedTimeStep = isFixedTimeStep;
 }
 
 void GameTimer::SetTargetElapsedTicks(const uint64_t targetElapsed) noexcept
 {
-	m_targetElapsedTicks = targetElapsed;
+	TargetElapsedTicks = targetElapsed;
 }
 
 void GameTimer::SetTargetElapsedSeconds(const double targetElapsed) noexcept
 {
-	m_targetElapsedTicks = SecondsToTicks(targetElapsed);
+	TargetElapsedTicks = SecondsToTicks(targetElapsed);
 }
 
 void GameTimer::ResetElapsedTime()
 {
-	m_qpcLastTime = SDL_GetPerformanceCounter();
+	QpcLastTime = SDL_GetPerformanceCounter();
 
-	m_leftOverTicks = 0;
-	m_framesPerSecond = 0;
-	m_framesThisSecond = 0;
-	m_qpcSecondCounter = 0;
-	m_totalTicks = 0;
+	LeftOverTicks = 0;
+	FramesPerSecond = 0;
+	FramesThisSecond = 0;
+	QpcSecondCounter = 0;
+	TotalTicks = 0;
 }

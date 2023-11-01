@@ -35,7 +35,7 @@ public:
 	static std::string PathForResource(const std::string& resourceName);
 
 protected:
-	static constexpr int BUFFER_COUNT = 3;
+	static constexpr int BufferCount = 3;
 
 	SDL_MetalView View;
 
@@ -55,8 +55,6 @@ private:
 	uint32_t Width;
 	uint32_t Height;
 	GameTimer Timer;
-	uint64_t LastClockTimestamp;
-	uint64_t CurrentClockTimestamp;
 	bool Running;
 
 	void CreateDepthStencil();;

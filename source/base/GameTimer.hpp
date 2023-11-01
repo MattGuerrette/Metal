@@ -7,7 +7,7 @@
 
 class GameTimer
 {
-	static constexpr uint64_t TICKS_PER_SECOND = 10000000;
+	static constexpr uint64_t TicksPerSecond = 10000000;
 
 public:
 	GameTimer();
@@ -39,81 +39,78 @@ public:
 	{
 		const uint64_t currentTime = SDL_GetPerformanceCounter();
 
-		uint64_t delta = currentTime - m_qpcLastTime;
-		m_qpcLastTime = currentTime;
-		m_qpcSecondCounter += delta;
+		uint64_t delta = currentTime - QpcLastTime;
+		QpcLastTime = currentTime;
+		QpcSecondCounter += delta;
 
-		delta = std::clamp(delta, static_cast<uint64_t>(0), m_qpcMaxDelta);
-		delta *= TICKS_PER_SECOND;
-		delta /= static_cast<uint64_t>(m_qpcFrequency);
+		delta = std::clamp(delta, static_cast<uint64_t>(0), QpcMaxDelta);
+		delta *= TicksPerSecond;
+		delta /= static_cast<uint64_t>(QpcFrequency);
 
-		const uint32_t lastFrameCount = m_frameCount;
-		if (m_isFixedTimeStep)
+		const uint32_t lastFrameCount = FrameCount;
+		if (IsFixedTimeStep)
 		{
-			if (static_cast<uint64_t>(std::abs(static_cast<int64_t>(delta - m_targetElapsedTicks))) < TICKS_PER_SECOND /
+			if (static_cast<uint64_t>(std::abs(static_cast<int64_t>(delta - TargetElapsedTicks))) < TicksPerSecond /
 				4000)
 			{
-				delta = m_targetElapsedTicks;
+				delta = TargetElapsedTicks;
 			}
 
-			m_leftOverTicks += delta;
-			while (m_leftOverTicks >= m_targetElapsedTicks)
+			LeftOverTicks += delta;
+			while (LeftOverTicks >= TargetElapsedTicks)
 			{
-				m_elapsedTicks = m_targetElapsedTicks;
-				m_totalTicks += m_targetElapsedTicks;
-				m_leftOverTicks -= m_targetElapsedTicks;
-				m_frameCount++;
+				ElapsedTicks = TargetElapsedTicks;
+				TotalTicks += TargetElapsedTicks;
+				LeftOverTicks -= TargetElapsedTicks;
+				FrameCount++;
 
 				update();
 			}
 		}
 		else
 		{
-			m_elapsedTicks = delta;
-			m_totalTicks += delta;
-			m_leftOverTicks = 0;
-			m_frameCount++;
+			ElapsedTicks = delta;
+			TotalTicks += delta;
+			LeftOverTicks = 0;
+			FrameCount++;
 
 			update();
 		}
 
-		if (m_frameCount != lastFrameCount)
+		if (FrameCount != lastFrameCount)
 		{
-			m_framesThisSecond++;
+			FramesThisSecond++;
 		}
 
-		if (m_qpcSecondCounter >= m_qpcFrequency)
+		if (QpcSecondCounter >= QpcFrequency)
 		{
-			m_framesPerSecond = m_framesThisSecond;
-			m_framesThisSecond = 0;
-			m_qpcSecondCounter %= m_qpcFrequency;
+			FramesPerSecond = FramesThisSecond;
+			FramesThisSecond = 0;
+			QpcSecondCounter %= QpcFrequency;
 		}
 	}
 
 	static constexpr double TicksToSeconds(const uint64_t ticks) noexcept
 	{
-		return static_cast<double>(ticks) / TICKS_PER_SECOND;
+		return static_cast<double>(ticks) / TicksPerSecond;
 	}
 
 	static constexpr uint64_t SecondsToTicks(const double seconds) noexcept
 	{
-		return static_cast<uint64_t>(seconds * TICKS_PER_SECOND);
+		return static_cast<uint64_t>(seconds * TicksPerSecond);
 	}
 
 private:
-	uint64_t m_qpcFrequency;
-	uint64_t m_qpcLastTime;
-	uint64_t m_qpcMaxDelta;
-
-	uint64_t m_elapsedTicks;
-	uint64_t m_totalTicks;
-	uint64_t m_leftOverTicks;
-
-	uint32_t m_frameCount;
-	uint32_t m_framesPerSecond;
-	uint32_t m_framesThisSecond;
-	uint64_t m_qpcSecondCounter;
-
-	bool m_isFixedTimeStep;
-	uint64_t m_targetElapsedTicks;
+	uint64_t QpcFrequency;
+	uint64_t QpcLastTime;
+	uint64_t QpcMaxDelta;
+	uint64_t QpcSecondCounter;
+	uint64_t ElapsedTicks;
+	uint64_t TotalTicks;
+	uint64_t LeftOverTicks;
+	uint32_t FrameCount;
+	uint32_t FramesPerSecond;
+	uint32_t FramesThisSecond;
+	bool IsFixedTimeStep;
+	uint64_t TargetElapsedTicks;
 };

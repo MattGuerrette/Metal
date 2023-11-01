@@ -57,7 +57,7 @@ private:
 	NS::SharedPtr<MTL::RenderPipelineState> PipelineState;
 	NS::SharedPtr<MTL::Buffer> VertexBuffer;
 	NS::SharedPtr<MTL::Buffer> IndexBuffer;
-	NS::SharedPtr<MTL::Buffer> InstanceBuffer[BUFFER_COUNT];
+	NS::SharedPtr<MTL::Buffer> InstanceBuffer[BufferCount];
 	std::unique_ptr<Camera> MainCamera;
 	NS::SharedPtr<MTL::Heap> SpriteHeap;
 
@@ -212,9 +212,9 @@ void SpriteBatching::CreateBuffers()
 	IndexBuffer = NS::TransferPtr(Device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
 	IndexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
-	const size_t instanceDataSize = BUFFER_COUNT * InstanceCount * sizeof(InstanceData);
+	const size_t instanceDataSize = BufferCount * InstanceCount * sizeof(InstanceData);
 	NS::String* prefix = NS::String::string("Instance Buffer: ", NS::ASCIIStringEncoding);
-	for (auto index = 0; index < BUFFER_COUNT; index++)
+	for (auto index = 0; index < BufferCount; index++)
 	{
 		char temp[12];
 		snprintf(temp, sizeof(temp), "%d", index);

@@ -48,7 +48,7 @@ private:
 	NS::SharedPtr<MTL::RenderPipelineState> PipelineState;
 	NS::SharedPtr<MTL::Buffer> VertexBuffer;
 	NS::SharedPtr<MTL::Buffer> IndexBuffer;
-	NS::SharedPtr<MTL::Buffer> UniformBuffer[BUFFER_COUNT];
+	NS::SharedPtr<MTL::Buffer> UniformBuffer[BufferCount];
 	std::unique_ptr<Camera> MainCamera;
 
 	float RotationY = 0.0f;
@@ -202,13 +202,13 @@ void HelloWorld::CreateBuffers()
 
 	const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
 	NS::String* prefix = NS::String::string("Uniform: ", NS::ASCIIStringEncoding);
-	for (auto index = 0; index < BUFFER_COUNT; index++)
+	for (auto index = 0; index < BufferCount; index++)
 	{
 		char temp[12];
 		snprintf(temp, sizeof(temp), "%d", index);
 
 		UniformBuffer[index] = NS::TransferPtr(
-			Device->newBuffer(alignedUniformSize * BUFFER_COUNT, MTL::ResourceOptionCPUCacheModeDefault));
+			Device->newBuffer(alignedUniformSize * BufferCount, MTL::ResourceOptionCPUCacheModeDefault));
 		UniformBuffer[index]->setLabel(
 			prefix->stringByAppendingString(NS::String::string(temp, NS::ASCIIStringEncoding)));
 	}

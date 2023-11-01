@@ -16,7 +16,7 @@ XM_ALIGNED_STRUCT(16) CameraUniforms
 	Matrix InvViewProjection;
 };
 
-// TODO: Improve this Camera class to use Quaternion rotation
+/// @todo Improve this Camera class to use Quaternion rotation
 class Camera
 {
 public:
