@@ -54,6 +54,9 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	}
 
 	FrameSemaphore = dispatch_semaphore_create(BufferCount);
+
+	Keyboard = std::make_unique<class Keyboard>();
+	Mouse = std::make_unique<class Mouse>(Window);
 }
 
 Example::~Example()
@@ -146,6 +149,32 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 			}
 		}
 
+		if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
+		{
+			Keyboard->RegisterKeyEvent(&e.key);
+		}
+		if (e.type == SDL_MOUSEBUTTONUP)
+		{
+			Mouse->RegisterMouseButton(&e.button);
+		}
+		if (e.type == SDL_MOUSEBUTTONDOWN)
+		{
+			Mouse->RegisterMouseButton(&e.button);
+		}
+		if (e.type == SDL_MOUSEMOTION)
+		{
+			Mouse->RegisterMouseMotion(&e.motion);
+		}
+		if (e.type == SDL_MOUSEWHEEL)
+		{
+			Mouse->RegisterMouseWheel(&e.wheel);
+		}
+
+		if (Keyboard->IsKeyClicked(SDL_SCANCODE_ESCAPE))
+		{
+			Quit();
+		}
+
 		Timer.Tick([this]()
 		{
 			Update(static_cast<float>(Timer.GetElapsedSeconds()));
@@ -169,10 +198,16 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 
 		}
 
-
+		Keyboard->Update();
+		Mouse->Update();
 		pool->release();
 	}
 
 	return EXIT_SUCCESS;
+}
+
+void Example::Quit()
+{
+	Running = false;
 }
 

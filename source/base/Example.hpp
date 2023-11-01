@@ -12,6 +12,8 @@
 #include <QuartzCore/QuartzCore.hpp>
 
 #include "GameTimer.hpp"
+#include "Keyboard.hpp"
+#include "Mouse.hpp"
 
 class Example
 {
@@ -21,6 +23,8 @@ public:
 	virtual ~Example();
 
 	int Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv);
+
+	void Quit();
 
 	[[nodiscard]] uint32_t GetFrameWidth() const;
 
@@ -38,6 +42,10 @@ protected:
 	static constexpr int BufferCount = 3;
 
 	SDL_MetalView View;
+
+	// Keyboard and Mouse
+	std::unique_ptr<class Keyboard> Keyboard;
+	std::unique_ptr<class Mouse> Mouse;
 
 	// Metal
 	NS::SharedPtr<MTL::Device> Device;

@@ -3,6 +3,10 @@ add_library(base STATIC
         LinkImpl.cpp
         Camera.hpp
         Camera.cpp
+        Keyboard.hpp
+        Keyboard.cpp
+        Mouse.hpp
+        Mouse.cpp
         GameTimer.cpp
         GameTimer.cpp
         SimpleMath.cpp
