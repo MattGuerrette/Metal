@@ -45,7 +45,7 @@ public:
 
 	void Update(float elapsed) override;
 
-	void Render(CA::MetalDrawable* drawable, MTL::CommandBuffer* commandBuffer, float elapsed) override;
+	void Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed) override;
 
 private:
 	void CreateBuffers();
@@ -103,28 +103,10 @@ void SpriteBatching::Update(float elapsed)
 	RotationY += elapsed;
 }
 
-void SpriteBatching::Render(CA::MetalDrawable* drawable, MTL::CommandBuffer* commandBuffer, float elapsed)
+void SpriteBatching::Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed)
 {
-
 	UpdateUniforms();
 
-	auto texture = drawable->texture();
-
-	MTL::RenderPassDescriptor* passDescriptor = MTL::RenderPassDescriptor::renderPassDescriptor();
-	passDescriptor->colorAttachments()->object(0)->setTexture(texture);
-	passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
-	passDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
-	passDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(.39, .58, .92, 1.0));
-	passDescriptor->depthAttachment()->setTexture(DepthStencilTexture.get());
-	passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
-	passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
-	passDescriptor->depthAttachment()->setClearDepth(1.0);
-	passDescriptor->stencilAttachment()->setTexture(DepthStencilTexture.get());
-	passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
-	passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
-	passDescriptor->stencilAttachment()->setClearStencil(0);
-
-	MTL::RenderCommandEncoder* commandEncoder = commandBuffer->renderCommandEncoder(passDescriptor);
 	commandEncoder->setRenderPipelineState(PipelineState.get());
 	commandEncoder->setDepthStencilState(DepthStencilState.get());
 	commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
@@ -134,10 +116,6 @@ void SpriteBatching::Render(CA::MetalDrawable* drawable, MTL::CommandBuffer* com
 	commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
 		IndexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
 		IndexBuffer.get(), 0, InstanceCount);
-	commandEncoder->endEncoding();
-
-	commandBuffer->presentDrawable(drawable);
-	commandBuffer->commit();
 }
 
 void SpriteBatching::CreatePipelineState()

@@ -34,7 +34,7 @@ public:
 
 	virtual void Update(float elapsed) = 0;
 
-	virtual void Render(CA::MetalDrawable* drawable, MTL::CommandBuffer* commandBuffer, float elapsed) = 0;
+	virtual void Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed) = 0;
 
 	static std::string PathForResource(const std::string& resourceName);
 
@@ -59,6 +59,8 @@ protected:
 	dispatch_semaphore_t FrameSemaphore;
 
 private:
+	void SetupUi();
+
 	SDL_Window* Window;
 	uint32_t Width;
 	uint32_t Height;

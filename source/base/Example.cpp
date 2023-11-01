@@ -6,8 +6,22 @@
 
 #include "Example.hpp"
 
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_metal.h"
+
 Example::Example(const char* title, uint32_t width, uint32_t height)
 {
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.IniFilename = nullptr;
+	io.IniSavingRate = 0.0f;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
+	ImGui::StyleColorsDark();
+
+
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
 	{
 		fprintf(stderr, "Failed to initialize SDL.\n");
@@ -35,6 +49,9 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	auto* layer = static_cast<CA::MetalLayer*>((SDL_Metal_GetLayer(View)));
 	layer->setDevice(Device.get());
 
+	ImGui_ImplMetal_Init(Device.get());
+	ImGui_ImplSDL2_InitForMetal(Window);
+
 	CommandQueue = NS::TransferPtr(Device->newCommandQueue());
 
 	CreateDepthStencil();
@@ -61,6 +78,11 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 
 Example::~Example()
 {
+	// Cleanup
+	ImGui_ImplMetal_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+
 	if (Window != nullptr)
 	{
 		SDL_DestroyWindow(Window);
@@ -133,6 +155,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 
 		SDL_Event e;
 		SDL_PollEvent(&e);
+		ImGui_ImplSDL2_ProcessEvent(&e);
 		if (e.type == SDL_QUIT)
 		{
 			Running = false;
@@ -190,12 +213,43 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 			dispatch_semaphore_signal(FrameSemaphore);
 		});
 
+
 		auto* layer = static_cast<CA::MetalLayer*>(SDL_Metal_GetLayer(View));
 		CA::MetalDrawable* drawable = layer->nextDrawable();
 		if (drawable)
 		{
-			Render(drawable, commandBuffer, static_cast<float>(Timer.GetElapsedSeconds()));
+			MTL::RenderPassDescriptor* passDescriptor = MTL::RenderPassDescriptor::renderPassDescriptor();
+			passDescriptor->colorAttachments()->object(0)->setTexture(drawable->texture());
+			passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
+			passDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
+			passDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(.39, .58, .92, 1.0));
+			passDescriptor->depthAttachment()->setTexture(DepthStencilTexture.get());
+			passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
+			passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
+			passDescriptor->depthAttachment()->setClearDepth(1.0);
+			passDescriptor->stencilAttachment()->setTexture(DepthStencilTexture.get());
+			passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
+			passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
+			passDescriptor->stencilAttachment()->setClearStencil(0);
+			MTL::RenderCommandEncoder* commandEncoder = commandBuffer->renderCommandEncoder(passDescriptor);
 
+			Render(commandEncoder, static_cast<float>(Timer.GetElapsedSeconds()));
+
+			// IMGUI rendering
+			ImGui_ImplMetal_NewFrame(passDescriptor);
+			ImGui_ImplSDL2_NewFrame();
+			ImGui::NewFrame();
+
+			SetupUi();
+
+			// Rendering
+			ImGui::Render();
+			ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), commandBuffer, commandEncoder);
+
+			commandEncoder->endEncoding();
+
+			commandBuffer->presentDrawable(drawable);
+			commandBuffer->commit();
 		}
 
 		Keyboard->Update();
@@ -204,6 +258,19 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 	}
 
 	return EXIT_SUCCESS;
+}
+
+void Example::SetupUi()
+{
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
+	ImGui::SetNextWindowPos(ImVec2(10, 10));
+	ImGui::SetNextWindowSize(ImVec2(125 * ImGui::GetIO().DisplayFramebufferScale.x, 0), ImGuiCond_FirstUseEver);
+	ImGui::Begin("Metal Example",
+		nullptr,
+		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
+	ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(Window), Timer.GetFramesPerSecond());
+	ImGui::End();
+	ImGui::PopStyleVar();
 }
 
 void Example::Quit()
