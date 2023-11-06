@@ -43,9 +43,9 @@ public:
 
 	bool Load() override;
 
-	void Update(float elapsed) override;
+	void Update(const GameTimer& timer) override;
 
-	void Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed) override;
+	void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
 
 private:
 	void CreateBuffers();
@@ -97,13 +97,15 @@ bool SpriteBatching::Load()
 	return true;
 }
 
-void SpriteBatching::Update(float elapsed)
+void SpriteBatching::Update(const GameTimer& timer)
 {
+	const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
+
 	RotationX += elapsed;
 	RotationY += elapsed;
 }
 
-void SpriteBatching::Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed)
+void SpriteBatching::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer)
 {
 	UpdateUniforms();
 

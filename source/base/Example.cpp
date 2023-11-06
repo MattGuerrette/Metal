@@ -148,6 +148,12 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	int flags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_METAL;
 #if defined(__IPHONEOS__) || defined(__TVOS__)
 	flags |= SDL_WINDOW_FULLSCREEN;
+#else
+	flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+	SDL_DisplayMode mode;
+	SDL_GetCurrentDisplayMode(0, &mode);
+	width = mode.w;
+	height = mode.h;
 #endif
 	Window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)width, (int)height, flags);
 	if (!Window)
@@ -157,6 +163,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	}
 	View = SDL_Metal_CreateView(Window);
 	Running = true;
+	SDL_ShowWindow(Window);
 
 	Width = width;
 	Height = height;
@@ -197,8 +204,6 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	Mouse = std::make_unique<class Mouse>(Window);
 
 
-	SDL_DisplayMode mode;
-	SDL_GetCurrentDisplayMode(0, &mode);
 	Timer.SetTargetElapsedSeconds(1.0f / static_cast<float>(mode.refresh_rate));
 	Timer.SetFixedTimeStep(true);
 }
@@ -397,6 +402,7 @@ void Example::SetupUi(const GameTimer& timer)
 		nullptr,
 		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
 	ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(Window), timer.GetFramesPerSecond());
+	ImGui::Text("Press Esc to Quit");
 	ImGui::End();
 	ImGui::PopStyleVar();
 }

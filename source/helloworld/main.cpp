@@ -34,9 +34,9 @@ public:
 
 	bool Load() override;
 
-	void Update(float elapsed) override;
+	void Update(const GameTimer& timer) override;
 
-	void Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed) override;
+	void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
 
 private:
 	void CreateBuffers();
@@ -83,12 +83,14 @@ bool HelloWorld::Load()
 	return true;
 }
 
-void HelloWorld::Update(float elapsed)
+void HelloWorld::Update(const GameTimer& timer)
 {
+	const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
+	
 	RotationY += elapsed;
 }
 
-void HelloWorld::Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed)
+void HelloWorld::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer)
 {
 	UpdateUniforms();
 

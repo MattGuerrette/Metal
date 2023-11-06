@@ -1,26 +1,19 @@
-
 ////////////////////////////////////////////////////////////////////////////////
 // Copyright (c) Matt Guerrette 2023.
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
-//#define STB_IMAGE_IMPLEMENTATION
-//#include <stb_image.h>
 #include <ktx.h>
 
 #include <memory>
 #include <fmt/core.h>
 
 #include <Metal/Metal.hpp>
-#include <QuartzCore/QuartzCore.hpp>
 
 #include <imgui.h>
 
 #include "Example.hpp"
 #include "Camera.hpp"
-
-
-using namespace DirectX;
 
 XM_ALIGNED_STRUCT(16) Vertex
 {
@@ -37,13 +30,13 @@ static constexpr size_t TextureCount = 5;
 
 XM_ALIGNED_STRUCT(16) FragmentArgumentBuffer
 {
-	MTL::ResourceID textures[TextureCount];
-	uint32_t textureIndex;
-	Matrix* transforms;
+	[[maybe_unused]] MTL::ResourceID Textures[TextureCount];
+	[[maybe_unused]] uint32_t TextureIndex;
+	[[maybe_unused]] Matrix* Transforms;
 };
 
-static const std::array<const char*, 5> ComboItems = { "Texture 0", "Texture 1", "Texture 2",
-													   "Texture 3", "Texture 4" };
+static const std::array<const char*, TextureCount> ComboItems = { "Texture 0", "Texture 1", "Texture 2",
+																  "Texture 3", "Texture 4" };
 
 class Textures : public Example
 {
@@ -80,7 +73,6 @@ private:
 	NS::SharedPtr<MTL::Buffer> InstanceBuffer[BufferCount];
 	std::unique_ptr<Camera> MainCamera;
 	NS::SharedPtr<MTL::Heap> TextureHeap;
-	NS::SharedPtr<MTL::Texture> Texture;
 	NS::SharedPtr<MTL::Buffer> ArgumentBuffer[BufferCount];
 	std::vector<NS::SharedPtr<MTL::Texture>> HeapTextures;
 
@@ -107,7 +99,6 @@ bool Textures::Load()
 	const float near = 0.01f;
 	const float far = 1000.0f;
 
-
 	MainCamera = std::make_unique<Camera>(Vector3::Zero,
 		Vector3::Forward,
 		Vector3::Up,
@@ -120,8 +111,6 @@ bool Textures::Load()
 	CreateTextureHeap();
 
 	CreateArgumentBuffers();
-
-	Texture = NS::TransferPtr(LoadTextureFromFile("001_basecolor.ktx"));
 
 	return true;
 }
@@ -141,21 +130,21 @@ void Textures::SetupUi(const GameTimer& timer)
 		for (const auto& buffer: ArgumentBuffer)
 		{
 			auto* contents = reinterpret_cast<FragmentArgumentBuffer*>(buffer->contents());
-			contents->textureIndex = SelectedTexture;
+			contents->TextureIndex = SelectedTexture;
 		}
-		printf("Selected item: %d\n", SelectedTexture);
 	}
+	ImGui::Text("Press Esc to Quit");
 	ImGui::End();
 	ImGui::PopStyleVar();
 }
 
 void Textures::Update(const GameTimer& timer)
 {
+	const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
 	//RotationX += elapsed;
 	if (Mouse->LeftPressed())
 	{
-		//printf("Pressed\n");
-		RotationY += (1.0f * Mouse->RelativeX()) * timer.GetElapsedSeconds();
+		RotationY += static_cast<float>(Mouse->RelativeX()) * elapsed;
 	}
 }
 
@@ -186,7 +175,7 @@ MTL::Texture* Textures::LoadTextureFromFile(const std::string& fileName)
 	NS::UInteger baseWidth = ktx2Texture->baseWidth;
 	NS::UInteger baseHeight = ktx2Texture->baseHeight;
 	NS::UInteger baseDepth = ktx2Texture->baseDepth;
-	NS::UInteger maxMipLevelCount = floor(log2(fmax(baseWidth, baseHeight))) + 1;
+	auto maxMipLevelCount = static_cast<NS::UInteger>(std::floor(std::log2(std::fmax(baseWidth, baseHeight))) + 1);
 	NS::UInteger storedMipLevelCount = genMipmaps ? maxMipLevelCount : levelCount;
 
 	MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
@@ -210,12 +199,10 @@ MTL::Texture* Textures::LoadTextureFromFile(const std::string& fileName)
 		ktx_size_t offset = 0;
 		result = ktxTexture_GetImageOffset(ktx1Texture, level, layer, faceSlice, &offset);
 		ktx_uint8_t* imageBytes = ktxTexture_GetData(ktx1Texture) + offset;
-		auto elementSize = ktxTexture_GetElementSize(ktx1Texture);
 		ktx_uint32_t bytesPerRow = ktxTexture_GetRowPitch(ktx1Texture, level);
 		ktx_size_t bytesPerImage = ktxTexture_GetImageSize(ktx1Texture, level);
-		size_t levelWidth = fmax(1, (baseWidth >> level));
-		size_t levelHeight = fmax(1, (baseHeight >> level));
-
+		auto levelWidth = static_cast<size_t>(std::fmax(1.0f, (float)(baseWidth >> level)));
+		auto levelHeight = static_cast<size_t>(std::fmax(1.0f, (float)(baseHeight >> level)));
 
 		texture->replaceRegion(MTL::Region(0, 0, levelWidth, levelHeight),
 			level, faceSlice, imageBytes, bytesPerRow, bytesPerImage);
@@ -229,7 +216,6 @@ MTL::Texture* Textures::LoadTextureFromFile(const std::string& fileName)
 
 void Textures::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer)
 {
-
 	UpdateUniforms();
 
 	commandEncoder->useHeap(TextureHeap.get());
@@ -479,11 +465,11 @@ void Textures::CreateArgumentBuffers()
 			for (auto j = 0; j < HeapTextures.size(); j++)
 			{
 				auto texture = HeapTextures[j];
-				buffer->textures[j] = texture->gpuResourceID();
+				buffer->Textures[j] = texture->gpuResourceID();
 
-				buffer->transforms = (Matrix*)InstanceBuffer[i]->gpuAddress();
+				buffer->Transforms = (Matrix*)InstanceBuffer[i]->gpuAddress();
 			}
-			buffer->textureIndex = 0;
+			buffer->TextureIndex = 0;
 		}
 	}
 }
