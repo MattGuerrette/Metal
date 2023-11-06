@@ -18,6 +18,8 @@
 class Example
 {
 public:
+
+	SDL_Window* Window;
 	Example(const char* title, uint32_t width, uint32_t height);
 
 	virtual ~Example();
@@ -32,11 +34,17 @@ public:
 
 	virtual bool Load() = 0;
 
-	virtual void Update(float elapsed) = 0;
+	virtual void Update(const GameTimer& timer) = 0;
 
-	virtual void Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed) = 0;
+	virtual void SetupUi(const GameTimer& timer);
+
+	virtual void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) = 0;
 
 	static std::string PathForResource(const std::string& resourceName);
+
+	static void AnimationCallback(void* param);
+
+	void AnimationRender(float elapsed);
 
 protected:
 	static constexpr int BufferCount = 3;
@@ -53,15 +61,14 @@ protected:
 	NS::SharedPtr<MTL::Texture> DepthStencilTexture;
 	NS::SharedPtr<MTL::DepthStencilState> DepthStencilState;
 	NS::SharedPtr<MTL::Library> PipelineLibrary;
+	MTL::PixelFormat FrameBufferPixelFormat;
 
 	// Sync primitives
 	uint32_t FrameIndex = 0;
 	dispatch_semaphore_t FrameSemaphore;
 
 private:
-	void SetupUi();
 
-	SDL_Window* Window;
 	uint32_t Width;
 	uint32_t Height;
 	GameTimer Timer;

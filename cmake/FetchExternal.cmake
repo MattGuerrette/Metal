@@ -39,7 +39,28 @@ FetchContent_Declare(metalcpp
         GIT_TAG main
 )
 
+FetchContent_Declare(fmt
+        GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
+        GIT_TAG 10.1.1
+)
 
-FetchContent_MakeAvailable(sal directxmath stb imgui sdl2 sdlttf metalcpp)
+set(KTX_FEATURE_STATIC_LIBRARY ON)
+set(KTX_FEATURE_TOOLS OFF)
+set(KTX_FEATURE_TESTS OFF)
+if (APPLE)
+    set(BASISU_SUPPORT_SSE OFF)
+endif ()
+FetchContent_Declare(
+        ktx
+        GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
+        GIT_TAG v4.0.0
+)
+FetchContent_GetProperties(ktx)
+if (NOT ktx_POPULATED)
+    FetchContent_Populate(ktx)
+    add_subdirectory(${ktx_SOURCE_DIR} ${ktx_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif ()
+
+FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl2 sdlttf metalcpp)
 
 include_directories(${sal_SOURCE_DIR} ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR} ${metalcpp_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)
