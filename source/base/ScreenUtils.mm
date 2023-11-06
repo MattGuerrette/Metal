@@ -1,0 +1,16 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (c) Matt Guerrette 2023.
+// SPDX-License-Identifier: MIT
+////////////////////////////////////////////////////////////////////////////////
+
+
+#include "ScreenUtils.hpp"
+
+#import <AppKit/AppKit.h>
+
+
+uint32_t GetSafeYOffset()
+{
+	NSScreen* screen = [NSScreen mainScreen];
+	return screen.safeAreaInsets.top;
+}

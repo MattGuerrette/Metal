@@ -37,6 +37,8 @@ public:
 	/// @return True if right button clicked, false otherwise.
 	[[nodiscard]] bool RightClick() const;
 
+	[[nodiscard]] bool LeftPressed() const;
+
 	/// @brief Checks if a right mouse button double-click has occurred.
 	/// @return True if right button double-clicked, false otherwise.
 	[[nodiscard]] bool RightDoubleClick() const;

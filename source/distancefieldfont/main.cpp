@@ -42,9 +42,9 @@ public:
 
 	bool Load() override;
 
-	void Update(float elapsed) override;
+	void Update(const GameTimer& timer) override;
 
-	void Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed) override;
+	void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
 
 private:
 	void CreateBuffers();
@@ -137,15 +137,16 @@ void DistanceFieldFont::CreateFontTexture()
 
 }
 
-void DistanceFieldFont::Update(float elapsed)
+void DistanceFieldFont::Update(const GameTimer& timer)
 {
+	const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
+
 	RotationX += elapsed;
 	RotationY += elapsed;
 }
 
-void DistanceFieldFont::Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed)
+void DistanceFieldFont::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer)
 {
-
 	UpdateUniforms();
 
 	commandEncoder->setRenderPipelineState(PipelineState.get());

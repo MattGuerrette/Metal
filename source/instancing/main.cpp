@@ -40,9 +40,9 @@ public:
 
 	bool Load() override;
 
-	void Update(float elapsed) override;
+	void Update(const GameTimer& timer) override;
 
-	void Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed) override;
+	void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
 
 private:
 	void CreateBuffers();
@@ -91,13 +91,15 @@ bool Instancing::Load()
 	return true;
 }
 
-void Instancing::Update(float elapsed)
+void Instancing::Update(const GameTimer& timer)
 {
+	const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
+
 	RotationX += elapsed;
 	RotationY += elapsed;
 }
 
-void Instancing::Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed)
+void Instancing::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer)
 {
 	UpdateUniforms();
 

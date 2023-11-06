@@ -22,6 +22,11 @@ bool Mouse::LeftDoubleClick() const
 	return (CurrentState[SDL_BUTTON_LEFT].Pressed && CurrentState[SDL_BUTTON_LEFT].IsDoubleClick);
 }
 
+bool Mouse::LeftPressed() const
+{
+	return CurrentState[SDL_BUTTON_LEFT].Pressed;
+}
+
 bool Mouse::RightClick() const
 {
 	return !CurrentState[SDL_BUTTON_RIGHT].Pressed && PreviousState[SDL_BUTTON_RIGHT].Pressed;
@@ -94,5 +99,7 @@ void Mouse::RegisterMouseButton(SDL_MouseButtonEvent* event)
 void Mouse::Update()
 {
 	PreviousState = CurrentState;
-	CurrentState = {};
+	//CurrentState = {};
+	XRelative = 0;
+	YRelative = 0;
 }

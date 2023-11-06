@@ -34,9 +34,9 @@ public:
 
 	bool Load() override;
 
-	void Update(float elapsed) override;
+	void Update(const GameTimer& timer) override;
 
-	void Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed) override;
+	void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
 
 private:
 	void CreateBuffers();
@@ -83,15 +83,17 @@ bool HelloWorld::Load()
 	return true;
 }
 
-void HelloWorld::Update(float elapsed)
+void HelloWorld::Update(const GameTimer& timer)
 {
+	const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
+	
 	RotationY += elapsed;
 }
 
-void HelloWorld::Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed)
+void HelloWorld::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer)
 {
 	UpdateUniforms();
-	
+
 	const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
 	const auto uniformBufferOffset =
 		alignedUniformSize * FrameIndex;
@@ -106,12 +108,6 @@ void HelloWorld::Render(MTL::RenderCommandEncoder* commandEncoder, float elapsed
 	commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
 		IndexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
 		IndexBuffer.get(), 0);
-
-	//commandEncoder->endEncoding();
-
-	//commandBuffer->presentDrawable(drawable);
-	//commandBuffer->commit();
-
 }
 
 void HelloWorld::CreatePipelineState()

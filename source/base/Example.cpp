@@ -10,6 +10,122 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_metal.h"
 
+void Example::AnimationRender(float elapsed)
+{
+	Timer.Tick([this]()
+	{
+		Update(Timer);
+	});
+
+	FrameIndex = (FrameIndex + 1) % BufferCount;
+
+	MTL::CommandBuffer* commandBuffer = CommandQueue->commandBuffer();
+
+	dispatch_semaphore_wait(FrameSemaphore, DISPATCH_TIME_FOREVER);
+	commandBuffer->addCompletedHandler([this](MTL::CommandBuffer* buffer)
+	{
+		dispatch_semaphore_signal(FrameSemaphore);
+	});
+
+
+	auto* layer = static_cast<CA::MetalLayer*>(SDL_Metal_GetLayer(View));
+	CA::MetalDrawable* drawable = layer->nextDrawable();
+	if (drawable)
+	{
+		MTL::RenderPassDescriptor* passDescriptor = MTL::RenderPassDescriptor::renderPassDescriptor();
+		passDescriptor->colorAttachments()->object(0)->setTexture(drawable->texture());
+		passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
+		passDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
+		passDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(.39, .58, .92, 1.0));
+		passDescriptor->depthAttachment()->setTexture(DepthStencilTexture.get());
+		passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
+		passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
+		passDescriptor->depthAttachment()->setClearDepth(1.0);
+		passDescriptor->stencilAttachment()->setTexture(DepthStencilTexture.get());
+		passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
+		passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
+		passDescriptor->stencilAttachment()->setClearStencil(0);
+		MTL::RenderCommandEncoder* commandEncoder = commandBuffer->renderCommandEncoder(passDescriptor);
+
+		Render(commandEncoder, Timer);
+
+		// IMGUI rendering
+		ImGui_ImplMetal_NewFrame(passDescriptor);
+		ImGui_ImplSDL2_NewFrame();
+		ImGui::NewFrame();
+
+		SetupUi(Timer);
+
+		// Rendering
+		ImGui::Render();
+		ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), commandBuffer, commandEncoder);
+
+		commandEncoder->endEncoding();
+
+		commandBuffer->presentDrawable(drawable);
+		commandBuffer->commit();
+	}
+}
+
+void Example::AnimationCallback(void* param)
+{
+	auto* example = reinterpret_cast<Example*>(param);
+
+	example->Timer.Tick([example]()
+	{
+		example->Update(example->Timer);
+	});
+
+	example->FrameIndex = (example->FrameIndex + 1) % BufferCount;
+
+	MTL::CommandBuffer* commandBuffer = example->CommandQueue->commandBuffer();
+
+	dispatch_semaphore_wait(example->FrameSemaphore, DISPATCH_TIME_FOREVER);
+	commandBuffer->addCompletedHandler([example](MTL::CommandBuffer* buffer)
+	{
+		dispatch_semaphore_signal(example->FrameSemaphore);
+	});
+
+
+	auto* layer = static_cast<CA::MetalLayer*>(SDL_Metal_GetLayer(example->View));
+	CA::MetalDrawable* drawable = layer->nextDrawable();
+	if (drawable)
+	{
+		MTL::RenderPassDescriptor* passDescriptor = MTL::RenderPassDescriptor::renderPassDescriptor();
+		passDescriptor->colorAttachments()->object(0)->setTexture(drawable->texture());
+		passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
+		passDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
+		passDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(.39, .58, .92, 1.0));
+		passDescriptor->depthAttachment()->setTexture(example->DepthStencilTexture.get());
+		passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
+		passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
+		passDescriptor->depthAttachment()->setClearDepth(1.0);
+		passDescriptor->stencilAttachment()->setTexture(example->DepthStencilTexture.get());
+		passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
+		passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
+		passDescriptor->stencilAttachment()->setClearStencil(0);
+		MTL::RenderCommandEncoder* commandEncoder = commandBuffer->renderCommandEncoder(passDescriptor);
+
+		example->Render(commandEncoder, example->Timer);
+
+		// IMGUI rendering
+		ImGui_ImplMetal_NewFrame(passDescriptor);
+		ImGui_ImplSDL2_NewFrame();
+		ImGui::NewFrame();
+
+		example->SetupUi(example->Timer);
+
+		// Rendering
+		ImGui::Render();
+		ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), commandBuffer, commandEncoder);
+
+		commandEncoder->endEncoding();
+
+		commandBuffer->presentDrawable(drawable);
+		commandBuffer->commit();
+	}
+}
+
 Example::Example(const char* title, uint32_t width, uint32_t height)
 {
 	IMGUI_CHECKVERSION();
@@ -28,9 +144,16 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 		abort();
 	}
 
+
 	int flags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_METAL;
 #if defined(__IPHONEOS__) || defined(__TVOS__)
 	flags |= SDL_WINDOW_FULLSCREEN;
+#else
+	flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+	SDL_DisplayMode mode;
+	SDL_GetCurrentDisplayMode(0, &mode);
+	width = mode.w;
+	height = mode.h;
 #endif
 	Window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)width, (int)height, flags);
 	if (!Window)
@@ -40,6 +163,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	}
 	View = SDL_Metal_CreateView(Window);
 	Running = true;
+	SDL_ShowWindow(Window);
 
 	Width = width;
 	Height = height;
@@ -47,7 +171,10 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	Device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
 
 	auto* layer = static_cast<CA::MetalLayer*>((SDL_Metal_GetLayer(View)));
+	FrameBufferPixelFormat = MTL::PixelFormatBGRA8Unorm_sRGB;
+	layer->setPixelFormat(FrameBufferPixelFormat);
 	layer->setDevice(Device.get());
+
 
 	ImGui_ImplMetal_Init(Device.get());
 	ImGui_ImplSDL2_InitForMetal(Window);
@@ -57,6 +184,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	CreateDepthStencil();
 
 	// Load Pipeline Library
+	// TODO: Showcase how to use Metal archives to erase compilation
 	auto path = NS::Bundle::mainBundle()->resourcePath();
 	NS::String* library = path->stringByAppendingString(
 		NS::String::string("/default.metallib", NS::ASCIIStringEncoding));
@@ -74,6 +202,10 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 
 	Keyboard = std::make_unique<class Keyboard>();
 	Mouse = std::make_unique<class Mouse>(Window);
+
+
+	Timer.SetTargetElapsedSeconds(1.0f / static_cast<float>(mode.refresh_rate));
+	Timer.SetFixedTimeStep(true);
 }
 
 Example::~Example()
@@ -100,7 +232,6 @@ void Example::CreateDepthStencil()
 
 	depthStencilDescriptor->release();
 
-
 	MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::texture2DDescriptor(
 		MTL::PixelFormatDepth32Float_Stencil8, GetFrameWidth(), GetFrameHeight(), false);
 	textureDescriptor->setSampleCount(1);
@@ -112,8 +243,6 @@ void Example::CreateDepthStencil()
 
 	textureDescriptor->release();
 
-	Timer.SetTargetElapsedSeconds(1.0f / 60.0f);
-	Timer.SetFixedTimeStep(true);
 }
 
 uint32_t Example::GetFrameWidth() const
@@ -149,6 +278,9 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 		return EXIT_FAILURE;
 	}
 
+#if defined(__IPHONEOS__) || defined(__TVOS__)
+	SDL_iOSSetAnimationCallback(Window, 1, AnimationCallback, this);
+#else
 	while (Running)
 	{
 		NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
@@ -200,7 +332,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 
 		Timer.Tick([this]()
 		{
-			Update(static_cast<float>(Timer.GetElapsedSeconds()));
+			Update(Timer);
 		});
 
 		FrameIndex = (FrameIndex + 1) % BufferCount;
@@ -233,14 +365,14 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 			passDescriptor->stencilAttachment()->setClearStencil(0);
 			MTL::RenderCommandEncoder* commandEncoder = commandBuffer->renderCommandEncoder(passDescriptor);
 
-			Render(commandEncoder, static_cast<float>(Timer.GetElapsedSeconds()));
+			Render(commandEncoder, Timer);
 
 			// IMGUI rendering
 			ImGui_ImplMetal_NewFrame(passDescriptor);
 			ImGui_ImplSDL2_NewFrame();
 			ImGui::NewFrame();
 
-			SetupUi();
+			SetupUi(Timer);
 
 			// Rendering
 			ImGui::Render();
@@ -256,11 +388,12 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 		Mouse->Update();
 		pool->release();
 	}
+#endif
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
-void Example::SetupUi()
+void Example::SetupUi(const GameTimer& timer)
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
 	ImGui::SetNextWindowPos(ImVec2(10, 10));
@@ -268,7 +401,8 @@ void Example::SetupUi()
 	ImGui::Begin("Metal Example",
 		nullptr,
 		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
-	ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(Window), Timer.GetFramesPerSecond());
+	ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(Window), timer.GetFramesPerSecond());
+	ImGui::Text("Press Esc to Quit");
 	ImGui::End();
 	ImGui::PopStyleVar();
 }
