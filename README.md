@@ -36,4 +36,4 @@ Rendering of multiple cube geometry instances
 
 #### [03 - Textures](source/textures/)
 
-Showcases usage of [MTLHeap](https://developer.apple.com/documentation/metal/mtlheap) and [Argument Buffers](https://developer.apple.com/documentation/metal/buffers/improving_cpu_performance_by_using_argument_buffers) to bindlessly render multiple textures from GPU memory.
+Showcases loading of [KTX](https://www.khronos.org/ktx/) compressed textures in ASTC format into a [MTLHeap](https://developer.apple.com/documentation/metal/mtlheap) and using [Argument Buffers](https://developer.apple.com/documentation/metal/buffers/improving_cpu_performance_by_using_argument_buffers) to bindlessly render multiple textures from GPU memory.
