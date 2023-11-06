@@ -33,17 +33,13 @@ XM_ALIGNED_STRUCT(16) Uniforms
 	[[maybe_unused]] Matrix ModelViewProjection;
 };
 
-XM_ALIGNED_STRUCT(16) InstanceData
-{
-	Matrix Transform;
-};
-
 static constexpr size_t TextureCount = 5;
 
 XM_ALIGNED_STRUCT(16) FragmentArgumentBuffer
 {
 	MTL::ResourceID textures[TextureCount];
 	uint32_t textureIndex;
+	Matrix* transforms;
 };
 
 static const std::array<const char*, 5> ComboItems = { "Texture 0", "Texture 1", "Texture 2",
@@ -237,13 +233,14 @@ void Textures::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer
 	UpdateUniforms();
 
 	commandEncoder->useHeap(TextureHeap.get());
+	commandEncoder->useResource(InstanceBuffer[FrameIndex].get(), MTL::ResourceUsageRead);
 	commandEncoder->setRenderPipelineState(PipelineState.get());
 	commandEncoder->setDepthStencilState(DepthStencilState.get());
 	commandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
 	commandEncoder->setCullMode(MTL::CullModeNone);
 	commandEncoder->setFragmentBuffer(ArgumentBuffer[FrameIndex].get(), 0, 0);
 	commandEncoder->setVertexBuffer(VertexBuffer.get(), 0, 0);
-	commandEncoder->setVertexBuffer(InstanceBuffer[FrameIndex].get(), 0, 1);
+	commandEncoder->setVertexBuffer(ArgumentBuffer[FrameIndex].get(), 0, 1);
 	commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
 		IndexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
 		IndexBuffer.get(), 0, InstanceCount);
@@ -314,7 +311,7 @@ void Textures::CreateBuffers()
 	IndexBuffer = NS::TransferPtr(Device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
 	IndexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
-	const size_t instanceDataSize = BufferCount * InstanceCount * sizeof(InstanceData);
+	const size_t instanceDataSize = BufferCount * InstanceCount * sizeof(Matrix);
 	NS::String* prefix = NS::String::string("Instance Buffer: ", NS::ASCIIStringEncoding);
 	for (auto index = 0; index < BufferCount; index++)
 	{
@@ -333,7 +330,7 @@ void Textures::UpdateUniforms()
 {
 	MTL::Buffer* instanceBuffer = InstanceBuffer[FrameIndex].get();
 
-	auto* instanceData = static_cast<InstanceData*>( instanceBuffer->contents());
+	auto* instanceData = static_cast<Matrix*>( instanceBuffer->contents());
 	for (auto index = 0; index < InstanceCount; ++index)
 	{
 		auto position = Vector3(-5.0f + (5.0f * (float)index), 0.0f, -8.0f);
@@ -354,7 +351,7 @@ void Textures::UpdateUniforms()
 
 		CameraUniforms cameraUniforms = MainCamera->GetUniforms();
 
-		instanceData[index].Transform = model * cameraUniforms.ViewProjection;
+		instanceData[index] = model * cameraUniforms.ViewProjection;
 	}
 }
 
@@ -483,6 +480,8 @@ void Textures::CreateArgumentBuffers()
 			{
 				auto texture = HeapTextures[j];
 				buffer->textures[j] = texture->gpuResourceID();
+
+				buffer->transforms = (Matrix*)InstanceBuffer[i]->gpuAddress();
 			}
 			buffer->textureIndex = 0;
 		}

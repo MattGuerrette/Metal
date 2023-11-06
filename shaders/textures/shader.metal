@@ -7,24 +7,21 @@ struct Vertex {
     float2 uv;
 };
 
-struct InstanceData {
-    float4x4 transform;
-};
-
 typedef struct
 {
     array<texture2d<half>, 5> textures;
     uint32_t textureIndex;
-} FragmentArgumentBuffer;
+    device float4x4* transforms;
+} ArgumentBuffer;
 
 vertex Vertex texture_vertex(
     device const Vertex* vertices [[buffer(0)]],
-    device const InstanceData* instanceData [[buffer(1)]],
+    const device ArgumentBuffer& argBuffer[[buffer(1)]],
     uint vid [[vertex_id]],
     uint iid [[instance_id]])
 {
     Vertex vertexOut;
-    vertexOut.position = instanceData[iid].transform * vertices[vid].position;
+    vertexOut.position = argBuffer.transforms[iid] * vertices[vid].position;
     vertexOut.uv = vertices[vid].uv;
 
     // Using KTX textures the orientation will be incompatible
@@ -34,7 +31,7 @@ vertex Vertex texture_vertex(
     return vertexOut;
 }
 
-fragment half4 texture_fragment(Vertex vertexIn [[stage_in]], const device FragmentArgumentBuffer& argBuffer[[buffer(0)]])
+fragment half4 texture_fragment(Vertex vertexIn [[stage_in]], const device ArgumentBuffer& argBuffer[[buffer(0)]])
 {
     constexpr sampler colorSampler(mip_filter::linear,
                                        mag_filter::linear,
