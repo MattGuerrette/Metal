@@ -43,5 +43,7 @@
 	<string>${MACOSX_BUNDLE_COPYRIGHT}</string>
     <key>NSHighResolutionCapable</key>
 	<true/>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 </dict>
 </plist>

@@ -10,7 +10,6 @@
 #include <QuartzCore/QuartzCore.hpp>
 
 #include "Example.hpp"
-#include "Camera.hpp"
 
 using namespace DirectX;
 
@@ -49,7 +48,6 @@ private:
 	NS::SharedPtr<MTL::Buffer> VertexBuffer;
 	NS::SharedPtr<MTL::Buffer> IndexBuffer;
 	NS::SharedPtr<MTL::Buffer> UniformBuffer[BufferCount];
-	std::unique_ptr<Camera> MainCamera;
 
 	float RotationY = 0.0f;
 };
@@ -64,18 +62,6 @@ HelloWorld::~HelloWorld() = default;
 
 bool HelloWorld::Load()
 {
-	const auto width = GetFrameWidth();
-	const auto height = GetFrameHeight();
-	const float aspect = (float)width / (float)height;
-	const float fov = (75.0f * (float)M_PI) / 180.0f;
-	const float near = 0.01f;
-	const float far = 1000.0f;
-
-	MainCamera = std::make_unique<Camera>(XMFLOAT3{ 0.0f, 0.0f, 0.0f },
-		XMFLOAT3{ 0.0f, 0.0f, -1.0f },
-		XMFLOAT3{ 0.0f, 1.0f, 0.0f },
-		fov, aspect, near, far);
-
 	CreateBuffers();
 
 	CreatePipelineState();
@@ -86,7 +72,7 @@ bool HelloWorld::Load()
 void HelloWorld::Update(const GameTimer& timer)
 {
 	const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
-	
+
 	RotationY += elapsed;
 }
 

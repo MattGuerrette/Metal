@@ -27,12 +27,6 @@ FetchContent_Declare(sdl2
 
 
 set(BUILD_SHARED_LIBS OFF)
-set(SDL2TTF_INSTALL OFF)
-set(SDL2TTF_VENDORED ON)
-FetchContent_Declare(sdlttf
-        GIT_REPOSITORY "https://github.com/libsdl-org/SDL_ttf.git"
-        GIT_TAG release-2.20.2
-)
 
 FetchContent_Declare(metalcpp
         GIT_REPOSITORY "https://github.com/MattGuerrette/metalcpp"
@@ -61,6 +55,6 @@ if (NOT ktx_POPULATED)
     add_subdirectory(${ktx_SOURCE_DIR} ${ktx_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif ()
 
-FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl2 sdlttf metalcpp)
+FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl2 metalcpp)
 
 include_directories(${sal_SOURCE_DIR} ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR} ${metalcpp_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)

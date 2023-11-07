@@ -4,7 +4,9 @@
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
-#import "GraphicsMath.hpp"
+#pragma once
+
+#include "GraphicsMath.hpp"
 
 XM_ALIGNED_STRUCT(16) CameraUniforms
 {
@@ -30,6 +32,16 @@ public:
 
 	[[nodiscard]] const CameraUniforms& GetUniforms() const;
 
+	void MoveForward(float dt);
+
+	void MoveBackward(float dt);
+
+	void StrafeLeft(float dt);
+
+	void StrafeRight(float dt);
+
+	void RotateY(float dt);
+
 private:
 	void UpdateBasisVectors(Vector3 direction);
 
@@ -37,11 +49,14 @@ private:
 
 	CameraUniforms Uniforms{};
 	Vector3 Position;
+	Vector3 Right;
 	Vector3 Direction;
 	Vector3 Up;
+	Quaternion Rotation;
 	float FieldOfView;
 	float AspectRatio;
 	float NearPlane;
 	float FarPlane;
+	float Speed = 10.0f;
 };
 

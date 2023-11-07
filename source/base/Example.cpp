@@ -3,12 +3,12 @@
 // Copyright (c) Matt Guerrette 2023.
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
-
-#include "Example.hpp"
-
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_metal.h"
+
+#include "Example.hpp"
+
 
 void Example::AnimationRender(float elapsed)
 {
@@ -144,16 +144,15 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 		abort();
 	}
 
-
 	int flags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_METAL;
 #if defined(__IPHONEOS__) || defined(__TVOS__)
 	flags |= SDL_WINDOW_FULLSCREEN;
 #else
-	flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+//	flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 	SDL_DisplayMode mode;
 	SDL_GetCurrentDisplayMode(0, &mode);
-	width = mode.w;
-	height = mode.h;
+//	width = mode.w;
+//	height = mode.h;
 #endif
 	Window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)width, (int)height, flags);
 	if (!Window)
@@ -206,6 +205,18 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 
 	Timer.SetTargetElapsedSeconds(1.0f / static_cast<float>(mode.refresh_rate));
 	Timer.SetFixedTimeStep(true);
+
+	const auto actualWidth = GetFrameWidth();
+	const auto actualHeight = GetFrameHeight();
+	const float aspect = (float)actualWidth / (float)actualHeight;
+	const float fov = XMConvertToRadians(75.0f);
+	const float near = 0.01f;
+	const float far = 1000.0f;
+
+	MainCamera = std::make_unique<Camera>(Vector3::Zero,
+		Vector3::Forward,
+		Vector3::Up,
+		fov, aspect, near, far);
 }
 
 Example::~Example()
@@ -328,6 +339,37 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 		if (Keyboard->IsKeyClicked(SDL_SCANCODE_ESCAPE))
 		{
 			Quit();
+		}
+
+		const auto elapsed = static_cast<float>(Timer.GetElapsedSeconds());
+		if (Keyboard->IsKeyPressed(SDL_SCANCODE_W))
+		{
+			MainCamera->MoveForward(elapsed);
+		}
+
+		if (Keyboard->IsKeyPressed(SDL_SCANCODE_S))
+		{
+			MainCamera->MoveBackward(elapsed);
+		}
+
+		if (Keyboard->IsKeyPressed(SDL_SCANCODE_A))
+		{
+			MainCamera->StrafeLeft(elapsed);
+		}
+
+		if (Keyboard->IsKeyPressed(SDL_SCANCODE_D))
+		{
+			MainCamera->StrafeRight(elapsed);
+		}
+
+		if (Keyboard->IsKeyPressed(SDL_SCANCODE_LEFT))
+		{
+			MainCamera->RotateY(elapsed);
+		}
+
+		if (Keyboard->IsKeyPressed(SDL_SCANCODE_RIGHT))
+		{
+			MainCamera->RotateY(-elapsed);
 		}
 
 		Timer.Tick([this]()

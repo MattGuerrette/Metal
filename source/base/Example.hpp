@@ -14,6 +14,7 @@
 #include "GameTimer.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
+#include "Camera.hpp"
 
 class Example
 {
@@ -50,6 +51,8 @@ protected:
 	static constexpr int BufferCount = 3;
 
 	SDL_MetalView View;
+
+	std::unique_ptr<Camera> MainCamera;
 
 	// Keyboard and Mouse
 	std::unique_ptr<class Keyboard> Keyboard;

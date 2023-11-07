@@ -25,21 +25,59 @@ const CameraUniforms& Camera::GetUniforms() const
 	return Uniforms;
 }
 
+void Camera::MoveForward(float dt)
+{
+	Position += Direction * dt * Speed;
+	UpdateUniforms();
+}
+
+void Camera::MoveBackward(float dt)
+{
+	Position -= Direction * dt * Speed;
+	UpdateUniforms();
+}
+
+void Camera::StrafeLeft(float dt)
+{
+	Position += Right * dt * Speed;
+	UpdateUniforms();
+}
+
+void Camera::StrafeRight(float dt)
+{
+	Position -= Right * dt * Speed;
+	UpdateUniforms();
+}
+
+void Camera::RotateY(float dt)
+{
+	Rotation.y += dt;
+	Quaternion rotation = Quaternion::CreateFromYawPitchRoll(dt, 0, 0);
+	Vector3 newDir = Vector3::Transform(Direction, rotation);
+//
+//	Vector3 dir = Rotation * Direction;
+//
+//	auto result = Direction * Rotation;
+	UpdateBasisVectors(newDir);
+	UpdateUniforms();
+}
+
 void Camera::UpdateBasisVectors(Vector3 direction)
 {
 	Direction = direction;
 	Direction.Normalize();
 
 	Vector3 up = Up;
-	Vector3 right = up.Cross(Direction);
-	Vector3 newUp = right.Cross(Direction);
+	Right = up.Cross(Direction);
+	Vector3 newUp = Right.Cross(Direction);
 	Up = up;
 }
 
 void Camera::UpdateUniforms()
 {
-	Uniforms.View = Matrix::CreateLookAt(Position, Direction, Up);
+	Rotation = Quaternion::LookRotation(Direction, Vector3::Up);
+	Uniforms.View = Matrix::CreateLookAt(Position, Position + Direction, Up);
 	Uniforms.Projection = Matrix::CreatePerspectiveFieldOfView(FieldOfView,
 		AspectRatio, NearPlane, FarPlane);
-	Uniforms.ViewProjection = Uniforms.Projection * Uniforms.View;
+	Uniforms.ViewProjection = Uniforms.View * Uniforms.Projection;
 }

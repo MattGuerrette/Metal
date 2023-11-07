@@ -37,13 +37,13 @@ XM_ALIGNED_STRUCT(16) FragmentArgumentBuffer
 static const std::array<const char*, TextureCount> ComboItems = { "Texture 0", "Texture 1", "Texture 2",
 																  "Texture 3", "Texture 4" };
 
-class Textures : public Example
+class Skinning : public Example
 {
 	static constexpr int InstanceCount = 3;
 public:
-	Textures();
+	Skinning();
 
-	~Textures() override;
+	~Skinning() override;
 
 	bool Load() override;
 
@@ -80,15 +80,15 @@ private:
 	int SelectedTexture = 0;
 };
 
-Textures::Textures()
-	: Example("Textures", 1280, 720)
+Skinning::Skinning()
+	: Example("Skinning", 1280, 720)
 {
 
 }
 
-Textures::~Textures() = default;
+Skinning::~Skinning() = default;
 
-bool Textures::Load()
+bool Skinning::Load()
 {
 	CreateBuffers();
 
@@ -101,7 +101,7 @@ bool Textures::Load()
 	return true;
 }
 
-void Textures::SetupUi(const GameTimer& timer)
+void Skinning::SetupUi(const GameTimer& timer)
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
 	ImGui::SetNextWindowPos(ImVec2(10, 10));
@@ -124,7 +124,7 @@ void Textures::SetupUi(const GameTimer& timer)
 	ImGui::PopStyleVar();
 }
 
-void Textures::Update(const GameTimer& timer)
+void Skinning::Update(const GameTimer& timer)
 {
 	const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
 	//RotationX += elapsed;
@@ -137,7 +137,7 @@ void Textures::Update(const GameTimer& timer)
 
 }
 
-MTL::Texture* Textures::LoadTextureFromFile(const std::string& fileName)
+MTL::Texture* Skinning::LoadTextureFromFile(const std::string& fileName)
 {
 	auto filePath = PathForResource(fileName);
 	NS::String* nsFilePath = NS::String::string(filePath.c_str(), NS::UTF8StringEncoding);
@@ -203,7 +203,7 @@ MTL::Texture* Textures::LoadTextureFromFile(const std::string& fileName)
 	return texture;
 }
 
-void Textures::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer)
+void Skinning::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer)
 {
 	UpdateUniforms();
 
@@ -221,7 +221,7 @@ void Textures::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer
 		IndexBuffer.get(), 0, InstanceCount);
 }
 
-void Textures::CreatePipelineState()
+void Skinning::CreatePipelineState()
 {
 	MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
 
@@ -269,7 +269,7 @@ void Textures::CreatePipelineState()
 	pipelineDescriptor->release();
 }
 
-void Textures::CreateBuffers()
+void Skinning::CreateBuffers()
 {
 	static const Vertex vertices[] = {
 		{ .Position = { -1, -1, 0, 1 }, .TexCoord = { 0, 0 }},
@@ -301,7 +301,7 @@ void Textures::CreateBuffers()
 	prefix->release();
 }
 
-void Textures::UpdateUniforms()
+void Skinning::UpdateUniforms()
 {
 	MTL::Buffer* instanceBuffer = InstanceBuffer[FrameIndex].get();
 
@@ -330,7 +330,7 @@ void Textures::UpdateUniforms()
 	}
 }
 
-void Textures::CreateTextureHeap()
+void Skinning::CreateTextureHeap()
 {
 	auto** textures = new MTL::Texture* [TextureCount];
 	for (size_t i = 0; i < TextureCount; i++)
@@ -433,7 +433,7 @@ void Textures::CreateTextureHeap()
 	delete[] textures;
 }
 
-void Textures::CreateArgumentBuffers()
+void Skinning::CreateArgumentBuffers()
 {
 	// Tier 2 argument buffers
 	if (Device->argumentBuffersSupport() == MTL::ArgumentBuffersTier2)
@@ -469,7 +469,7 @@ int SDL_main(int argc, char** argv)
 int main(int argc, char** argv)
 #endif
 {
-	std::unique_ptr<Textures> example = std::make_unique<Textures>();
+	std::unique_ptr<Skinning> example = std::make_unique<Skinning>();
 	example->Run(argc, argv);
 
 	return 0;
