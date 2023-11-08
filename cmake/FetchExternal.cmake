@@ -28,10 +28,17 @@ FetchContent_Declare(sdl2
 
 set(BUILD_SHARED_LIBS OFF)
 
-FetchContent_Declare(metalcpp
-        GIT_REPOSITORY "https://github.com/MattGuerrette/metalcpp"
-        GIT_TAG main
-)
+
+if (NOT METALCPP_DIR)
+    FetchContent_Declare(metalcpp
+            GIT_REPOSITORY "https://github.com/MattGuerrette/metalcpp"
+            GIT_TAG main
+    )
+    FetchContent_MakeAvailable(metalcpp)
+    include_directories(${metalcpp_SOURCE_DIR})
+else ()
+    include_directories(${METALCPP_DIR})
+endif ()
 
 FetchContent_Declare(fmt
         GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
@@ -55,6 +62,12 @@ if (NOT ktx_POPULATED)
     add_subdirectory(${ktx_SOURCE_DIR} ${ktx_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif ()
 
-FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl2 metalcpp)
+FetchContent_Declare(
+        cgltf
+        GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
+        GIT_TAG v1.10
+)
 
-include_directories(${sal_SOURCE_DIR} ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR} ${metalcpp_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)
+FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl2 cgltf)
+
+include_directories(${sal_SOURCE_DIR} ${cgltf_SOURCE_DIR} ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)

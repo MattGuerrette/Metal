@@ -51,14 +51,11 @@ void Camera::StrafeRight(float dt)
 
 void Camera::RotateY(float dt)
 {
-	Rotation.y += dt;
+	//Rotation.y += dt * Speed * 10.0f;
 	Quaternion rotation = Quaternion::CreateFromYawPitchRoll(dt, 0, 0);
-	Vector3 newDir = Vector3::Transform(Direction, rotation);
-//
-//	Vector3 dir = Rotation * Direction;
-//
-//	auto result = Direction * Rotation;
-	UpdateBasisVectors(newDir);
+	Direction = Vector3::Transform(Direction, rotation);
+	//Vector3 newDir = Vector3::Transform(Direction, rotation);
+	UpdateBasisVectors(Direction);
 	UpdateUniforms();
 }
 

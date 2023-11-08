@@ -12,6 +12,8 @@ add_library(base STATIC
         SimpleMath.cpp
         Example.hpp
         Example.cpp
+        FileUtil.hpp
+        FileUtil.cpp
         ${imgui_SOURCE_DIR}/imgui.cpp
         ${imgui_SOURCE_DIR}/imgui_draw.cpp
         ${imgui_SOURCE_DIR}/imgui_tables.cpp

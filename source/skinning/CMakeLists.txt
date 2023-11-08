@@ -13,10 +13,13 @@ list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/002_basecolor.ktx
 list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/003_basecolor.ktx)
 list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/004_basecolor.ktx)
 list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/005_basecolor.ktx)
+list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/models/CesiumMan.glb)
 
 
 add_executable(${EXAMPLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Model.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Model.cpp
         ${RESOURCE_FILES})
 
 # Ensure shader library is available

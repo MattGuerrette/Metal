@@ -13,6 +13,8 @@
 #include <imgui.h>
 
 #include "Example.hpp"
+#include "Model.hpp"
+#include "FileUtil.hpp"
 
 XM_ALIGNED_STRUCT(16) Vertex
 {
@@ -73,6 +75,7 @@ private:
 	NS::SharedPtr<MTL::Heap> TextureHeap;
 	NS::SharedPtr<MTL::Buffer> ArgumentBuffer[BufferCount];
 	std::vector<NS::SharedPtr<MTL::Texture>> HeapTextures;
+	std::unique_ptr<Model> CesiumMan;
 
 	float RotationX = 0.0f;
 	float RotationY = 0.0f;
@@ -90,6 +93,8 @@ Skinning::~Skinning() = default;
 
 bool Skinning::Load()
 {
+	CesiumMan = std::make_unique<Model>("CesiumMan.glb");
+
 	CreateBuffers();
 
 	CreatePipelineState();
@@ -139,7 +144,7 @@ void Skinning::Update(const GameTimer& timer)
 
 MTL::Texture* Skinning::LoadTextureFromFile(const std::string& fileName)
 {
-	auto filePath = PathForResource(fileName);
+	auto filePath = FileUtil::PathForResource(fileName);
 	NS::String* nsFilePath = NS::String::string(filePath.c_str(), NS::UTF8StringEncoding);
 	NS::Data* data = NS::Data::data(nsFilePath);
 	assert(data != nullptr);

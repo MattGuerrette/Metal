@@ -9,7 +9,7 @@ Mouse::Mouse(SDL_Window* window)
 	: Window(window)
 {
 	// Enable relative mouse location tracking for deltas
-	//SDL_SetRelativeMouseMode(SDL_TRUE);
+	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
 bool Mouse::LeftClick() const
@@ -102,4 +102,6 @@ void Mouse::Update()
 	//CurrentState = {};
 	XRelative = 0;
 	YRelative = 0;
+	PreciseWheelX = 0.0f;
+	PreciseWheelY = 0.0f;
 }

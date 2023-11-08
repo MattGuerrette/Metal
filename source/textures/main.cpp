@@ -13,6 +13,7 @@
 #include <imgui.h>
 
 #include "Example.hpp"
+#include "FileUtil.hpp"
 
 XM_ALIGNED_STRUCT(16) Vertex
 {
@@ -130,7 +131,8 @@ void Textures::Update(const GameTimer& timer)
 	//RotationX += elapsed;
 	if (Mouse->LeftPressed())
 	{
-		RotationY += static_cast<float>(Mouse->RelativeX()) * elapsed;
+		MainCamera->RotateY(static_cast<float>(Mouse->RelativeX()) * elapsed);
+		//RotationY += static_cast<float>(Mouse->RelativeX()) * elapsed;
 	}
 
 	RotationY += elapsed;
@@ -139,7 +141,7 @@ void Textures::Update(const GameTimer& timer)
 
 MTL::Texture* Textures::LoadTextureFromFile(const std::string& fileName)
 {
-	auto filePath = PathForResource(fileName);
+	auto filePath = FileUtil::PathForResource(fileName);
 	NS::String* nsFilePath = NS::String::string(filePath.c_str(), NS::UTF8StringEncoding);
 	NS::Data* data = NS::Data::data(nsFilePath);
 	assert(data != nullptr);

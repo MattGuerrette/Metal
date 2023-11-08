@@ -41,8 +41,6 @@ public:
 
 	virtual void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) = 0;
 
-	static std::string PathForResource(const std::string& resourceName);
-
 	static void AnimationCallback(void* param);
 
 	void AnimationRender(float elapsed);

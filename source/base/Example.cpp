@@ -148,7 +148,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 #if defined(__IPHONEOS__) || defined(__TVOS__)
 	flags |= SDL_WINDOW_FULLSCREEN;
 #else
-//	flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+	flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 	SDL_DisplayMode mode;
 	SDL_GetCurrentDisplayMode(0, &mode);
 //	width = mode.w;
@@ -268,18 +268,8 @@ uint32_t Example::GetFrameHeight() const
 	int32_t h;
 	SDL_Metal_GetDrawableSize(Window, nullptr, &h);
 
+
 	return h;
-}
-
-std::string Example::PathForResource(const std::string& resourceName)
-{
-	auto path = NS::Bundle::mainBundle()->resourcePath();
-	NS::String* resourcePath = path->stringByAppendingString(
-		NS::String::string((std::string("/") + resourceName).c_str(), NS::ASCIIStringEncoding));
-
-	std::string ret = resourcePath->utf8String();
-	resourcePath->release();
-	return ret;
 }
 
 int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
@@ -315,6 +305,9 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 			}
 		}
 
+		const auto elapsed = static_cast<float>(Timer.GetElapsedSeconds());
+
+
 		if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
 		{
 			Keyboard->RegisterKeyEvent(&e.key);
@@ -334,6 +327,17 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 		if (e.type == SDL_MOUSEWHEEL)
 		{
 			Mouse->RegisterMouseWheel(&e.wheel);
+
+		}
+
+		if (Keyboard->IsKeyPressed(SDL_SCANCODE_LSHIFT))
+		{
+			MainCamera->MoveForward(Mouse->WheelY() * elapsed);
+		}
+		else
+		{
+
+			MainCamera->RotateY(Mouse->WheelX() * elapsed);
 		}
 
 		if (Keyboard->IsKeyClicked(SDL_SCANCODE_ESCAPE))
@@ -341,7 +345,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 			Quit();
 		}
 
-		const auto elapsed = static_cast<float>(Timer.GetElapsedSeconds());
+
 		if (Keyboard->IsKeyPressed(SDL_SCANCODE_W))
 		{
 			MainCamera->MoveForward(elapsed);
@@ -426,6 +430,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 			commandBuffer->commit();
 		}
 
+		Mouse->Warp();
 		Keyboard->Update();
 		Mouse->Update();
 		pool->release();
