@@ -13,7 +13,7 @@ list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/002_basecolor.ktx
 list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/003_basecolor.ktx)
 list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/004_basecolor.ktx)
 list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/005_basecolor.ktx)
-list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/models/CesiumMan.glb)
+list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/models/CesiumManFixed.glb)
 
 
 add_executable(${EXAMPLE}

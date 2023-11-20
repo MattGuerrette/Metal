@@ -12,8 +12,12 @@
 class Model
 {
 public:
-	explicit Model(const std::string& fileName);
+	explicit Model(const std::string& fileName, MTL::Device* device);
+
+
+	void Render(MTL::RenderCommandEncoder* commandEncoder);
 
 private:
 	NS::SharedPtr<MTL::Buffer> VertexBuffer;
+	NS::SharedPtr<MTL::Buffer> IndexBuffer;
 };

@@ -13,7 +13,6 @@ else ()
     set(XCODE_METAL_EXTRA_ARGS "")
 endif ()
 
-
 # The following function implements support for compiling multiple
 # Metal shaders into a single library file. It achieves this using the following steps:
 #

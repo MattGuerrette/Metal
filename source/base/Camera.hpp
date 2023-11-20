@@ -42,6 +42,8 @@ public:
 
 	void RotateY(float dt);
 
+	void SetPosition(Vector3 position);
+
 private:
 	void UpdateBasisVectors(Vector3 direction);
 

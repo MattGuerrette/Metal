@@ -49,6 +49,12 @@ void Camera::StrafeRight(float dt)
 	UpdateUniforms();
 }
 
+void Camera::SetPosition(Vector3 position)
+{
+	Position = position;
+	UpdateUniforms();
+}
+
 void Camera::RotateY(float dt)
 {
 	//Rotation.y += dt * Speed * 10.0f;

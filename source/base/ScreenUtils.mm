@@ -6,11 +6,11 @@
 
 #include "ScreenUtils.hpp"
 
-#import <AppKit/AppKit.h>
-
-
-uint32_t GetSafeYOffset()
-{
-	NSScreen* screen = [NSScreen mainScreen];
-	return screen.safeAreaInsets.top;
-}
+//#import <AppKit/AppKit.h>
+//
+//
+//uint32_t GetSafeYOffset()
+//{
+//	NSScreen* screen = [NSScreen mainScreen];
+//	return screen.safeAreaInsets.top;
+//}

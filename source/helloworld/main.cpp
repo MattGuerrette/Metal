@@ -115,7 +115,7 @@ void HelloWorld::CreatePipelineState()
 	vertexDescriptor->layouts()->object(0)->setStride(sizeof(Vertex));
 
 	MTL::RenderPipelineDescriptor* pipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
-	pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+	pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatBGRA8Unorm_sRGB);
 	pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
 	pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(MTL::BlendFactorSourceAlpha);
 	pipelineDescriptor->colorAttachments()->object(0)->setDestinationRGBBlendFactor(

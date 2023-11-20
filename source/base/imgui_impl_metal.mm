@@ -369,7 +369,7 @@ bool ImGui_ImplMetal_CreateFontsTexture(id<MTLDevice> device)
 	int width, height;
 	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 	MTLTextureDescriptor
-		* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+		* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm_sRGB
 																				 width:(NSUInteger)width
 																				height:(NSUInteger)height
 																			 mipmapped:NO];

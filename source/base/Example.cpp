@@ -9,123 +9,6 @@
 
 #include "Example.hpp"
 
-
-void Example::AnimationRender(float elapsed)
-{
-	Timer.Tick([this]()
-	{
-		Update(Timer);
-	});
-
-	FrameIndex = (FrameIndex + 1) % BufferCount;
-
-	MTL::CommandBuffer* commandBuffer = CommandQueue->commandBuffer();
-
-	dispatch_semaphore_wait(FrameSemaphore, DISPATCH_TIME_FOREVER);
-	commandBuffer->addCompletedHandler([this](MTL::CommandBuffer* buffer)
-	{
-		dispatch_semaphore_signal(FrameSemaphore);
-	});
-
-
-	auto* layer = static_cast<CA::MetalLayer*>(SDL_Metal_GetLayer(View));
-	CA::MetalDrawable* drawable = layer->nextDrawable();
-	if (drawable)
-	{
-		MTL::RenderPassDescriptor* passDescriptor = MTL::RenderPassDescriptor::renderPassDescriptor();
-		passDescriptor->colorAttachments()->object(0)->setTexture(drawable->texture());
-		passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
-		passDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
-		passDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(.39, .58, .92, 1.0));
-		passDescriptor->depthAttachment()->setTexture(DepthStencilTexture.get());
-		passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
-		passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
-		passDescriptor->depthAttachment()->setClearDepth(1.0);
-		passDescriptor->stencilAttachment()->setTexture(DepthStencilTexture.get());
-		passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
-		passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
-		passDescriptor->stencilAttachment()->setClearStencil(0);
-		MTL::RenderCommandEncoder* commandEncoder = commandBuffer->renderCommandEncoder(passDescriptor);
-
-		Render(commandEncoder, Timer);
-
-		// IMGUI rendering
-		ImGui_ImplMetal_NewFrame(passDescriptor);
-		ImGui_ImplSDL2_NewFrame();
-		ImGui::NewFrame();
-
-		SetupUi(Timer);
-
-		// Rendering
-		ImGui::Render();
-		ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), commandBuffer, commandEncoder);
-
-		commandEncoder->endEncoding();
-
-		commandBuffer->presentDrawable(drawable);
-		commandBuffer->commit();
-	}
-}
-
-void Example::AnimationCallback(void* param)
-{
-	auto* example = reinterpret_cast<Example*>(param);
-
-	example->Timer.Tick([example]()
-	{
-		example->Update(example->Timer);
-	});
-
-	example->FrameIndex = (example->FrameIndex + 1) % BufferCount;
-
-	MTL::CommandBuffer* commandBuffer = example->CommandQueue->commandBuffer();
-
-	dispatch_semaphore_wait(example->FrameSemaphore, DISPATCH_TIME_FOREVER);
-	commandBuffer->addCompletedHandler([example](MTL::CommandBuffer* buffer)
-	{
-		dispatch_semaphore_signal(example->FrameSemaphore);
-	});
-
-
-	auto* layer = static_cast<CA::MetalLayer*>(SDL_Metal_GetLayer(example->View));
-	CA::MetalDrawable* drawable = layer->nextDrawable();
-	if (drawable)
-	{
-		MTL::RenderPassDescriptor* passDescriptor = MTL::RenderPassDescriptor::renderPassDescriptor();
-		passDescriptor->colorAttachments()->object(0)->setTexture(drawable->texture());
-		passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
-		passDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
-		passDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(.39, .58, .92, 1.0));
-		passDescriptor->depthAttachment()->setTexture(example->DepthStencilTexture.get());
-		passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
-		passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
-		passDescriptor->depthAttachment()->setClearDepth(1.0);
-		passDescriptor->stencilAttachment()->setTexture(example->DepthStencilTexture.get());
-		passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
-		passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
-		passDescriptor->stencilAttachment()->setClearStencil(0);
-		MTL::RenderCommandEncoder* commandEncoder = commandBuffer->renderCommandEncoder(passDescriptor);
-
-		example->Render(commandEncoder, example->Timer);
-
-		// IMGUI rendering
-		ImGui_ImplMetal_NewFrame(passDescriptor);
-		ImGui_ImplSDL2_NewFrame();
-		ImGui::NewFrame();
-
-		example->SetupUi(example->Timer);
-
-		// Rendering
-		ImGui::Render();
-		ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), commandBuffer, commandEncoder);
-
-		commandEncoder->endEncoding();
-
-		commandBuffer->presentDrawable(drawable);
-		commandBuffer->commit();
-	}
-}
-
 Example::Example(const char* title, uint32_t width, uint32_t height)
 {
 	IMGUI_CHECKVERSION();
@@ -144,15 +27,16 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 		abort();
 	}
 
+	SDL_DisplayMode mode;
+	SDL_GetCurrentDisplayMode(0, &mode);
+
 	int flags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_METAL;
 #if defined(__IPHONEOS__) || defined(__TVOS__)
 	flags |= SDL_WINDOW_FULLSCREEN;
 #else
-	flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-	SDL_DisplayMode mode;
-	SDL_GetCurrentDisplayMode(0, &mode);
-//	width = mode.w;
-//	height = mode.h;
+	//flags |= SDL_WINDOW_FULLSCREEN;
+	//width = mode.w;
+	//height = mode.h;
 #endif
 	Window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)width, (int)height, flags);
 	if (!Window)
@@ -279,55 +163,56 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 		return EXIT_FAILURE;
 	}
 
-#if defined(__IPHONEOS__) || defined(__TVOS__)
-	SDL_iOSSetAnimationCallback(Window, 1, AnimationCallback, this);
-#else
+//#if defined(__IPHONEOS__) || defined(__TVOS__)
+//	SDL_iOSSetAnimationCallback(Window, 1, AnimationCallback, this);
+//#else
 	while (Running)
 	{
 		NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
-
-		SDL_Event e;
-		SDL_PollEvent(&e);
-		ImGui_ImplSDL2_ProcessEvent(&e);
-		if (e.type == SDL_QUIT)
-		{
-			Running = false;
-			break;
-		}
-		if (e.type == SDL_WINDOWEVENT)
-		{
-			switch (e.window.event)
-			{
-			case SDL_WINDOWEVENT_SHOWN:
-			{
-				break;
-			}
-			}
-		}
-
 		const auto elapsed = static_cast<float>(Timer.GetElapsedSeconds());
 
+		SDL_Event e;
+		while (SDL_PollEvent(&e))
+		{
+			ImGui_ImplSDL2_ProcessEvent(&e);
+			if (e.type == SDL_QUIT)
+			{
+				Running = false;
+				break;
+			}
+			if (e.type == SDL_WINDOWEVENT)
+			{
+				switch (e.window.event)
+				{
+				case SDL_WINDOWEVENT_SHOWN:
+				{
+					break;
+				}
+				}
+			}
 
-		if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
-		{
-			Keyboard->RegisterKeyEvent(&e.key);
-		}
-		if (e.type == SDL_MOUSEBUTTONUP)
-		{
-			Mouse->RegisterMouseButton(&e.button);
-		}
-		if (e.type == SDL_MOUSEBUTTONDOWN)
-		{
-			Mouse->RegisterMouseButton(&e.button);
-		}
-		if (e.type == SDL_MOUSEMOTION)
-		{
-			Mouse->RegisterMouseMotion(&e.motion);
-		}
-		if (e.type == SDL_MOUSEWHEEL)
-		{
-			Mouse->RegisterMouseWheel(&e.wheel);
 
+			if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
+			{
+				Keyboard->RegisterKeyEvent(&e.key);
+			}
+			if (e.type == SDL_MOUSEBUTTONUP)
+			{
+				Mouse->RegisterMouseButton(&e.button);
+			}
+			if (e.type == SDL_MOUSEBUTTONDOWN)
+			{
+				Mouse->RegisterMouseButton(&e.button);
+			}
+			if (e.type == SDL_MOUSEMOTION)
+			{
+				Mouse->RegisterMouseMotion(&e.motion);
+			}
+			if (e.type == SDL_MOUSEWHEEL)
+			{
+				Mouse->RegisterMouseWheel(&e.wheel);
+
+			}
 		}
 
 		if (Keyboard->IsKeyPressed(SDL_SCANCODE_LSHIFT))
@@ -375,6 +260,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 		{
 			MainCamera->RotateY(-elapsed);
 		}
+
 
 		Timer.Tick([this]()
 		{
@@ -430,12 +316,12 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 			commandBuffer->commit();
 		}
 
-		Mouse->Warp();
+		//Mouse->Warp();
 		Keyboard->Update();
 		Mouse->Update();
 		pool->release();
 	}
-#endif
+//#endi
 
 	return 0;
 }

@@ -93,7 +93,7 @@ Skinning::~Skinning() = default;
 
 bool Skinning::Load()
 {
-	CesiumMan = std::make_unique<Model>("CesiumMan.glb");
+	CesiumMan = std::make_unique<Model>("CesiumManFixed.glb", Device.get());
 
 	CreateBuffers();
 
@@ -102,6 +102,8 @@ bool Skinning::Load()
 	CreateTextureHeap();
 
 	CreateArgumentBuffers();
+
+	MainCamera->SetPosition({ 0.0f, 1.0f, 0.0f });
 
 	return true;
 }
@@ -138,7 +140,7 @@ void Skinning::Update(const GameTimer& timer)
 		RotationY += static_cast<float>(Mouse->RelativeX()) * elapsed;
 	}
 
-	RotationY += elapsed;
+	//RotationY += elapsed;
 
 }
 
@@ -153,7 +155,7 @@ MTL::Texture* Skinning::LoadTextureFromFile(const std::string& fileName)
 	KTX_error_code result;
 	uint32_t flags =
 		KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT |
-			KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
+		KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
 	ktxTexture2* ktx2Texture = nullptr;
 	result = ktxTexture2_CreateFromMemory((ktx_uint8_t*)data->bytes(), data->length(), flags, &ktx2Texture);
 	if (result != KTX_SUCCESS)
@@ -218,12 +220,15 @@ void Skinning::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer
 	commandEncoder->setDepthStencilState(DepthStencilState.get());
 	commandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
 	commandEncoder->setCullMode(MTL::CullModeNone);
-	commandEncoder->setFragmentBuffer(ArgumentBuffer[FrameIndex].get(), 0, 0);
-	commandEncoder->setVertexBuffer(VertexBuffer.get(), 0, 0);
 	commandEncoder->setVertexBuffer(ArgumentBuffer[FrameIndex].get(), 0, 1);
-	commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
-		IndexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
-		IndexBuffer.get(), 0, InstanceCount);
+	commandEncoder->setFragmentBuffer(ArgumentBuffer[FrameIndex].get(), 0, 0);
+	CesiumMan->Render(commandEncoder);
+
+	//	commandEncoder->setVertexBuffer(VertexBuffer.get(), 0, 0);
+//	commandEncoder->setVertexBuffer(ArgumentBuffer[FrameIndex].get(), 0, 1);
+//	commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
+//		IndexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
+//		IndexBuffer.get(), 0, InstanceCount);
 }
 
 void Skinning::CreatePipelineState()
@@ -257,9 +262,9 @@ void Skinning::CreatePipelineState()
 	pipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
 	pipelineDescriptor->setStencilAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
 	pipelineDescriptor->setVertexFunction(
-		PipelineLibrary->newFunction(NS::String::string("texture_vertex", NS::ASCIIStringEncoding)));
+		PipelineLibrary->newFunction(NS::String::string("skinning_vertex", NS::ASCIIStringEncoding)));
 	pipelineDescriptor->setFragmentFunction(
-		PipelineLibrary->newFunction(NS::String::string("texture_fragment", NS::ASCIIStringEncoding)));
+		PipelineLibrary->newFunction(NS::String::string("skinning_fragment", NS::ASCIIStringEncoding)));
 	pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
 
 	NS::Error* error = nullptr;
@@ -320,6 +325,8 @@ void Skinning::UpdateUniforms()
 
 		const Vector3 xAxis = Vector3::Right;
 		const Vector3 yAxis = Vector3::Up;
+
+		//auto qRotation = Quaternion::CreateFromYawPitchRoll(rotationY, rotationX, 0.0f);
 
 		Matrix xRot = Matrix::CreateFromAxisAngle(xAxis, rotationX);
 		Matrix yRot = Matrix::CreateFromAxisAngle(yAxis, rotationY);
@@ -471,6 +478,7 @@ void Skinning::CreateArgumentBuffers()
 #if defined(__IPHONEOS__) || defined(__TVOS__)
 int SDL_main(int argc, char** argv)
 #else
+
 int main(int argc, char** argv)
 #endif
 {

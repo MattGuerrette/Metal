@@ -11,6 +11,8 @@
 #include <Metal/Metal.hpp>
 #include <QuartzCore/QuartzCore.hpp>
 
+#include <semaphore>
+
 #include "GameTimer.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
@@ -19,8 +21,6 @@
 class Example
 {
 public:
-
-	SDL_Window* Window;
 	Example(const char* title, uint32_t width, uint32_t height);
 
 	virtual ~Example();
@@ -48,6 +48,7 @@ public:
 protected:
 	static constexpr int BufferCount = 3;
 
+	SDL_Window* Window;
 	SDL_MetalView View;
 
 	std::unique_ptr<Camera> MainCamera;
@@ -63,6 +64,11 @@ protected:
 	NS::SharedPtr<MTL::DepthStencilState> DepthStencilState;
 	NS::SharedPtr<MTL::Library> PipelineLibrary;
 	MTL::PixelFormat FrameBufferPixelFormat;
+
+	// Direct3D
+
+	// Vulkan
+
 
 	// Sync primitives
 	uint32_t FrameIndex = 0;

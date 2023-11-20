@@ -26,10 +26,12 @@ add_library(base STATIC
 
 set_target_properties(base PROPERTIES
         XCODE_GENERATE_SCHEME YES
+        XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.0"
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC NO)
 
 target_compile_definitions(base PRIVATE -DIMGUI_IMPL_METAL_CPP)
 target_include_directories(base PUBLIC .)
+target_compile_options(base PUBLIC -Wno-defaulted-function-deleted)
 target_link_libraries(base PUBLIC ktx fmt SDL2::SDL2-static
         "-framework Foundation"
         "-framework Metal"
