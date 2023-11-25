@@ -350,6 +350,8 @@ void Skinning::CreateTextureHeap()
 		std::string fileName = fmt::format("00{}_basecolor.ktx", i + 1);
 		textures[i] = LoadTextureFromFile(fileName);
 	}
+	textures[TextureCount - 1]->release();
+	textures[TextureCount - 1] = CesiumMan->GetTexture();
 
 	MTL::HeapDescriptor* heapDescriptor = MTL::HeapDescriptor::alloc()->init();
 	heapDescriptor->setType(MTL::HeapTypeAutomatic);

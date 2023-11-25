@@ -163,9 +163,6 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 		return EXIT_FAILURE;
 	}
 
-//#if defined(__IPHONEOS__) || defined(__TVOS__)
-//	SDL_iOSSetAnimationCallback(Window, 1, AnimationCallback, this);
-//#else
 	while (Running)
 	{
 		NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
@@ -221,7 +218,6 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 		}
 		else
 		{
-
 			MainCamera->RotateY(Mouse->WheelX() * elapsed);
 		}
 
@@ -229,7 +225,6 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 		{
 			Quit();
 		}
-
 
 		if (Keyboard->IsKeyPressed(SDL_SCANCODE_W))
 		{
@@ -316,12 +311,10 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 			commandBuffer->commit();
 		}
 
-		//Mouse->Warp();
 		Keyboard->Update();
 		Mouse->Update();
 		pool->release();
 	}
-//#endi
 
 	return 0;
 }

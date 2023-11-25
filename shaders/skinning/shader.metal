@@ -28,6 +28,7 @@ vertex Vertex skinning_vertex(
     // Flip here. Maybe eventually 'ktx create' command will support specifying
     // the coordinate space.
     vertexOut.uv.y = 1.0 - vertexOut.uv.y;
+    vertexOut.uv.x = vertexOut.uv.x + 0.5;
     return vertexOut;
 }
 

@@ -9,15 +9,19 @@
 
 #include <Metal/Metal.hpp>
 
-class Model
-{
+class Model {
 public:
 	explicit Model(const std::string& fileName, MTL::Device* device);
-
 
 	void Render(MTL::RenderCommandEncoder* commandEncoder);
 
 private:
 	NS::SharedPtr<MTL::Buffer> VertexBuffer;
 	NS::SharedPtr<MTL::Buffer> IndexBuffer;
+	NS::SharedPtr<MTL::Heap> TextureHeap;
+	MTL::Texture* Albedo = nullptr;
+	MTL::Texture* MetalRoughness = nullptr;
+	MTL::Texture* Emissive = nullptr;
+	MTL::Texture* Normal = nullptr;
+	MTL::Texture* AmbientOcculusion = nullptr;
 };

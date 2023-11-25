@@ -3,8 +3,6 @@
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <ktx.h>
-
 #include <memory>
 #include <fmt/core.h>
 
@@ -14,6 +12,7 @@
 
 #include "Example.hpp"
 #include "FileUtil.hpp"
+#include "TextureUtil.hpp"
 
 XM_ALIGNED_STRUCT(16) Vertex
 {
@@ -64,8 +63,6 @@ private:
 	void CreateArgumentBuffers();
 
 	void UpdateUniforms();
-
-	MTL::Texture* LoadTextureFromFile(const std::string& fileName);
 
 	NS::SharedPtr<MTL::RenderPipelineState> PipelineState;
 	NS::SharedPtr<MTL::Buffer> VertexBuffer;
@@ -137,72 +134,6 @@ void Textures::Update(const GameTimer& timer)
 
 	RotationY += elapsed;
 
-}
-
-MTL::Texture* Textures::LoadTextureFromFile(const std::string& fileName)
-{
-	auto filePath = FileUtil::PathForResource(fileName);
-	NS::String* nsFilePath = NS::String::string(filePath.c_str(), NS::UTF8StringEncoding);
-	NS::Data* data = NS::Data::data(nsFilePath);
-	assert(data != nullptr);
-	nsFilePath->release();
-
-	KTX_error_code result;
-	uint32_t flags =
-		KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT |
-			KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
-	ktxTexture2* ktx2Texture = nullptr;
-	result = ktxTexture2_CreateFromMemory((ktx_uint8_t*)data->bytes(), data->length(), flags, &ktx2Texture);
-	if (result != KTX_SUCCESS)
-	{
-		return nullptr;
-	}
-
-	MTL::TextureType type = MTL::TextureType2D;
-	MTL::PixelFormat pixelFormat = MTL::PixelFormatASTC_8x8_sRGB;
-
-	BOOL genMipmaps = ktx2Texture->generateMipmaps;
-	NS::UInteger levelCount = ktx2Texture->numLevels;
-	NS::UInteger baseWidth = ktx2Texture->baseWidth;
-	NS::UInteger baseHeight = ktx2Texture->baseHeight;
-	NS::UInteger baseDepth = ktx2Texture->baseDepth;
-	auto maxMipLevelCount = static_cast<NS::UInteger>(std::floor(std::log2(std::fmax(baseWidth, baseHeight))) + 1);
-	NS::UInteger storedMipLevelCount = genMipmaps ? maxMipLevelCount : levelCount;
-
-	MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
-	textureDescriptor->setTextureType(type);
-	textureDescriptor->setPixelFormat(pixelFormat);
-	textureDescriptor->setWidth(baseWidth);
-	textureDescriptor->setHeight((ktx2Texture->numDimensions > 1) ? baseHeight : 1);
-	textureDescriptor->setDepth((ktx2Texture->numDimensions > 2) ? baseDepth : 1);
-	textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
-	textureDescriptor->setStorageMode(MTL::StorageModeShared);
-	textureDescriptor->setArrayLength(1);
-	textureDescriptor->setMipmapLevelCount(storedMipLevelCount);
-
-	MTL::Texture* texture = Device->newTexture(textureDescriptor);
-
-	auto* ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
-	ktx_uint32_t layer = 0, faceSlice = 0;
-
-	for (ktx_uint32_t level = 0; level < ktx2Texture->numLevels; ++level)
-	{
-		ktx_size_t offset = 0;
-		result = ktxTexture_GetImageOffset(ktx1Texture, level, layer, faceSlice, &offset);
-		ktx_uint8_t* imageBytes = ktxTexture_GetData(ktx1Texture) + offset;
-		ktx_uint32_t bytesPerRow = ktxTexture_GetRowPitch(ktx1Texture, level);
-		ktx_size_t bytesPerImage = ktxTexture_GetImageSize(ktx1Texture, level);
-		auto levelWidth = static_cast<size_t>(std::fmax(1.0f, (float)(baseWidth >> level)));
-		auto levelHeight = static_cast<size_t>(std::fmax(1.0f, (float)(baseHeight >> level)));
-
-		texture->replaceRegion(MTL::Region(0, 0, levelWidth, levelHeight),
-			level, faceSlice, imageBytes, bytesPerRow, bytesPerImage);
-
-	}
-
-	ktxTexture_Destroy((ktxTexture*)ktx1Texture);
-	data->release();
-	return texture;
 }
 
 void Textures::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer)
@@ -338,7 +269,7 @@ void Textures::CreateTextureHeap()
 	for (size_t i = 0; i < TextureCount; i++)
 	{
 		std::string fileName = fmt::format("00{}_basecolor.ktx", i + 1);
-		textures[i] = LoadTextureFromFile(fileName);
+		textures[i] = TextureUtil::LoadTextureFromFile(Device.get(), fileName);
 	}
 
 	MTL::HeapDescriptor* heapDescriptor = MTL::HeapDescriptor::alloc()->init();
@@ -468,6 +399,7 @@ void Textures::CreateArgumentBuffers()
 #if defined(__IPHONEOS__) || defined(__TVOS__)
 int SDL_main(int argc, char** argv)
 #else
+
 int main(int argc, char** argv)
 #endif
 {

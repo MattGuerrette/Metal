@@ -14,6 +14,8 @@ add_library(base STATIC
         Example.cpp
         FileUtil.hpp
         FileUtil.cpp
+        TextureUtil.hpp
+        TextureUtil.cpp
         ${imgui_SOURCE_DIR}/imgui.cpp
         ${imgui_SOURCE_DIR}/imgui_draw.cpp
         ${imgui_SOURCE_DIR}/imgui_tables.cpp

@@ -17,3 +17,12 @@ std::string FileUtil::PathForResource(const std::string& resourceName)
 	resourcePath->release();
 	return ret;
 }
+
+NS::Data* FileUtil::DataForResource(const std::string& resourceName)
+{
+	auto filePath = FileUtil::PathForResource(resourceName);
+	NS::String* nsFilePath = NS::String::string(filePath.c_str(), NS::UTF8StringEncoding);
+	NS::Data* data = NS::Data::data(nsFilePath);
+	nsFilePath->release();
+	return data;
+}

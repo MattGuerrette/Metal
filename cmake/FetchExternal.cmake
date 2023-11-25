@@ -40,10 +40,10 @@ else ()
     include_directories(${METALCPP_DIR})
 endif ()
 
-FetchContent_Declare(fmt
-        GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
-        GIT_TAG 10.1.1
-)
+#FetchContent_Declare(fmt
+#        GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
+#        GIT_TAG 10.1.1
+#)
 
 set(KTX_FEATURE_STATIC_LIBRARY ON)
 set(KTX_FEATURE_TOOLS OFF)
@@ -54,7 +54,7 @@ endif ()
 FetchContent_Declare(
         ktx
         GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
-        GIT_TAG v4.0.0
+        GIT_TAG main
 )
 FetchContent_GetProperties(ktx)
 if (NOT ktx_POPULATED)
@@ -68,6 +68,6 @@ FetchContent_Declare(
         GIT_TAG v1.10
 )
 
-FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl2 cgltf)
+FetchContent_MakeAvailable(sal directxmath stb imgui sdl2 cgltf)
 
 include_directories(${sal_SOURCE_DIR} ${cgltf_SOURCE_DIR} ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)
