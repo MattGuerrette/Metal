@@ -15,11 +15,12 @@
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 
-class Example
+class Example : public CA::MetalDisplayLinkDelegate
 {
 public:
 
 	SDL_Window* Window;
+
 	Example(const char* title, uint32_t width, uint32_t height);
 
 	virtual ~Example();
@@ -46,6 +47,9 @@ public:
 
 	void AnimationRender(float elapsed);
 
+	void metalDisplayLinkNeedsUpdate(CA::MetalDisplayLink* displayLink, CA::MetalDisplayLinkUpdate* update) override;
+
+
 protected:
 	static constexpr int BufferCount = 3;
 
@@ -56,6 +60,7 @@ protected:
 	std::unique_ptr<class Mouse> Mouse;
 
 	// Metal
+	NS::SharedPtr<CA::MetalDisplayLink> DisplayLink_;
 	NS::SharedPtr<MTL::Device> Device;
 	NS::SharedPtr<MTL::CommandQueue> CommandQueue;
 	NS::SharedPtr<MTL::Texture> DepthStencilTexture;
