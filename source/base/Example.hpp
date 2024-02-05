@@ -43,12 +43,7 @@ public:
 
 	static std::string PathForResource(const std::string& resourceName);
 
-	static void AnimationCallback(void* param);
-
-	void AnimationRender(float elapsed);
-
 	void metalDisplayLinkNeedsUpdate(CA::MetalDisplayLink* displayLink, CA::MetalDisplayLinkUpdate* update) override;
-
 
 protected:
 	static constexpr int BufferCount = 3;
