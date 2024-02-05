@@ -34,8 +34,8 @@ generate the Xcode project files here are some example commands:
 ```
    git clone https://github.com/MattGuerrette/Metal.git
    cd Metal
-   mkdir cmake-build-xcode
-   cd cmake-build-xcode
+   mkdir cmake-build-debug
+   cd cmake-build-debug
    cmake .. -GNinja
    cmake --build .
 ```
