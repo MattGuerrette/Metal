@@ -18,7 +18,6 @@ These samples are developed using **C++20** and target the following platforms a
 |----------|------------|
 | macOS    | 14.0+      |
 | iOS      | 17.0+      |
-| iPadOS   | 17.0+      |
 | tvOS     | 17.0+      |
 
 ## Building
