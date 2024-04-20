@@ -1,0 +1,10 @@
+BasedOnStyle: Microsoft
+NamespaceIndentation: All
+AlignTrailingComments: true
+AlignConsecutiveDeclarations: AcrossComments
+BinPackParameters: false
+ReferenceAlignment: Left
+PointerAlignment: Left
+AccessModifierOffset: -4
+AlwaysBreakTemplateDeclarations: Yes
+ColumnLimit: 100

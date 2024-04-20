@@ -3,17 +3,16 @@
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
-
 #pragma once
 
 #include <Metal/Metal.hpp>
 
 class SpriteBatch final
 {
-	static constexpr uint32_t
-	MAX_SPRITE_COUNT = 65536;
+    static constexpr uint32_t MAX_SPRITE_COUNT = 65536;
+
 public:
-	SpriteBatch(MTL::Device* device,;
+    SpriteBatch(MTL::Device* device,;
 
 	~SpriteBatch() = default;
 

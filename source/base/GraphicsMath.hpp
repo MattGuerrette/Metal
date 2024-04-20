@@ -13,11 +13,15 @@
 #endif
 #endif
 
-#include <DirectXMath.h>
 #include <DirectXColors.h>
+#include <DirectXMath.h>
 
 #include "SimpleMath.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
+// Needed due to DirectXMath/SAL headers re-defining NULL
+// to avoid strict header ordering
+#undef NULL
+#define NULL 0

@@ -18,8 +18,6 @@ add_library(base STATIC
         ${imgui_SOURCE_DIR}/imgui_widgets.cpp
         ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
         ${imgui_SOURCE_DIR}/backends/imgui_impl_metal.mm
-        ScreenUtils.hpp
-        ScreenUtils.mm
 )
 
 set_target_properties(base PROPERTIES
