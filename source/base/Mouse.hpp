@@ -15,8 +15,8 @@ class Mouse final
 	{
 		bool IsDoubleClick;
 		bool Pressed;
-		int32_t X;
-		int32_t Y;
+		float X;
+		float Y;
 	};
 	static constexpr int32_t MouseButtons = 3;
 	using MouseButtonState = std::array<ButtonState, MouseButtons>;
@@ -86,8 +86,8 @@ public:
 	void Update();
 private:
 	SDL_Window* Window; ///< Window used to warp cursor to.
-	int32_t LocationX{}; ///< X mouse location.
-	int32_t LocationY{}; ///< Y mouse location.
+	float LocationX{}; ///< X mouse location.
+	float LocationY{}; ///< Y mouse location.
 	int32_t XRelative{}; ///< X mouse location relative to last frame.
 	int32_t YRelative{}; ///< Y mouse location relative to last frame.
 	float PreciseWheelX{}; ///< Scroll-wheel delta X (precise).

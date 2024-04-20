@@ -12,7 +12,7 @@ FetchContent_Declare(directxmath
 
 FetchContent_Declare(imgui
         GIT_REPOSITORY "https://github.com/ocornut/imgui.git"
-        GIT_TAG v1.89.9
+        GIT_TAG v1.90.5
 )
 
 FetchContent_Declare(stb
@@ -20,18 +20,9 @@ FetchContent_Declare(stb
         GIT_TAG master
 )
 
-FetchContent_Declare(sdl2
+FetchContent_Declare(sdl3
         GIT_REPOSITORY "https://github.com/libsdl-org/SDL.git"
-        GIT_TAG release-2.28.1
-)
-
-
-set(BUILD_SHARED_LIBS OFF)
-set(SDL2TTF_INSTALL OFF)
-set(SDL2TTF_VENDORED ON)
-FetchContent_Declare(sdlttf
-        GIT_REPOSITORY "https://github.com/libsdl-org/SDL_ttf.git"
-        GIT_TAG release-2.20.2
+        GIT_TAG main
 )
 
 FetchContent_Declare(metalcpp
@@ -61,6 +52,6 @@ if (NOT ktx_POPULATED)
     add_subdirectory(${ktx_SOURCE_DIR} ${ktx_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif ()
 
-FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl2 sdlttf metalcpp)
+FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl3 metalcpp)
 
 include_directories(${sal_SOURCE_DIR} ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR} ${metalcpp_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)

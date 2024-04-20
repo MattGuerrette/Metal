@@ -16,8 +16,8 @@ add_library(base STATIC
         ${imgui_SOURCE_DIR}/imgui_draw.cpp
         ${imgui_SOURCE_DIR}/imgui_tables.cpp
         ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-        imgui_impl_sdl2.cpp
-        imgui_impl_metal.mm
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_metal.mm
         ScreenUtils.hpp
         ScreenUtils.mm
 )
@@ -28,7 +28,7 @@ set_target_properties(base PROPERTIES
 
 target_compile_definitions(base PRIVATE -DIMGUI_IMPL_METAL_CPP)
 target_include_directories(base PUBLIC .)
-target_link_libraries(base PUBLIC ktx fmt SDL2::SDL2-static SDL2_ttf::SDL2_ttf-static
+target_link_libraries(base PUBLIC ktx fmt SDL3::SDL3-static
         "-framework Foundation"
         "-framework Metal"
         "-framework MetalKit"

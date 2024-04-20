@@ -6,8 +6,10 @@
 
 #include "Example.hpp"
 
+#include <fmt/core.h>
+
 #include "imgui.h"
-#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdl3.h"
 #include "imgui_impl_metal.h"
 
 Example::Example(const char* title, uint32_t width, uint32_t height)
@@ -22,24 +24,27 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	ImGui::StyleColorsDark();
 
 
-	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
-	{
-		fprintf(stderr, "Failed to initialize SDL.\n");
-		abort();
-	}
+        // Initialize SDL
+        if (const int result = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER); result < 0)
+        {
+          fmt::println(fmt::format("Failed to initialize SDL: {}", SDL_GetError()));
+          abort();
+        }
 
+        int  numDisplays = 0;
+        auto displays = SDL_GetDisplays(&numDisplays);
+        assert(numDisplays != 0);
 
-	int flags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_METAL;
-#if defined(__IPHONEOS__) || defined(__TVOS__)
-	flags |= SDL_WINDOW_FULLSCREEN;
-#else
-	flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-	SDL_DisplayMode mode;
-	SDL_GetCurrentDisplayMode(0, &mode);
-	width = mode.w;
-	height = mode.h;
-#endif
-	Window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)width, (int)height, flags);
+        const auto display = displays[0];
+        const auto mode = SDL_GetDesktopDisplayMode(display);
+        int32_t    screenWidth = mode->w;
+        int32_t    screenHeight = mode->h;
+        auto contentScale = SDL_GetDisplayContentScale(display);
+        SDL_free(displays);
+
+	int flags = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_METAL;
+
+	Window = SDL_CreateWindow(title, screenWidth, screenHeight, flags);
 	if (!Window)
 	{
 		fprintf(stderr, "Failed to create SDL window.\n");
@@ -61,7 +66,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 
 
 	ImGui_ImplMetal_Init(Device.get());
-	ImGui_ImplSDL2_InitForMetal(Window);
+	ImGui_ImplSDL3_InitForMetal(Window);
 
 	CommandQueue = NS::TransferPtr(Device->newCommandQueue());
 
@@ -87,9 +92,8 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 	Keyboard = std::make_unique<class Keyboard>();
 	Mouse = std::make_unique<class Mouse>(Window);
 
-
-	Timer.SetTargetElapsedSeconds(1.0f / static_cast<float>(mode.refresh_rate));
-	Timer.SetFixedTimeStep(true);
+        Timer.SetFixedTimeStep(false);
+        Timer.ResetElapsedTime();
 
 	DisplayLink_ = NS::TransferPtr(CA::MetalDisplayLink::alloc()->init(layer));
 	DisplayLink_->setDelegate(this);
@@ -100,7 +104,7 @@ Example::~Example()
 {
 	// Cleanup
 	ImGui_ImplMetal_Shutdown();
-	ImGui_ImplSDL2_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
 
 	if (Window != nullptr)
@@ -136,15 +140,14 @@ void Example::CreateDepthStencil()
 uint32_t Example::GetFrameWidth() const
 {
 	int32_t w;
-	SDL_Metal_GetDrawableSize(Window, &w, nullptr);
+        SDL_GetWindowSizeInPixels(Window, &w, nullptr);
 	return w;
 }
 
 uint32_t Example::GetFrameHeight() const
 {
 	int32_t h;
-	SDL_Metal_GetDrawableSize(Window, nullptr, &h);
-
+        SDL_GetWindowSizeInPixels(Window, nullptr, &h);
 	return h;
 }
 
@@ -173,41 +176,27 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 		SDL_Event e;
 		if (SDL_WaitEvent(&e))
 		{
-			ImGui_ImplSDL2_ProcessEvent(&e);
+			ImGui_ImplSDL3_ProcessEvent(&e);
 
-			if (e.type == SDL_QUIT)
+			if (e.type == SDL_EVENT_QUIT)
 			{
 				Running = false;
 				break;
 			}
-			if (e.type == SDL_WINDOWEVENT)
-			{
-				switch (e.window.event)
-				{
-				case SDL_WINDOWEVENT_SHOWN:
-				{
-					break;
-				}
-				}
-			}
 
-			if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
+			if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP)
 			{
 				Keyboard->RegisterKeyEvent(&e.key);
 			}
-			if (e.type == SDL_MOUSEBUTTONUP)
+			if (e.type == SDL_EVENT_MOUSE_BUTTON_UP || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
 			{
 				Mouse->RegisterMouseButton(&e.button);
 			}
-			if (e.type == SDL_MOUSEBUTTONDOWN)
-			{
-				Mouse->RegisterMouseButton(&e.button);
-			}
-			if (e.type == SDL_MOUSEMOTION)
+			if (e.type == SDL_EVENT_MOUSE_MOTION)
 			{
 				Mouse->RegisterMouseMotion(&e.motion);
 			}
-			if (e.type == SDL_MOUSEWHEEL)
+			if (e.type == SDL_EVENT_MOUSE_WHEEL)
 			{
 				Mouse->RegisterMouseWheel(&e.wheel);
 			}
@@ -283,7 +272,7 @@ void Example::metalDisplayLinkNeedsUpdate(CA::MetalDisplayLink* displayLink, CA:
 
 		// IMGUI rendering
 		ImGui_ImplMetal_NewFrame(passDescriptor);
-		ImGui_ImplSDL2_NewFrame();
+		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
 
 		SetupUi(Timer);

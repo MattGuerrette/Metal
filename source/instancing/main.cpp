@@ -9,8 +9,6 @@
 #include <Metal/Metal.hpp>
 #include <QuartzCore/QuartzCore.hpp>
 
-#include <SDL_ttf.h>
-
 #include "Example.hpp"
 #include "Camera.hpp"
 

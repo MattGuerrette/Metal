@@ -84,8 +84,8 @@ void Mouse::RegisterMouseMotion(SDL_MouseMotionEvent* event)
 
 void Mouse::RegisterMouseWheel(SDL_MouseWheelEvent* event)
 {
-	PreciseWheelX = event->preciseX;
-	PreciseWheelY = event->preciseY;
+	PreciseWheelX = event->x;
+	PreciseWheelY = event->y;
 }
 
 void Mouse::RegisterMouseButton(SDL_MouseButtonEvent* event)
