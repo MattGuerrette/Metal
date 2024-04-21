@@ -9,6 +9,8 @@
 
 #include <memory>
 
+#include <fmt/core.h>
+
 #include <Metal/Metal.hpp>
 #include <QuartzCore/QuartzCore.hpp>
 
@@ -88,7 +90,6 @@ bool SpriteBatching::Load()
 
     CreatePipelineState();
 
-    std::string texture = PathForResource("tilesheet.png");
 
     return true;
 }
@@ -111,8 +112,9 @@ void SpriteBatching::Render(MTL::RenderCommandEncoder* commandEncoder, const Gam
     commandEncoder->setCullMode(MTL::CullModeNone);
     commandEncoder->setVertexBuffer(VertexBuffer.get(), 0, 0);
     commandEncoder->setVertexBuffer(InstanceBuffer[FrameIndex].get(), 0, 1);
-    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, IndexBuffer->length() / sizeof(uint16_t),
-                                          MTL::IndexTypeUInt16, IndexBuffer.get(), 0, InstanceCount);
+    commandEncoder->drawIndexedPrimitives(
+        MTL::PrimitiveTypeTriangle, IndexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
+        IndexBuffer.get(), 0, InstanceCount);
 }
 
 void SpriteBatching::CreatePipelineState()
@@ -132,31 +134,35 @@ void SpriteBatching::CreatePipelineState()
     vertexDescriptor->layouts()->object(0)->setStepFunction(MTL::VertexStepFunctionPerVertex);
     vertexDescriptor->layouts()->object(0)->setStride(sizeof(Vertex));
 
-    MTL::RenderPipelineDescriptor* pipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
-    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+    MTL::RenderPipelineDescriptor* pipelineDescriptor =
+        MTL::RenderPipelineDescriptor::alloc()->init();
+    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(FrameBufferPixelFormat);
     pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
-    pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(MTL::BlendFactorSourceAlpha);
+    pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
+        MTL::BlendFactorSourceAlpha);
     pipelineDescriptor->colorAttachments()->object(0)->setDestinationRGBBlendFactor(
         MTL::BlendFactorOneMinusSourceAlpha);
     pipelineDescriptor->colorAttachments()->object(0)->setRgbBlendOperation(MTL::BlendOperationAdd);
-    pipelineDescriptor->colorAttachments()->object(0)->setSourceAlphaBlendFactor(MTL::BlendFactorSourceAlpha);
+    pipelineDescriptor->colorAttachments()->object(0)->setSourceAlphaBlendFactor(
+        MTL::BlendFactorSourceAlpha);
     pipelineDescriptor->colorAttachments()->object(0)->setDestinationAlphaBlendFactor(
         MTL::BlendFactorOneMinusSourceAlpha);
-    pipelineDescriptor->colorAttachments()->object(0)->setAlphaBlendOperation(MTL::BlendOperationAdd);
+    pipelineDescriptor->colorAttachments()->object(0)->setAlphaBlendOperation(
+        MTL::BlendOperationAdd);
     pipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
     pipelineDescriptor->setStencilAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
-    pipelineDescriptor->setVertexFunction(
-        PipelineLibrary->newFunction(NS::String::string("instancing_vertex", NS::ASCIIStringEncoding)));
-    pipelineDescriptor->setFragmentFunction(
-        PipelineLibrary->newFunction(NS::String::string("instancing_fragment", NS::ASCIIStringEncoding)));
+    pipelineDescriptor->setVertexFunction(PipelineLibrary->newFunction(
+        NS::String::string("instancing_vertex", NS::ASCIIStringEncoding)));
+    pipelineDescriptor->setFragmentFunction(PipelineLibrary->newFunction(
+        NS::String::string("instancing_fragment", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
 
     NS::Error* error = nullptr;
     PipelineState = NS::TransferPtr(Device->newRenderPipelineState(pipelineDescriptor, &error));
     if (error)
     {
-        fprintf(stderr, "Failed to create pipeline state object: %s\n",
-                error->description()->cString(NS::ASCIIStringEncoding));
+        throw std::runtime_error(fmt::format("Failed to create pipeline state: {}",
+                                             error->localizedFailureReason()->utf8String()));
     }
 
     vertexDescriptor->release();
@@ -165,20 +171,24 @@ void SpriteBatching::CreatePipelineState()
 
 void SpriteBatching::CreateBuffers()
 {
-    static const Vertex vertices[] = {
-        {.Position = {-1, 1, 1, 1}, .Color = {0, 1, 1, 1}},  {.Position = {-1, -1, 1, 1}, .Color = {0, 0, 1, 1}},
-        {.Position = {1, -1, 1, 1}, .Color = {1, 0, 1, 1}},  {.Position = {1, 1, 1, 1}, .Color = {1, 1, 1, 1}},
-        {.Position = {-1, 1, -1, 1}, .Color = {0, 1, 0, 1}}, {.Position = {-1, -1, -1, 1}, .Color = {0, 0, 0, 1}},
-        {.Position = {1, -1, -1, 1}, .Color = {1, 0, 0, 1}}, {.Position = {1, 1, -1, 1}, .Color = {1, 1, 0, 1}}};
+    static const Vertex vertices[] = {{.Position = {-1, 1, 1, 1}, .Color = {0, 1, 1, 1}},
+                                      {.Position = {-1, -1, 1, 1}, .Color = {0, 0, 1, 1}},
+                                      {.Position = {1, -1, 1, 1}, .Color = {1, 0, 1, 1}},
+                                      {.Position = {1, 1, 1, 1}, .Color = {1, 1, 1, 1}},
+                                      {.Position = {-1, 1, -1, 1}, .Color = {0, 1, 0, 1}},
+                                      {.Position = {-1, -1, -1, 1}, .Color = {0, 0, 0, 1}},
+                                      {.Position = {1, -1, -1, 1}, .Color = {1, 0, 0, 1}},
+                                      {.Position = {1, 1, -1, 1}, .Color = {1, 1, 0, 1}}};
 
     static const uint16_t indices[] = {3, 2, 6, 6, 7, 3, 4, 5, 1, 1, 0, 4, 4, 0, 3, 3, 7, 4,
                                        1, 5, 6, 6, 2, 1, 0, 1, 2, 2, 3, 0, 7, 6, 5, 5, 4, 7};
 
-    VertexBuffer =
-        NS::TransferPtr(Device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
+    VertexBuffer = NS::TransferPtr(
+        Device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
     VertexBuffer->setLabel(NS::String::string("Vertices", NS::ASCIIStringEncoding));
 
-    IndexBuffer = NS::TransferPtr(Device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
+    IndexBuffer = NS::TransferPtr(
+        Device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
     IndexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     const size_t instanceDataSize = BufferCount * InstanceCount * sizeof(InstanceData);
@@ -188,8 +198,8 @@ void SpriteBatching::CreateBuffers()
         char temp[12];
         snprintf(temp, sizeof(temp), "%d", index);
 
-        InstanceBuffer[index] =
-            NS::TransferPtr(Device->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
+        InstanceBuffer[index] = NS::TransferPtr(
+            Device->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
         InstanceBuffer[index]->setLabel(
             prefix->stringByAppendingString(NS::String::string(temp, NS::ASCIIStringEncoding)));
     }
@@ -232,6 +242,16 @@ int SDL_main(int argc, char** argv)
 int main(int argc, char** argv)
 #endif
 {
-    std::unique_ptr<SpriteBatching> example = std::make_unique<SpriteBatching>();
-    return example->Run(argc, argv);
+    int result = EXIT_FAILURE;
+    try
+    {
+        auto example = std::make_unique<SpriteBatching>();
+        result = example->Run(argc, argv);
+    }
+    catch (const std::runtime_error& error)
+    {
+        fmt::println("Exiting...");
+    }
+
+    return result;
 }

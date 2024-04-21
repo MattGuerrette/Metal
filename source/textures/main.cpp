@@ -14,6 +14,7 @@
 
 #include "Camera.hpp"
 #include "Example.hpp"
+#include "File.hpp"
 
 XM_ALIGNED_STRUCT(16) Vertex
 {
@@ -35,8 +36,8 @@ XM_ALIGNED_STRUCT(16) FragmentArgumentBuffer
     [[maybe_unused]] Matrix*         Transforms;
 };
 
-static const std::array<const char*, TextureCount> ComboItems = {"Texture 0", "Texture 1", "Texture 2", "Texture 3",
-                                                                 "Texture 4"};
+static const std::array<const char*, TextureCount> ComboItems = {
+    "Texture 0", "Texture 1", "Texture 2", "Texture 3", "Texture 4"};
 
 class Textures : public Example
 {
@@ -96,7 +97,8 @@ bool Textures::Load()
     const float near = 0.01f;
     const float far = 1000.0f;
 
-    MainCamera = std::make_unique<Camera>(Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far);
+    MainCamera = std::make_unique<Camera>(Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect,
+                                          near, far);
 
     CreateBuffers();
 
@@ -113,7 +115,8 @@ void Textures::SetupUi(const GameTimer& timer)
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
     ImGui::SetNextWindowPos(ImVec2(10, 10));
-    ImGui::SetNextWindowSize(ImVec2(125 * ImGui::GetIO().DisplayFramebufferScale.x, 0), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(125 * ImGui::GetIO().DisplayFramebufferScale.x, 0),
+                             ImGuiCond_FirstUseEver);
     ImGui::Begin("Metal Example", nullptr,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
     ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(Window), timer.GetFramesPerSecond());
@@ -143,64 +146,74 @@ void Textures::Update(const GameTimer& timer)
 
 MTL::Texture* Textures::LoadTextureFromFile(const std::string& fileName)
 {
-    auto        filePath = PathForResource(fileName);
-    NS::String* nsFilePath = NS::String::string(filePath.c_str(), NS::UTF8StringEncoding);
-    NS::Data*   data = NS::Data::data(nsFilePath);
-    assert(data != nullptr);
-    nsFilePath->release();
+    MTL::Texture* texture = nullptr;
 
-    KTX_error_code result;
-    uint32_t       flags = KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT | KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
-    ktxTexture2*   ktx2Texture = nullptr;
-    result = ktxTexture2_CreateFromMemory((ktx_uint8_t*)data->bytes(), data->length(), flags, &ktx2Texture);
-    if (result != KTX_SUCCESS)
+    try
     {
-        return nullptr;
+        File file(fileName);
+
+        const auto bytes = file.ReadAll();
+
+        KTX_error_code result;
+        uint32_t       flags =
+            KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT | KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
+        ktxTexture2* ktx2Texture = nullptr;
+        result = ktxTexture2_CreateFromMemory((ktx_uint8_t*)bytes.data(), bytes.size(), flags,
+                                              &ktx2Texture);
+        if (result != KTX_SUCCESS)
+        {
+            return nullptr;
+        }
+
+        MTL::TextureType type = MTL::TextureType2D;
+        MTL::PixelFormat pixelFormat = MTL::PixelFormatASTC_8x8_sRGB;
+
+        BOOL         genMipmaps = ktx2Texture->generateMipmaps;
+        NS::UInteger levelCount = ktx2Texture->numLevels;
+        NS::UInteger baseWidth = ktx2Texture->baseWidth;
+        NS::UInteger baseHeight = ktx2Texture->baseHeight;
+        NS::UInteger baseDepth = ktx2Texture->baseDepth;
+        auto         maxMipLevelCount =
+            static_cast<NS::UInteger>(std::floor(std::log2(std::fmax(baseWidth, baseHeight))) + 1);
+        NS::UInteger storedMipLevelCount = genMipmaps ? maxMipLevelCount : levelCount;
+
+        MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+        textureDescriptor->setTextureType(type);
+        textureDescriptor->setPixelFormat(pixelFormat);
+        textureDescriptor->setWidth(baseWidth);
+        textureDescriptor->setHeight((ktx2Texture->numDimensions > 1) ? baseHeight : 1);
+        textureDescriptor->setDepth((ktx2Texture->numDimensions > 2) ? baseDepth : 1);
+        textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
+        textureDescriptor->setStorageMode(MTL::StorageModeShared);
+        textureDescriptor->setArrayLength(1);
+        textureDescriptor->setMipmapLevelCount(storedMipLevelCount);
+
+        texture = Device->newTexture(textureDescriptor);
+
+        auto*        ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
+        ktx_uint32_t layer = 0, faceSlice = 0;
+
+        for (ktx_uint32_t level = 0; level < ktx2Texture->numLevels; ++level)
+        {
+            ktx_size_t offset = 0;
+            result = ktxTexture_GetImageOffset(ktx1Texture, level, layer, faceSlice, &offset);
+            ktx_uint8_t* imageBytes = ktxTexture_GetData(ktx1Texture) + offset;
+            ktx_uint32_t bytesPerRow = ktxTexture_GetRowPitch(ktx1Texture, level);
+            ktx_size_t   bytesPerImage = ktxTexture_GetImageSize(ktx1Texture, level);
+            auto levelWidth = static_cast<size_t>(std::fmax(1.0f, (float)(baseWidth >> level)));
+            auto levelHeight = static_cast<size_t>(std::fmax(1.0f, (float)(baseHeight >> level)));
+
+            texture->replaceRegion(MTL::Region(0, 0, levelWidth, levelHeight), level, faceSlice,
+                                   imageBytes, bytesPerRow, bytesPerImage);
+        }
+
+        ktxTexture_Destroy((ktxTexture*)ktx1Texture);
+    }
+    catch (const std::runtime_error& error)
+    {
+        fmt::println(error.what());
     }
 
-    MTL::TextureType type = MTL::TextureType2D;
-    MTL::PixelFormat pixelFormat = MTL::PixelFormatASTC_8x8_sRGB;
-
-    BOOL         genMipmaps = ktx2Texture->generateMipmaps;
-    NS::UInteger levelCount = ktx2Texture->numLevels;
-    NS::UInteger baseWidth = ktx2Texture->baseWidth;
-    NS::UInteger baseHeight = ktx2Texture->baseHeight;
-    NS::UInteger baseDepth = ktx2Texture->baseDepth;
-    auto maxMipLevelCount = static_cast<NS::UInteger>(std::floor(std::log2(std::fmax(baseWidth, baseHeight))) + 1);
-    NS::UInteger storedMipLevelCount = genMipmaps ? maxMipLevelCount : levelCount;
-
-    MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
-    textureDescriptor->setTextureType(type);
-    textureDescriptor->setPixelFormat(pixelFormat);
-    textureDescriptor->setWidth(baseWidth);
-    textureDescriptor->setHeight((ktx2Texture->numDimensions > 1) ? baseHeight : 1);
-    textureDescriptor->setDepth((ktx2Texture->numDimensions > 2) ? baseDepth : 1);
-    textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
-    textureDescriptor->setStorageMode(MTL::StorageModeShared);
-    textureDescriptor->setArrayLength(1);
-    textureDescriptor->setMipmapLevelCount(storedMipLevelCount);
-
-    MTL::Texture* texture = Device->newTexture(textureDescriptor);
-
-    auto*        ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
-    ktx_uint32_t layer = 0, faceSlice = 0;
-
-    for (ktx_uint32_t level = 0; level < ktx2Texture->numLevels; ++level)
-    {
-        ktx_size_t offset = 0;
-        result = ktxTexture_GetImageOffset(ktx1Texture, level, layer, faceSlice, &offset);
-        ktx_uint8_t* imageBytes = ktxTexture_GetData(ktx1Texture) + offset;
-        ktx_uint32_t bytesPerRow = ktxTexture_GetRowPitch(ktx1Texture, level);
-        ktx_size_t   bytesPerImage = ktxTexture_GetImageSize(ktx1Texture, level);
-        auto         levelWidth = static_cast<size_t>(std::fmax(1.0f, (float)(baseWidth >> level)));
-        auto         levelHeight = static_cast<size_t>(std::fmax(1.0f, (float)(baseHeight >> level)));
-
-        texture->replaceRegion(MTL::Region(0, 0, levelWidth, levelHeight), level, faceSlice, imageBytes, bytesPerRow,
-                               bytesPerImage);
-    }
-
-    ktxTexture_Destroy((ktxTexture*)ktx1Texture);
-    data->release();
     return texture;
 }
 
@@ -217,8 +230,9 @@ void Textures::Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer
     commandEncoder->setFragmentBuffer(ArgumentBuffer[FrameIndex].get(), 0, 0);
     commandEncoder->setVertexBuffer(VertexBuffer.get(), 0, 0);
     commandEncoder->setVertexBuffer(ArgumentBuffer[FrameIndex].get(), 0, 1);
-    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, IndexBuffer->length() / sizeof(uint16_t),
-                                          MTL::IndexTypeUInt16, IndexBuffer.get(), 0, InstanceCount);
+    commandEncoder->drawIndexedPrimitives(
+        MTL::PrimitiveTypeTriangle, IndexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
+        IndexBuffer.get(), 0, InstanceCount);
 }
 
 void Textures::CreatePipelineState()
@@ -238,31 +252,35 @@ void Textures::CreatePipelineState()
     vertexDescriptor->layouts()->object(0)->setStepFunction(MTL::VertexStepFunctionPerVertex);
     vertexDescriptor->layouts()->object(0)->setStride(sizeof(Vertex));
 
-    MTL::RenderPipelineDescriptor* pipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+    MTL::RenderPipelineDescriptor* pipelineDescriptor =
+        MTL::RenderPipelineDescriptor::alloc()->init();
     pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(FrameBufferPixelFormat);
     pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
-    pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(MTL::BlendFactorSourceAlpha);
+    pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
+        MTL::BlendFactorSourceAlpha);
     pipelineDescriptor->colorAttachments()->object(0)->setDestinationRGBBlendFactor(
         MTL::BlendFactorOneMinusSourceAlpha);
     pipelineDescriptor->colorAttachments()->object(0)->setRgbBlendOperation(MTL::BlendOperationAdd);
-    pipelineDescriptor->colorAttachments()->object(0)->setSourceAlphaBlendFactor(MTL::BlendFactorSourceAlpha);
+    pipelineDescriptor->colorAttachments()->object(0)->setSourceAlphaBlendFactor(
+        MTL::BlendFactorSourceAlpha);
     pipelineDescriptor->colorAttachments()->object(0)->setDestinationAlphaBlendFactor(
         MTL::BlendFactorOneMinusSourceAlpha);
-    pipelineDescriptor->colorAttachments()->object(0)->setAlphaBlendOperation(MTL::BlendOperationAdd);
+    pipelineDescriptor->colorAttachments()->object(0)->setAlphaBlendOperation(
+        MTL::BlendOperationAdd);
     pipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
     pipelineDescriptor->setStencilAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
-    pipelineDescriptor->setVertexFunction(
-        PipelineLibrary->newFunction(NS::String::string("texture_vertex", NS::ASCIIStringEncoding)));
-    pipelineDescriptor->setFragmentFunction(
-        PipelineLibrary->newFunction(NS::String::string("texture_fragment", NS::ASCIIStringEncoding)));
+    pipelineDescriptor->setVertexFunction(PipelineLibrary->newFunction(
+        NS::String::string("texture_vertex", NS::ASCIIStringEncoding)));
+    pipelineDescriptor->setFragmentFunction(PipelineLibrary->newFunction(
+        NS::String::string("texture_fragment", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
 
     NS::Error* error = nullptr;
     PipelineState = NS::TransferPtr(Device->newRenderPipelineState(pipelineDescriptor, &error));
     if (error)
     {
-        fprintf(stderr, "Failed to create pipeline state object: %s\n",
-                error->description()->cString(NS::ASCIIStringEncoding));
+        throw std::runtime_error(fmt::format("Failed to create pipeline state: {}",
+                                             error->localizedFailureReason()->utf8String()));
     }
 
     vertexDescriptor->release();
@@ -278,11 +296,12 @@ void Textures::CreateBuffers()
 
     static const uint16_t indices[] = {0, 1, 2, 2, 1, 3};
 
-    VertexBuffer =
-        NS::TransferPtr(Device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
+    VertexBuffer = NS::TransferPtr(
+        Device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
     VertexBuffer->setLabel(NS::String::string("Vertices", NS::ASCIIStringEncoding));
 
-    IndexBuffer = NS::TransferPtr(Device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
+    IndexBuffer = NS::TransferPtr(
+        Device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
     IndexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     const size_t instanceDataSize = BufferCount * InstanceCount * sizeof(Matrix);
@@ -292,8 +311,8 @@ void Textures::CreateBuffers()
         char temp[12];
         snprintf(temp, sizeof(temp), "%d", index);
 
-        InstanceBuffer[index] =
-            NS::TransferPtr(Device->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
+        InstanceBuffer[index] = NS::TransferPtr(
+            Device->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
         InstanceBuffer[index]->setLabel(
             prefix->stringByAppendingString(NS::String::string(temp, NS::ASCIIStringEncoding)));
     }
@@ -347,7 +366,10 @@ void Textures::CreateTextureHeap()
     NS::UInteger heapSize = 0;
     for (size_t i = 0; i < TextureCount; i++)
     {
-        MTL::Texture*           texture = textures[i];
+        MTL::Texture* texture = textures[i];
+        if (!texture)
+            continue;
+
         MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
         textureDescriptor->setTextureType(texture->textureType());
         textureDescriptor->setPixelFormat(texture->pixelFormat());
@@ -385,7 +407,8 @@ void Textures::CreateTextureHeap()
         textureDescriptor->setSampleCount(texture->sampleCount());
         textureDescriptor->setStorageMode(TextureHeap->storageMode());
 
-        NS::SharedPtr<MTL::Texture> heapTexture = NS::TransferPtr(TextureHeap->newTexture(textureDescriptor));
+        NS::SharedPtr<MTL::Texture> heapTexture =
+            NS::TransferPtr(TextureHeap->newTexture(textureDescriptor));
         textureDescriptor->release();
 
         MTL::Region blitRegion = MTL::Region(0, 0, texture->width(), texture->height());
@@ -393,8 +416,9 @@ void Textures::CreateTextureHeap()
         {
             for (auto slice = 0; slice < texture->arrayLength(); slice++)
             {
-                blitCommandEncoder->copyFromTexture(texture, slice, level, blitRegion.origin, blitRegion.size,
-                                                    heapTexture.get(), slice, level, blitRegion.origin);
+                blitCommandEncoder->copyFromTexture(texture, slice, level, blitRegion.origin,
+                                                    blitRegion.size, heapTexture.get(), slice,
+                                                    level, blitRegion.origin);
             }
 
             blitRegion.size.width /= 2;
@@ -432,10 +456,11 @@ void Textures::CreateArgumentBuffers()
         for (auto i = 0; i < BufferCount; i++)
         {
             const auto size = sizeof(FragmentArgumentBuffer);
-            ArgumentBuffer[i] = NS::TransferPtr(Device->newBuffer(size, MTL::ResourceOptionCPUCacheModeDefault));
+            ArgumentBuffer[i] =
+                NS::TransferPtr(Device->newBuffer(size, MTL::ResourceOptionCPUCacheModeDefault));
 
-            NS::String* label =
-                NS::String::string(fmt::format("Argument Buffer {}", i).c_str(), NS::UTF8StringEncoding);
+            NS::String* label = NS::String::string(fmt::format("Argument Buffer {}", i).c_str(),
+                                                   NS::UTF8StringEncoding);
             ArgumentBuffer[i]->setLabel(label);
             label->release();
 
@@ -456,11 +481,20 @@ void Textures::CreateArgumentBuffers()
 #if defined(__IPHONEOS__) || defined(__TVOS__)
 int SDL_main(int argc, char** argv)
 #else
+
 int main(int argc, char** argv)
 #endif
 {
-    std::unique_ptr<Textures> example = std::make_unique<Textures>();
-    example->Run(argc, argv);
+    int result = EXIT_FAILURE;
+    try
+    {
+        auto example = std::make_unique<Textures>();
+        result = example->Run(argc, argv);
+    }
+    catch (const std::runtime_error& error)
+    {
+        fmt::println("Exiting...");
+    }
 
-    return 0;
+    return result;
 }

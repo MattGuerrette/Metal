@@ -6,6 +6,8 @@
 
 #include <memory>
 
+#include <fmt/core.h>
+
 #include <Metal/Metal.hpp>
 #include <QuartzCore/QuartzCore.hpp>
 
@@ -13,6 +15,7 @@
 
 #include "Camera.hpp"
 #include "Example.hpp"
+#include "File.hpp"
 
 using namespace DirectX;
 
@@ -81,32 +84,47 @@ DistanceFieldFont::~DistanceFieldFont() = default;
 
 bool DistanceFieldFont::Load()
 {
-    Font = TTF_OpenFont(PathForResource("Modak.ttf").c_str(), 32);
+
+
+    try
+    {
+        File file("Modak.ttf");
+
+        Font = TTF_OpenFontIO(file.Stream(), SDL_FALSE, 32);
+
+    }
+    catch(const std::runtime_error& error)
+    {
+        fmt::println(error.what());
+        return false;
+    }
 
     SDL_Color  white = {0xFF, 0xFF, 0xFF, 0};
     SDL_Color  black = {0x00, 0x00, 0x00, 0};
     SDL_Color* forecol = &black;
     SDL_Color* backcol = &white;
 
-    TTF_SetFontSDF(Font, SDL_TRUE);
-    if (1)
-    {
-        for (int i = 48; i < 123; i++)
-        {
-            SDL_Surface* glyph = nullptr;
-
-            glyph = TTF_RenderText_Blended_Wrapped(Font, "Bob was here\nand there", *forecol,
-                                                   200); // TTF_RenderGlyph_Blended(Font, i, *forecol);
-
-            if (glyph)
-            {
-                char outname[64];
-                snprintf(outname, 64, "glyph-%d.bmp", i);
-                std::string path = PathForResource(outname);
-                SDL_SaveBMP(glyph, path.c_str());
-            }
-        }
-    }
+    // TODO: Save TTF into distance field bitmap cache
+//    TTF_SetFontSDF(Font, SDL_TRUE);
+//    if (1)
+//    {
+//        for (int i = 48; i < 123; i++)
+//        {
+//            SDL_Surface* glyph = nullptr;
+//
+//            glyph =
+//                TTF_RenderText_Blended_Wrapped(Font, "Bob was here\nand there", *forecol,
+//                                               200); // TTF_RenderGlyph_Blended(Font, i, *forecol);
+//
+//            if (glyph)
+//            {
+//                char outname[64];
+//                snprintf(outname, 64, "glyph-%d.bmp", i);
+//                std::string path = PathForResource(outname);
+//                SDL_SaveBMP(glyph, path.c_str());
+//            }
+//        }
+//    }
 
     const auto  width = GetFrameWidth();
     const auto  height = GetFrameHeight();
@@ -147,8 +165,9 @@ void DistanceFieldFont::Render(MTL::RenderCommandEncoder* commandEncoder, const 
     commandEncoder->setCullMode(MTL::CullModeNone);
     commandEncoder->setVertexBuffer(VertexBuffer.get(), 0, 0);
     commandEncoder->setVertexBuffer(InstanceBuffer[FrameIndex].get(), 0, 1);
-    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, IndexBuffer->length() / sizeof(uint16_t),
-                                          MTL::IndexTypeUInt16, IndexBuffer.get(), 0, InstanceCount);
+    commandEncoder->drawIndexedPrimitives(
+        MTL::PrimitiveTypeTriangle, IndexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
+        IndexBuffer.get(), 0, InstanceCount);
 }
 
 void DistanceFieldFont::CreatePipelineState()
@@ -168,31 +187,34 @@ void DistanceFieldFont::CreatePipelineState()
     vertexDescriptor->layouts()->object(0)->setStepFunction(MTL::VertexStepFunctionPerVertex);
     vertexDescriptor->layouts()->object(0)->setStride(sizeof(Vertex));
 
-    MTL::RenderPipelineDescriptor* pipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
-    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+    MTL::RenderPipelineDescriptor* pipelineDescriptor =
+        MTL::RenderPipelineDescriptor::alloc()->init();
+    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(FrameBufferPixelFormat);
     pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
-    pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(MTL::BlendFactorSourceAlpha);
+    pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
+        MTL::BlendFactorSourceAlpha);
     pipelineDescriptor->colorAttachments()->object(0)->setDestinationRGBBlendFactor(
         MTL::BlendFactorOneMinusSourceAlpha);
     pipelineDescriptor->colorAttachments()->object(0)->setRgbBlendOperation(MTL::BlendOperationAdd);
-    pipelineDescriptor->colorAttachments()->object(0)->setSourceAlphaBlendFactor(MTL::BlendFactorSourceAlpha);
+    pipelineDescriptor->colorAttachments()->object(0)->setSourceAlphaBlendFactor(
+        MTL::BlendFactorSourceAlpha);
     pipelineDescriptor->colorAttachments()->object(0)->setDestinationAlphaBlendFactor(
         MTL::BlendFactorOneMinusSourceAlpha);
-    pipelineDescriptor->colorAttachments()->object(0)->setAlphaBlendOperation(MTL::BlendOperationAdd);
+    pipelineDescriptor->colorAttachments()->object(0)->setAlphaBlendOperation(
+        MTL::BlendOperationAdd);
     pipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
     pipelineDescriptor->setStencilAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
-    pipelineDescriptor->setVertexFunction(
-        PipelineLibrary->newFunction(NS::String::string("instancing_vertex", NS::ASCIIStringEncoding)));
-    pipelineDescriptor->setFragmentFunction(
-        PipelineLibrary->newFunction(NS::String::string("instancing_fragment", NS::ASCIIStringEncoding)));
+    pipelineDescriptor->setVertexFunction(PipelineLibrary->newFunction(
+        NS::String::string("instancing_vertex", NS::ASCIIStringEncoding)));
+    pipelineDescriptor->setFragmentFunction(PipelineLibrary->newFunction(
+        NS::String::string("instancing_fragment", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
 
     NS::Error* error = nullptr;
     PipelineState = NS::TransferPtr(Device->newRenderPipelineState(pipelineDescriptor, &error));
     if (error)
     {
-        fprintf(stderr, "Failed to create pipeline state object: %s\n",
-                error->description()->cString(NS::ASCIIStringEncoding));
+        throw std::runtime_error(fmt::format("Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
 
     vertexDescriptor->release();
@@ -201,20 +223,24 @@ void DistanceFieldFont::CreatePipelineState()
 
 void DistanceFieldFont::CreateBuffers()
 {
-    static const Vertex vertices[] = {
-        {.Position = {-1, 1, 1, 1}, .Color = {0, 1, 1, 1}},  {.Position = {-1, -1, 1, 1}, .Color = {0, 0, 1, 1}},
-        {.Position = {1, -1, 1, 1}, .Color = {1, 0, 1, 1}},  {.Position = {1, 1, 1, 1}, .Color = {1, 1, 1, 1}},
-        {.Position = {-1, 1, -1, 1}, .Color = {0, 1, 0, 1}}, {.Position = {-1, -1, -1, 1}, .Color = {0, 0, 0, 1}},
-        {.Position = {1, -1, -1, 1}, .Color = {1, 0, 0, 1}}, {.Position = {1, 1, -1, 1}, .Color = {1, 1, 0, 1}}};
+    static const Vertex vertices[] = {{.Position = {-1, 1, 1, 1}, .Color = {0, 1, 1, 1}},
+                                      {.Position = {-1, -1, 1, 1}, .Color = {0, 0, 1, 1}},
+                                      {.Position = {1, -1, 1, 1}, .Color = {1, 0, 1, 1}},
+                                      {.Position = {1, 1, 1, 1}, .Color = {1, 1, 1, 1}},
+                                      {.Position = {-1, 1, -1, 1}, .Color = {0, 1, 0, 1}},
+                                      {.Position = {-1, -1, -1, 1}, .Color = {0, 0, 0, 1}},
+                                      {.Position = {1, -1, -1, 1}, .Color = {1, 0, 0, 1}},
+                                      {.Position = {1, 1, -1, 1}, .Color = {1, 1, 0, 1}}};
 
     static const uint16_t indices[] = {3, 2, 6, 6, 7, 3, 4, 5, 1, 1, 0, 4, 4, 0, 3, 3, 7, 4,
                                        1, 5, 6, 6, 2, 1, 0, 1, 2, 2, 3, 0, 7, 6, 5, 5, 4, 7};
 
-    VertexBuffer =
-        NS::TransferPtr(Device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
+    VertexBuffer = NS::TransferPtr(
+        Device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
     VertexBuffer->setLabel(NS::String::string("Vertices", NS::ASCIIStringEncoding));
 
-    IndexBuffer = NS::TransferPtr(Device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
+    IndexBuffer = NS::TransferPtr(
+        Device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
     IndexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     const size_t instanceDataSize = BufferCount * InstanceCount * sizeof(InstanceData);
@@ -224,8 +250,8 @@ void DistanceFieldFont::CreateBuffers()
         char temp[12];
         snprintf(temp, sizeof(temp), "%d", index);
 
-        InstanceBuffer[index] =
-            NS::TransferPtr(Device->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
+        InstanceBuffer[index] = NS::TransferPtr(
+            Device->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
         InstanceBuffer[index]->setLabel(
             prefix->stringByAppendingString(NS::String::string(temp, NS::ASCIIStringEncoding)));
     }
@@ -268,6 +294,16 @@ int SDL_main(int argc, char** argv)
 int main(int argc, char** argv)
 #endif
 {
-    std::unique_ptr<DistanceFieldFont> example = std::make_unique<DistanceFieldFont>();
-    return example->Run(argc, argv);
+    int result = EXIT_FAILURE;
+    try
+    {
+        auto example = std::make_unique<DistanceFieldFont>();
+        result = example->Run(argc, argv);
+    }
+    catch (const std::runtime_error& error)
+    {
+        fmt::println("Exiting...");
+    }
+
+    return result;
 }

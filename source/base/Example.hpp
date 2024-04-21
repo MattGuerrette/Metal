@@ -22,7 +22,7 @@ public:
 
     Example(const char* title, uint32_t width, uint32_t height);
 
-    virtual ~Example();
+    ~Example() override;
 
     int Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv);
 
@@ -39,8 +39,6 @@ public:
     virtual void SetupUi(const GameTimer& timer);
 
     virtual void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) = 0;
-
-    static std::string PathForResource(const std::string& resourceName);
 
     void metalDisplayLinkNeedsUpdate(CA::MetalDisplayLink*       displayLink,
                                      CA::MetalDisplayLinkUpdate* update) override;

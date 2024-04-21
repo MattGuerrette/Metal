@@ -8,9 +8,13 @@
 
 #include <fmt/core.h>
 
+#include <filesystem>
+
 #include "imgui.h"
 #include "imgui_impl_metal.h"
 #include "imgui_impl_sdl3.h"
+
+#include "File.hpp"
 
 Example::Example(const char* title, uint32_t width, uint32_t height)
 {
@@ -38,7 +42,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     const auto mode = SDL_GetDesktopDisplayMode(display);
     int32_t    screenWidth = mode->w;
     int32_t    screenHeight = mode->h;
-    auto       contentScale = SDL_GetDisplayContentScale(display);
+    const auto contentScale = SDL_GetDisplayContentScale(display);
     SDL_free(displays);
 
     int flags = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_METAL;
@@ -46,8 +50,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     Window = SDL_CreateWindow(title, screenWidth, screenHeight, flags);
     if (!Window)
     {
-        fprintf(stderr, "Failed to create SDL window.\n");
-        abort();
+        throw std::runtime_error(fmt::format("Failed to create SDL window: {}", SDL_GetError()));
     }
     View = SDL_Metal_CreateView(Window);
     Running = true;
@@ -72,18 +75,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 
     // Load Pipeline Library
     // TODO: Showcase how to use Metal archives to erase compilation
-    auto        path = NS::Bundle::mainBundle()->resourcePath();
-    NS::String* library = path->stringByAppendingString(
-        NS::String::string("/default.metallib", NS::ASCIIStringEncoding));
-
-    NS::Error* error = nullptr;
-    PipelineLibrary = NS::TransferPtr(Device->newLibrary(library, &error));
-    if (error != nullptr)
-    {
-        fprintf(stderr, "Failed to create pipeline library: %s\n",
-                error->localizedFailureReason()->utf8String());
-        abort();
-    }
+    PipelineLibrary = NS::TransferPtr(Device->newDefaultLibrary());
 
     FrameSemaphore = dispatch_semaphore_create(BufferCount);
 
@@ -147,17 +139,6 @@ uint32_t Example::GetFrameHeight() const
     int32_t h;
     SDL_GetWindowSizeInPixels(Window, nullptr, &h);
     return h;
-}
-
-std::string Example::PathForResource(const std::string& resourceName)
-{
-    auto        path = NS::Bundle::mainBundle()->resourcePath();
-    NS::String* resourcePath = path->stringByAppendingString(
-        NS::String::string((std::string("/") + resourceName).c_str(), NS::ASCIIStringEncoding));
-
-    std::string ret = resourcePath->utf8String();
-    resourcePath->release();
-    return ret;
 }
 
 int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
@@ -265,7 +246,11 @@ void Example::metalDisplayLinkNeedsUpdate(CA::MetalDisplayLink*       displayLin
         MTL::RenderCommandEncoder* commandEncoder =
             commandBuffer->renderCommandEncoder(passDescriptor);
 
+        commandEncoder->pushDebugGroup(MTLSTR("SAMPLE RENDERING"));
+
         Render(commandEncoder, Timer);
+
+        commandEncoder->popDebugGroup();
 
         // IMGUI rendering
         ImGui_ImplMetal_NewFrame(passDescriptor);
@@ -274,9 +259,13 @@ void Example::metalDisplayLinkNeedsUpdate(CA::MetalDisplayLink*       displayLin
 
         SetupUi(Timer);
 
+        commandEncoder->pushDebugGroup(MTLSTR("IMGUI RENDERING"));
+
         // Rendering
         ImGui::Render();
         ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), commandBuffer, commandEncoder);
+
+        commandEncoder->popDebugGroup();
 
         commandEncoder->endEncoding();
 
