@@ -35,6 +35,14 @@ FetchContent_Declare(fmt
         GIT_TAG 10.1.1
 )
 
+set(SDL3TTF_INSTALL OFF)
+set(SDL3TTF_VENDORED ON)
+FetchContent_Declare(sdlttf
+        GIT_REPOSITORY "https://github.com/libsdl-org/SDL_ttf.git"
+        GIT_TAG main
+)
+
+
 set(KTX_FEATURE_STATIC_LIBRARY ON)
 set(KTX_FEATURE_TOOLS OFF)
 set(KTX_FEATURE_TESTS OFF)
@@ -52,6 +60,8 @@ if (NOT ktx_POPULATED)
     add_subdirectory(${ktx_SOURCE_DIR} ${ktx_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif ()
 
-FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl3 metalcpp)
+set(BUILD_SHARED_LIBS OFF)
+
+FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl3 sdlttf metalcpp)
 
 include_directories(${sal_SOURCE_DIR} ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR} ${metalcpp_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)

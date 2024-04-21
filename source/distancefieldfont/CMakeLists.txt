@@ -19,7 +19,7 @@ if ((${CMAKE_SYSTEM_NAME} MATCHES "iOS") OR (${CMAKE_SYSTEM_NAME} MATCHES "tvOS"
     target_sources(${EXAMPLE} PRIVATE ${SDL2_SOURCE_DIR}/src/main/uikit/SDL_uikit_main.c)
 endif ()
 
-target_link_libraries(${EXAMPLE} base)
+target_link_libraries(${EXAMPLE} base SDL3_ttf::SDL3_ttf-static)
 set_target_properties(${EXAMPLE}
         PROPERTIES
         MACOSX_BUNDLE TRUE
