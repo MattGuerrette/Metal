@@ -1,3 +1,5 @@
+![example workflow](https://github.com/MattGuerrette/Metal/actions/workflows/cmake-single-platform.yml/badge.svg)
+
 # Metal C++ examples
 
 A collection of open source C++ examples for [Metal](https://developer.apple.com/metal)
