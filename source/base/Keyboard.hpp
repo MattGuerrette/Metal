@@ -7,7 +7,7 @@
 
 #include <map>
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 class Keyboard final
 {
