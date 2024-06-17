@@ -13,6 +13,7 @@
 #endif
 #endif
 
+#define PAL_STDCPP_COMPAT // Needed to avoid issues with __null definition on Xcode 16+
 #include <DirectXColors.h>
 #include <DirectXMath.h>
 
