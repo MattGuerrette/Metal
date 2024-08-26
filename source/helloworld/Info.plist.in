@@ -37,6 +37,8 @@
             <string>UIInterfaceOrientationLandscapeLeft</string>
             <string>UIInterfaceOrientationLandscapeRight</string>
         </array>
+    <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen.storyboard</string>
 	<key>NSHumanReadableCopyright</key>

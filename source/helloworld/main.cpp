@@ -14,6 +14,8 @@
 #include "Camera.hpp"
 #include "Example.hpp"
 
+#include <SDL3/SDL_main.h>
+
 using namespace DirectX;
 
 XM_ALIGNED_STRUCT(16) Vertex
@@ -221,12 +223,8 @@ void HelloWorld::UpdateUniforms()
     memcpy(buffer + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
 
-#if defined(__IPHONEOS__) || defined(__TVOS__)
-int SDL_main(int argc, char** argv)
-#else
 
 int main(int argc, char** argv)
-#endif
 {
     int result = EXIT_FAILURE;
     try

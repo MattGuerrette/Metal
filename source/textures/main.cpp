@@ -16,6 +16,8 @@
 #include "Example.hpp"
 #include "File.hpp"
 
+#include <SDL3/SDL_main.h>
+
 XM_ALIGNED_STRUCT(16) Vertex
 {
     Vector4 Position;
@@ -476,14 +478,15 @@ void Textures::CreateArgumentBuffers()
             buffer->TextureIndex = 0;
         }
     }
+    else
+    {
+        // TODO: Add support for Tier1 argument buffers?
+        // Or maybe just wait for Apple to phase out
+        // support for Tier1 hardware.
+    }
 }
 
-#if defined(__IPHONEOS__) || defined(__TVOS__)
-int SDL_main(int argc, char** argv)
-#else
-
 int main(int argc, char** argv)
-#endif
 {
     int result = EXIT_FAILURE;
     try
