@@ -10,10 +10,18 @@ FetchContent_Declare(directxmath
         GIT_TAG dec2022
 )
 
-FetchContent_Declare(imgui
-        GIT_REPOSITORY "https://github.com/ocornut/imgui.git"
-        GIT_TAG master
-)
+if (NOT IMGUI_DIR)
+    # Use fork as some fixes/changes may be made for macOS/iOS
+    # that may not be immediately accepted upstream.
+    FetchContent_Declare(imgui
+            GIT_REPOSITORY "https://github.com/MattGuerrette/imgui.git"
+            GIT_TAG master
+    )
+    FetchContent_MakeAvailable(imgui)
+else ()
+    set(imgui_SOURCE_DIR ${IMGUI_DIR})
+    include_directories(${imgui_SOURCE_DIR})
+endif ()
 
 FetchContent_Declare(stb
         GIT_REPOSITORY "https://github.com/nothings/stb.git"
@@ -54,6 +62,6 @@ endif ()
 
 set(BUILD_SHARED_LIBS OFF)
 
-FetchContent_MakeAvailable(sal directxmath fmt stb imgui sdl3 metalcpp)
+FetchContent_MakeAvailable(sal directxmath fmt stb sdl3 metalcpp)
 
 include_directories(${sal_SOURCE_DIR} ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR} ${metalcpp_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)
