@@ -131,7 +131,9 @@ void Textures::SetupUi(const GameTimer& timer)
             contents->TextureIndex = SelectedTexture;
         }
     }
+#if defined(SDL_PLATFORM_MACOS)
     ImGui::Text("Press Esc to Quit");
+#endif
     ImGui::End();
     ImGui::PopStyleVar();
 }
@@ -143,6 +145,11 @@ void Textures::Update(const GameTimer& timer)
     if (Mouse->LeftPressed())
     {
         RotationY += static_cast<float>(Mouse->RelativeX()) * elapsed;
+    }
+
+    if (Gamepad_)
+    {
+        RotationY += static_cast<float>(Gamepad_->LeftThumbstickHorizontal()) * elapsed;
     }
 }
 

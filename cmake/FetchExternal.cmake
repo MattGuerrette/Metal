@@ -33,10 +33,15 @@ FetchContent_Declare(sdl3
         GIT_TAG main
 )
 
-FetchContent_Declare(metalcpp
-        GIT_REPOSITORY "https://github.com/MattGuerrette/metalcpp"
-        GIT_TAG main
-)
+if (NOT METALCPP_DIR)
+    FetchContent_Declare(metalcpp
+            GIT_REPOSITORY "https://github.com/MattGuerrette/metalcpp"
+            GIT_TAG main
+    )
+    FetchContent_MakeAvailable(metalcpp)
+else ()
+    add_subdirectory(${METALCPP_DIR} metalcpp)
+endif ()
 
 FetchContent_Declare(fmt
         GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
@@ -62,6 +67,6 @@ endif ()
 
 set(BUILD_SHARED_LIBS OFF)
 
-FetchContent_MakeAvailable(sal directxmath fmt stb sdl3 metalcpp)
+FetchContent_MakeAvailable(sal directxmath fmt stb sdl3)
 
 include_directories(${sal_SOURCE_DIR} ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR} ${metalcpp_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)

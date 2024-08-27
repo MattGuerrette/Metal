@@ -9,6 +9,7 @@
 #include <fmt/core.h>
 
 #include <filesystem>
+#include <memory>
 
 #include "imgui.h"
 #include "imgui_impl_metal.h"
@@ -28,7 +29,9 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     ImGui::StyleColorsDark();
 
     // Initialize SDL
-    if (const int result = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER); result < 0)
+    if (const int result =
+            SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD | SDL_INIT_TIMER);
+        result < 0)
     {
         fmt::println(fmt::format("Failed to initialize SDL: {}", SDL_GetError()));
         abort();
@@ -86,6 +89,8 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     Timer.ResetElapsedTime();
 
     DisplayLink_ = NS::TransferPtr(CA::MetalDisplayLink::alloc()->init(layer));
+    // Enable 120HZ refresh for devices that support Pro Motion
+    DisplayLink_->setPreferredFrameRateRange({60, 120, 120});
     DisplayLink_->setDelegate(this);
 }
 
@@ -161,6 +166,22 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
             {
                 Running = false;
                 break;
+            }
+
+            if (e.type == SDL_EVENT_JOYSTICK_ADDED)
+            {
+                if (SDL_IsGamepad(e.jdevice.which))
+                {
+                    Gamepad_ = std::make_unique<Gamepad>(e.jdevice.which);
+                }
+            }
+
+            if (e.type == SDL_EVENT_JOYSTICK_REMOVED)
+            {
+                if (SDL_IsGamepad(e.jdevice.which))
+                {
+                    Gamepad_.reset();
+                }
             }
 
             if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP)

@@ -12,6 +12,7 @@
 #include <QuartzCore/QuartzCore.hpp>
 
 #include "GameTimer.hpp"
+#include "Gamepad.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 
@@ -51,6 +52,7 @@ protected:
     // Keyboard and Mouse
     std::unique_ptr<class Keyboard> Keyboard;
     std::unique_ptr<class Mouse>    Mouse;
+    std::unique_ptr<Gamepad>        Gamepad_;
 
     // Metal
     NS::SharedPtr<CA::MetalDisplayLink>   DisplayLink_;

@@ -1,18 +1,13 @@
 
 add_library(base STATIC
-        LinkImpl.cpp
-        Camera.hpp
         Camera.cpp
-        Keyboard.hpp
         Keyboard.cpp
-        Mouse.hpp
         Mouse.cpp
         GameTimer.cpp
         GameTimer.cpp
         SimpleMath.cpp
-        Example.hpp
         Example.cpp
-        File.hpp
+        Gamepad.cpp
         File.cpp
         ${imgui_SOURCE_DIR}/imgui.cpp
         ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -31,7 +26,7 @@ set_target_properties(base PROPERTIES
 
 target_compile_definitions(base PRIVATE -DIMGUI_IMPL_METAL_CPP)
 target_include_directories(base PUBLIC .)
-target_link_libraries(base PUBLIC ktx fmt SDL3::SDL3-static
+target_link_libraries(base PUBLIC ktx fmt SDL3::SDL3-static AppleFrameworksCpp
         "-framework Foundation"
         "-framework Metal"
         "-framework MetalKit"
