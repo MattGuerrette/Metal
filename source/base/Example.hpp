@@ -8,6 +8,10 @@
 
 #include <SDL3/SDL.h>
 
+#ifdef SDL_PLATFORM_MACOS
+#include <AppKit/AppKit.hpp>
+#endif
+
 #include <Metal/Metal.hpp>
 #include <QuartzCore/QuartzCore.hpp>
 
@@ -46,6 +50,10 @@ public:
 
 protected:
     static constexpr int BufferCount = 3;
+
+#ifdef SDL_PLATFORM_MACOS
+    virtual NS::Menu* createMenuBar();
+#endif
 
     SDL_MetalView View;
 

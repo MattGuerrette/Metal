@@ -7,6 +7,7 @@ add_library(base STATIC
         GameTimer.cpp
         SimpleMath.cpp
         Example.cpp
+        Example.hpp
         Gamepad.cpp
         File.cpp
         ${imgui_SOURCE_DIR}/imgui.cpp

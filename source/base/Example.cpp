@@ -45,10 +45,15 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     const auto mode = SDL_GetDesktopDisplayMode(display);
     int32_t    screenWidth = mode->w;
     int32_t    screenHeight = mode->h;
-    const auto contentScale = SDL_GetDisplayContentScale(display);
     SDL_free(displays);
 
     int flags = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_METAL;
+#ifdef SDL_PLATFORM_MACOS
+    flags ^= SDL_WINDOW_FULLSCREEN;
+    flags |= SDL_WINDOW_RESIZABLE;
+    screenWidth = width;
+    screenHeight = height;
+#endif
 
     Window = SDL_CreateWindow(title, screenWidth, screenHeight, flags);
     if (!Window)
@@ -110,6 +115,8 @@ Example::~Example()
 
 void Example::CreateDepthStencil()
 {
+    DepthStencilState.reset();
+
     MTL::DepthStencilDescriptor* depthStencilDescriptor =
         MTL::DepthStencilDescriptor::alloc()->init();
     depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
@@ -120,6 +127,7 @@ void Example::CreateDepthStencil()
     depthStencilDescriptor->release();
 
     MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::texture2DDescriptor(
+
         MTL::PixelFormatDepth32Float_Stencil8, GetFrameWidth(), GetFrameHeight(), false);
     textureDescriptor->setSampleCount(1);
     textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
@@ -146,8 +154,20 @@ uint32_t Example::GetFrameHeight() const
     return h;
 }
 
+NS::Menu* Example::createMenuBar()
+{
+    return nullptr;
+}
+
 int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 {
+#ifdef SDL_PLATFORM_MACOS
+    NS::Menu* menu = createMenuBar();
+    if (menu)
+    {
+        NS::Application::sharedApplication()->setMainMenu(menu);
+    }
+#endif
     if (!Load())
     {
         return EXIT_FAILURE;
@@ -166,6 +186,18 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
             {
                 Running = false;
                 break;
+            }
+
+            if (e.type == SDL_EVENT_WINDOW_RESIZED)
+            {
+                const float     density = SDL_GetWindowPixelDensity(Window);
+                CA::MetalLayer* layer = (CA::MetalLayer*)SDL_Metal_GetLayer(View);
+                layer->setDrawableSize(
+                    CGSize{(float)e.window.data1 * density, (float)e.window.data2 * density});
+
+                ImGuiIO& io = ImGui::GetIO();
+                io.DisplaySize =
+                    ImVec2((float)e.window.data1 * density, (float)e.window.data2 * density);
             }
 
             if (e.type == SDL_EVENT_JOYSTICK_ADDED)
@@ -249,6 +281,24 @@ void Example::metalDisplayLinkNeedsUpdate(CA::MetalDisplayLink*       displayLin
     CA::MetalDrawable* drawable = update->drawable();
     if (drawable)
     {
+        // Update depth stencil texture if necessary¬
+        if (drawable->texture()->width() != DepthStencilTexture->width() ||
+            drawable->texture()->height() != DepthStencilTexture->height())
+        {
+            DepthStencilTexture.reset();
+
+            MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::texture2DDescriptor(
+
+                MTL::PixelFormatDepth32Float_Stencil8, GetFrameWidth(), GetFrameHeight(), false);
+            textureDescriptor->setSampleCount(1);
+            textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+            textureDescriptor->setResourceOptions(MTL::ResourceOptionCPUCacheModeDefault |
+                                                  MTL::ResourceStorageModePrivate);
+            textureDescriptor->setStorageMode(MTL::StorageModeMemoryless);
+
+            DepthStencilTexture = NS::TransferPtr(Device->newTexture(textureDescriptor));
+        }
+
         MTL::RenderPassDescriptor* passDescriptor =
             MTL::RenderPassDescriptor::renderPassDescriptor();
         passDescriptor->colorAttachments()->object(0)->setTexture(drawable->texture());

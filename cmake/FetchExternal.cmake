@@ -1,5 +1,11 @@
 include(FetchContent)
 
+FetchContent_Declare(
+        cgltf
+        GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
+        GIT_TAG master
+)
+
 FetchContent_Declare(sal
         GIT_REPOSITORY "https://github.com/MattGuerrette/sal.git"
         GIT_TAG main
@@ -67,6 +73,6 @@ endif ()
 
 set(BUILD_SHARED_LIBS OFF)
 
-FetchContent_MakeAvailable(sal directxmath fmt stb sdl3)
+FetchContent_MakeAvailable(sal directxmath fmt stb sdl3 cgltf)
 
 include_directories(${sal_SOURCE_DIR} ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${stb_SOURCE_DIR} ${metalcpp_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)
