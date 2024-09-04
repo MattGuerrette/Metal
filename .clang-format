@@ -1,4 +1,4 @@
-BasedOnStyle: Microsoft
+BasedOnStyle: WebKit
 NamespaceIndentation: All
 AlignTrailingComments: true
 AlignConsecutiveDeclarations: AcrossComments

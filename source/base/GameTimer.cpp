@@ -6,68 +6,57 @@
 #include "GameTimer.hpp"
 
 GameTimer::GameTimer()
-    : ElapsedTicks(0), TotalTicks(0), LeftOverTicks(0), FrameCount(0), FramesPerSecond(0),
-      FramesThisSecond(0), QpcSecondCounter(0), IsFixedTimeStep(false), TargetElapsedTicks(0)
+    : m_elapsedTicks(0)
+    , m_totalTicks(0)
+    , m_leftOverTicks(0)
+    , m_frameCount(0)
+    , m_framesPerSecond(0)
+    , m_framesThisSecond(0)
+    , m_qpcSecondCounter(0)
+    , m_isFixedTimeStep(false)
+    , m_targetElapsedTicks(0)
 {
-    QpcFrequency = SDL_GetPerformanceFrequency();
-    QpcLastTime = SDL_GetPerformanceCounter();
+    m_qpcFrequency = SDL_GetPerformanceFrequency();
+    m_qpcLastTime = SDL_GetPerformanceCounter();
 
     // Max delta 1/10th of a second
-    QpcMaxDelta = QpcFrequency / 10;
+    m_qpcMaxDelta = m_qpcFrequency / 10;
 }
 
-uint64_t GameTimer::GetElapsedTicks() const noexcept
+uint64_t GameTimer::elapsedTicks() const noexcept { return m_elapsedTicks; }
+
+double GameTimer::elapsedSeconds() const noexcept { return ticksToSeconds(m_elapsedTicks); }
+
+uint64_t GameTimer::totalTicks() const noexcept { return m_totalTicks; }
+
+double GameTimer::totalSeconds() const noexcept { return ticksToSeconds(m_totalTicks); }
+
+uint32_t GameTimer::frameCount() const noexcept { return m_frameCount; }
+
+uint32_t GameTimer::framesPerSecond() const noexcept { return m_framesPerSecond; }
+
+void GameTimer::setFixedTimeStep(const bool isFixedTimeStep) noexcept
 {
-    return ElapsedTicks;
+    m_isFixedTimeStep = isFixedTimeStep;
 }
 
-double GameTimer::GetElapsedSeconds() const noexcept
+void GameTimer::setTargetElapsedTicks(uint64_t targetElapsed) noexcept
 {
-    return TicksToSeconds(ElapsedTicks);
+    m_targetElapsedTicks = targetElapsed;
 }
 
-uint64_t GameTimer::GetTotalTicks() const noexcept
+void GameTimer::setTargetElapsedSeconds(const double targetElapsed) noexcept
 {
-    return TotalTicks;
+    m_targetElapsedTicks = secondsToTicks(targetElapsed);
 }
 
-double GameTimer::GetTotalSeconds() const noexcept
+void GameTimer::resetElapsedTime()
 {
-    return TicksToSeconds(TotalTicks);
-}
+    m_qpcLastTime = SDL_GetPerformanceCounter();
 
-uint32_t GameTimer::GetFrameCount() const noexcept
-{
-    return FrameCount;
-}
-
-uint32_t GameTimer::GetFramesPerSecond() const noexcept
-{
-    return FramesPerSecond;
-}
-
-void GameTimer::SetFixedTimeStep(const bool isFixedTimeStep) noexcept
-{
-    IsFixedTimeStep = isFixedTimeStep;
-}
-
-void GameTimer::SetTargetElapsedTicks(const uint64_t targetElapsed) noexcept
-{
-    TargetElapsedTicks = targetElapsed;
-}
-
-void GameTimer::SetTargetElapsedSeconds(const double targetElapsed) noexcept
-{
-    TargetElapsedTicks = SecondsToTicks(targetElapsed);
-}
-
-void GameTimer::ResetElapsedTime()
-{
-    QpcLastTime = SDL_GetPerformanceCounter();
-
-    LeftOverTicks = 0;
-    FramesPerSecond = 0;
-    FramesThisSecond = 0;
-    QpcSecondCounter = 0;
-    TotalTicks = 0;
+    m_leftOverTicks = 0;
+    m_framesPerSecond = 0;
+    m_framesThisSecond = 0;
+    m_qpcSecondCounter = 0;
+    m_totalTicks = 0;
 }

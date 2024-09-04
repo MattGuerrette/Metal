@@ -8,41 +8,40 @@
 
 XM_ALIGNED_STRUCT(16) CameraUniforms
 {
-    Matrix View;
-    Matrix Projection;
-    Matrix ViewProjection;
-    Matrix InvProjection;
-    Matrix InvView;
-    Matrix InvViewProjection;
+    Matrix view;
+    Matrix projection;
+    Matrix viewProjection;
+    Matrix invProjection;
+    Matrix invView;
+    Matrix invViewProjection;
 };
 
 /// @todo Improve this Camera class to use Quaternion rotation
-class Camera
-{
+class Camera {
 public:
     Camera(Vector3 position,
-           Vector3 direction,
-           Vector3 up,
-           float   fov,
-           float   aspectRatio,
-           float   nearPlane,
-           float   farPlane);
+        Vector3    direction,
+        Vector3    up,
+        float      fov,
+        float      aspectRatio,
+        float      nearPlane,
+        float      farPlane);
 
-    [[nodiscard]] const CameraUniforms& GetUniforms() const;
+    [[nodiscard]] const CameraUniforms& uniforms() const;
 
     void setProjection(float fov, float aspect, float zNear, float zFar);
 
 private:
-    void UpdateBasisVectors(Vector3 direction);
+    void updateBasisVectors(Vector3 direction);
 
-    void UpdateUniforms();
+    void updateUniforms();
 
-    CameraUniforms Uniforms{};
-    Vector3        Position;
-    Vector3        Direction;
-    Vector3        Up;
-    float          FieldOfView;
-    float          AspectRatio;
-    float          NearPlane;
-    float          FarPlane;
+    CameraUniforms m_uniforms {};
+    Vector3        m_position;
+    Vector3        m_direction;
+    Vector3        m_up;
+    float          m_fieldOfView;
+    float          m_aspectRatio;
+    float          m_nearPlane;
+    float          m_farPlane;
 };

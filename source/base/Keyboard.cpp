@@ -5,22 +5,16 @@
 
 #include "Keyboard.hpp"
 
-bool Keyboard::IsKeyClicked(SDL_Scancode key)
+bool Keyboard::isKeyClicked(SDL_Scancode key)
 {
-    return CurrentKeyState[key] && !PreviousKeyState[key];
+    return m_currentKeyState[key] && !m_previousKeyState[key];
 }
 
-bool Keyboard::IsKeyPressed(SDL_Scancode key)
+bool Keyboard::isKeyPressed(SDL_Scancode key) { return m_currentKeyState[key]; }
+
+void Keyboard::registerKeyEvent(SDL_KeyboardEvent* event)
 {
-    return CurrentKeyState[key];
+    m_currentKeyState[event->scancode] = event->state == SDL_PRESSED;
 }
 
-void Keyboard::RegisterKeyEvent(SDL_KeyboardEvent* event)
-{
-    CurrentKeyState[event->scancode] = event->state == SDL_PRESSED;
-}
-
-void Keyboard::Update()
-{
-    PreviousKeyState = CurrentKeyState;
-}
+void Keyboard::update() { m_previousKeyState = m_currentKeyState; }

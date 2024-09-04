@@ -23,28 +23,27 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr;
-    io.IniSavingRate = 0.0f;
+    io.IniSavingRate = 0.0F;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
     ImGui::StyleColorsDark();
 
     // Initialize SDL
-    if (const int result =
-            SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD | SDL_INIT_TIMER);
-        result < 0)
-    {
+    if (const int result
+        = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD | SDL_INIT_TIMER);
+        result < 0) {
         fmt::println(fmt::format("Failed to initialize SDL: {}", SDL_GetError()));
         abort();
     }
 
-    int  numDisplays = 0;
-    auto displays = SDL_GetDisplays(&numDisplays);
+    int   numDisplays = 0;
+    auto* displays = SDL_GetDisplays(&numDisplays);
     assert(numDisplays != 0);
 
-    const auto display = displays[0];
-    const auto mode = SDL_GetDesktopDisplayMode(display);
-    int32_t    screenWidth = mode->w;
-    int32_t    screenHeight = mode->h;
+    const auto        display = displays[0];
+    const auto* const mode = SDL_GetDesktopDisplayMode(display);
+    int32_t           screenWidth = mode->w;
+    int32_t           screenHeight = mode->h;
     SDL_free(displays);
 
     int flags = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_METAL;
@@ -55,48 +54,47 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     screenHeight = height;
 #endif
 
-    Window = SDL_CreateWindow(title, screenWidth, screenHeight, flags);
-    if (!Window)
-    {
+    m_window = SDL_CreateWindow(title, screenWidth, screenHeight, flags);
+    if (m_window == nullptr) {
         throw std::runtime_error(fmt::format("Failed to create SDL window: {}", SDL_GetError()));
     }
-    View = SDL_Metal_CreateView(Window);
-    Running = true;
-    SDL_ShowWindow(Window);
+    m_view = SDL_Metal_CreateView(m_window);
+    m_running = true;
+    SDL_ShowWindow(m_window);
 
-    Width = width;
-    Height = height;
+    m_width = width;
+    m_height = height;
 
-    Device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
+    m_device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
 
-    auto* layer = static_cast<CA::MetalLayer*>((SDL_Metal_GetLayer(View)));
-    FrameBufferPixelFormat = MTL::PixelFormatBGRA8Unorm_sRGB;
-    layer->setPixelFormat(FrameBufferPixelFormat);
-    layer->setDevice(Device.get());
+    auto* layer = static_cast<CA::MetalLayer*>((SDL_Metal_GetLayer(m_view)));
+    m_frameBufferPixelFormat = MTL::PixelFormatBGRA8Unorm_sRGB;
+    layer->setPixelFormat(m_frameBufferPixelFormat);
+    layer->setDevice(m_device.get());
 
-    ImGui_ImplMetal_Init(Device.get());
-    ImGui_ImplSDL3_InitForMetal(Window);
+    ImGui_ImplMetal_Init(m_device.get());
+    ImGui_ImplSDL3_InitForMetal(m_window);
 
-    CommandQueue = NS::TransferPtr(Device->newCommandQueue());
+    m_commandQueue = NS::TransferPtr(m_device->newCommandQueue());
 
-    CreateDepthStencil();
+    createDepthStencil();
 
     // Load Pipeline Library
     // TODO: Showcase how to use Metal archives to erase compilation
-    PipelineLibrary = NS::TransferPtr(Device->newDefaultLibrary());
+    m_pipelineLibrary = NS::TransferPtr(m_device->newDefaultLibrary());
 
-    FrameSemaphore = dispatch_semaphore_create(BufferCount);
+    m_frameSemaphore = dispatch_semaphore_create(s_bufferCount);
 
-    Keyboard = std::make_unique<class Keyboard>();
-    Mouse = std::make_unique<class Mouse>(Window);
+    m_keyboard = std::make_unique<class Keyboard>();
+    m_mouse = std::make_unique<class Mouse>(m_window);
 
-    Timer.SetFixedTimeStep(false);
-    Timer.ResetElapsedTime();
+    m_timer.setFixedTimeStep(false);
+    m_timer.resetElapsedTime();
 
-    DisplayLink_ = NS::TransferPtr(CA::MetalDisplayLink::alloc()->init(layer));
+    m_displayLink = NS::TransferPtr(CA::MetalDisplayLink::alloc()->init(layer));
     // Enable 120HZ refresh for devices that support Pro Motion
-    DisplayLink_->setPreferredFrameRateRange({60, 120, 120});
-    DisplayLink_->setDelegate(this);
+    m_displayLink->setPreferredFrameRateRange({ 60, 120, 120 });
+    m_displayLink->setDelegate(this);
 }
 
 Example::~Example()
@@ -106,140 +104,110 @@ Example::~Example()
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
-    if (Window != nullptr)
-    {
-        SDL_DestroyWindow(Window);
+    if (m_window != nullptr) {
+        SDL_DestroyWindow(m_window);
     }
     SDL_Quit();
 }
 
-void Example::CreateDepthStencil()
+void Example::createDepthStencil()
 {
-    DepthStencilState.reset();
+    m_depthStencilState.reset();
 
-    MTL::DepthStencilDescriptor* depthStencilDescriptor =
-        MTL::DepthStencilDescriptor::alloc()->init();
+    MTL::DepthStencilDescriptor* depthStencilDescriptor
+        = MTL::DepthStencilDescriptor::alloc()->init();
     depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
     depthStencilDescriptor->setDepthWriteEnabled(true);
 
-    DepthStencilState = NS::TransferPtr(Device->newDepthStencilState(depthStencilDescriptor));
+    m_depthStencilState = NS::TransferPtr(m_device->newDepthStencilState(depthStencilDescriptor));
 
     depthStencilDescriptor->release();
 
+    int32_t frameWidth = 0;
+    int32_t frameHeight = 0;
+    SDL_GetWindowSizeInPixels(m_window, &frameWidth, &frameHeight);
     MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::texture2DDescriptor(
-
-        MTL::PixelFormatDepth32Float_Stencil8, GetFrameWidth(), GetFrameHeight(), false);
+        MTL::PixelFormatDepth32Float_Stencil8, frameWidth, frameHeight, false);
     textureDescriptor->setSampleCount(1);
     textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
-    textureDescriptor->setResourceOptions(MTL::ResourceOptionCPUCacheModeDefault |
-                                          MTL::ResourceStorageModePrivate);
+    textureDescriptor->setResourceOptions(
+        MTL::ResourceOptionCPUCacheModeDefault | MTL::ResourceStorageModePrivate);
     textureDescriptor->setStorageMode(MTL::StorageModeMemoryless);
 
-    DepthStencilTexture = NS::TransferPtr(Device->newTexture(textureDescriptor));
+    m_depthStencilTexture = NS::TransferPtr(m_device->newTexture(textureDescriptor));
 
     textureDescriptor->release();
 }
 
-uint32_t Example::GetFrameWidth() const
-{
-    int32_t w;
-    SDL_GetWindowSizeInPixels(Window, &w, nullptr);
-    return w;
-}
-
-uint32_t Example::GetFrameHeight() const
-{
-    int32_t h;
-    SDL_GetWindowSizeInPixels(Window, nullptr, &h);
-    return h;
-}
-
 #ifdef SDL_PLATFORM_MACOS
-NS::Menu* Example::createMenuBar()
-{
-    return nullptr;
-}
+NS::Menu* Example::createMenuBar() { return nullptr; }
 #endif
 
-int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
+int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 {
 #ifdef SDL_PLATFORM_MACOS
     NS::Menu* menu = createMenuBar();
-    if (menu)
-    {
+    if (menu) {
         NS::Application::sharedApplication()->setMainMenu(menu);
     }
 #endif
-    if (!Load())
-    {
+    if (!onLoad()) {
         return EXIT_FAILURE;
     }
 
-    DisplayLink_->addToRunLoop(NS::RunLoop::mainRunLoop(), NS::DefaultRunLoopMode);
+    m_displayLink->addToRunLoop(NS::RunLoop::mainRunLoop(), NS::DefaultRunLoopMode);
 
-    while (Running)
-    {
+    while (m_running) {
         SDL_Event e;
-        if (SDL_WaitEvent(&e))
-        {
+        if (SDL_WaitEvent(&e)) {
             ImGui_ImplSDL3_ProcessEvent(&e);
 
-            if (e.type == SDL_EVENT_QUIT)
-            {
-                Running = false;
+            if (e.type == SDL_EVENT_QUIT) {
+                m_running = false;
                 break;
             }
 
-            if (e.type == SDL_EVENT_WINDOW_RESIZED)
-            {
-                const float     density = SDL_GetWindowPixelDensity(Window);
-                CA::MetalLayer* layer = (CA::MetalLayer*)SDL_Metal_GetLayer(View);
+            if (e.type == SDL_EVENT_WINDOW_RESIZED) {
+                const float     density = SDL_GetWindowPixelDensity(m_window);
+                CA::MetalLayer* layer = (CA::MetalLayer*)SDL_Metal_GetLayer(m_view);
                 layer->setDrawableSize(
-                    CGSize{(float)e.window.data1 * density, (float)e.window.data2 * density});
+                    CGSize { (float)e.window.data1 * density, (float)e.window.data2 * density });
 
-                ImGuiIO& io = ImGui::GetIO();
-                io.DisplaySize =
-                    ImVec2((float)e.window.data1 * density, (float)e.window.data2 * density);
+                //                ImGuiIO& io = ImGui::GetIO();
+                //                io.DisplaySize =
+                //                    ImVec2((float)e.window.data1 * density, (float)e.window.data2
+                //                    * density);
 
                 onResize(e.window.data1, e.window.data2);
             }
 
-            if (e.type == SDL_EVENT_JOYSTICK_ADDED)
-            {
-                if (SDL_IsGamepad(e.jdevice.which))
-                {
-                    Gamepad_ = std::make_unique<Gamepad>(e.jdevice.which);
+            if (e.type == SDL_EVENT_JOYSTICK_ADDED) {
+                if (SDL_IsGamepad(e.jdevice.which)) {
+                    m_gamepad = std::make_unique<Gamepad>(e.jdevice.which);
                 }
             }
 
-            if (e.type == SDL_EVENT_JOYSTICK_REMOVED)
-            {
-                if (SDL_IsGamepad(e.jdevice.which))
-                {
-                    Gamepad_.reset();
+            if (e.type == SDL_EVENT_JOYSTICK_REMOVED) {
+                if (SDL_IsGamepad(e.jdevice.which)) {
+                    m_gamepad.reset();
                 }
             }
 
-            if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP)
-            {
-                Keyboard->RegisterKeyEvent(&e.key);
+            if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
+                m_keyboard->registerKeyEvent(&e.key);
             }
-            if (e.type == SDL_EVENT_MOUSE_BUTTON_UP || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
-            {
-                Mouse->RegisterMouseButton(&e.button);
+            if (e.type == SDL_EVENT_MOUSE_BUTTON_UP || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+                m_mouse->registerMouseButton(&e.button);
             }
-            if (e.type == SDL_EVENT_MOUSE_MOTION)
-            {
-                Mouse->RegisterMouseMotion(&e.motion);
+            if (e.type == SDL_EVENT_MOUSE_MOTION) {
+                m_mouse->registerMouseMotion(&e.motion);
             }
-            if (e.type == SDL_EVENT_MOUSE_WHEEL)
-            {
-                Mouse->RegisterMouseWheel(&e.wheel);
+            if (e.type == SDL_EVENT_MOUSE_WHEEL) {
+                m_mouse->registerMouseWheel(&e.wheel);
             }
 
-            if (Keyboard->IsKeyClicked(SDL_SCANCODE_ESCAPE))
-            {
-                Quit();
+            if (m_keyboard->isKeyClicked(SDL_SCANCODE_ESCAPE)) {
+                quit();
             }
         }
     }
@@ -247,92 +215,90 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
     return 0;
 }
 
-void Example::SetupUi(const GameTimer& timer)
+void Example::onSetupUi(const GameTimer& timer)
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
     ImGui::SetNextWindowPos(ImVec2(10, 10));
-    ImGui::SetNextWindowSize(ImVec2(125 * ImGui::GetIO().DisplayFramebufferScale.x, 0),
-                             ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(125 * 2.0f, 0), ImGuiCond_FirstUseEver);
     ImGui::Begin("Metal Example", nullptr,
-                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
-    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(Window), timer.GetFramesPerSecond());
-    ImGui::Text("Press Esc to Quit");
+        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
+    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(m_window), timer.framesPerSecond());
+    ImGui::Text("Press Esc to quit");
     ImGui::End();
     ImGui::PopStyleVar();
 }
 
-void Example::Quit()
+void Example::quit() { m_running = false; }
+
+void Example::metalDisplayLinkNeedsUpdate(
+    CA::MetalDisplayLink* displayLink, CA::MetalDisplayLinkUpdate* update)
 {
-    Running = false;
-}
+    m_timer.tick([this]() { onUpdate(m_timer); });
 
-void Example::metalDisplayLinkNeedsUpdate(CA::MetalDisplayLink*       displayLink,
-                                          CA::MetalDisplayLinkUpdate* update)
-{
-    Timer.Tick([this]() { Update(Timer); });
+    m_keyboard->update();
+    m_mouse->update();
 
-    Keyboard->Update();
-    Mouse->Update();
+    m_frameIndex = (m_frameIndex + 1) % s_bufferCount;
 
-    FrameIndex = (FrameIndex + 1) % BufferCount;
+    MTL::CommandBuffer* commandBuffer = m_commandQueue->commandBuffer();
 
-    MTL::CommandBuffer* commandBuffer = CommandQueue->commandBuffer();
-
-    dispatch_semaphore_wait(FrameSemaphore, DISPATCH_TIME_FOREVER);
+    dispatch_semaphore_wait(m_frameSemaphore, DISPATCH_TIME_FOREVER);
     commandBuffer->addCompletedHandler(
-        [this](MTL::CommandBuffer* buffer) { dispatch_semaphore_signal(FrameSemaphore); });
+        [this](MTL::CommandBuffer* /*buffer*/) { dispatch_semaphore_signal(m_frameSemaphore); });
 
     CA::MetalDrawable* drawable = update->drawable();
-    if (drawable)
-    {
+    if (drawable != nullptr) {
         // Update depth stencil texture if necessary¬
-        if (drawable->texture()->width() != DepthStencilTexture->width() ||
-            drawable->texture()->height() != DepthStencilTexture->height())
-        {
-            DepthStencilTexture.reset();
+        if (drawable->texture()->width() != m_depthStencilTexture->width()
+            || drawable->texture()->height() != m_depthStencilTexture->height()) {
+            m_depthStencilTexture.reset();
+
+            int32_t frameWidth = 0;
+            int32_t frameHeight = 0;
+            SDL_GetWindowSizeInPixels(m_window, &frameWidth, &frameHeight);
 
             MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::texture2DDescriptor(
 
-                MTL::PixelFormatDepth32Float_Stencil8, GetFrameWidth(), GetFrameHeight(), false);
+                MTL::PixelFormatDepth32Float_Stencil8, frameWidth, frameHeight, false);
             textureDescriptor->setSampleCount(1);
             textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
-            textureDescriptor->setResourceOptions(MTL::ResourceOptionCPUCacheModeDefault |
-                                                  MTL::ResourceStorageModePrivate);
+            textureDescriptor->setResourceOptions(
+                MTL::ResourceOptionCPUCacheModeDefault | MTL::ResourceStorageModePrivate);
             textureDescriptor->setStorageMode(MTL::StorageModeMemoryless);
 
-            DepthStencilTexture = NS::TransferPtr(Device->newTexture(textureDescriptor));
+            m_depthStencilTexture = NS::TransferPtr(m_device->newTexture(textureDescriptor));
         }
 
-        MTL::RenderPassDescriptor* passDescriptor =
-            MTL::RenderPassDescriptor::renderPassDescriptor();
+        MTL::RenderPassDescriptor* passDescriptor
+            = MTL::RenderPassDescriptor::renderPassDescriptor();
         passDescriptor->colorAttachments()->object(0)->setTexture(drawable->texture());
         passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
         passDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
         passDescriptor->colorAttachments()->object(0)->setClearColor(
             MTL::ClearColor(.39, .58, .92, 1.0));
-        passDescriptor->depthAttachment()->setTexture(DepthStencilTexture.get());
+        passDescriptor->depthAttachment()->setTexture(m_depthStencilTexture.get());
         passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
         passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
         passDescriptor->depthAttachment()->setClearDepth(1.0);
-        passDescriptor->stencilAttachment()->setTexture(DepthStencilTexture.get());
+        passDescriptor->stencilAttachment()->setTexture(m_depthStencilTexture.get());
         passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
         passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
         passDescriptor->stencilAttachment()->setClearStencil(0);
-        MTL::RenderCommandEncoder* commandEncoder =
-            commandBuffer->renderCommandEncoder(passDescriptor);
+        MTL::RenderCommandEncoder* commandEncoder
+            = commandBuffer->renderCommandEncoder(passDescriptor);
 
         commandEncoder->pushDebugGroup(MTLSTR("SAMPLE RENDERING"));
 
-        Render(commandEncoder, Timer);
+        onRender(commandEncoder, m_timer);
 
         commandEncoder->popDebugGroup();
 
-        // IMGUI rendering
+        // ImGui rendering
         ImGui_ImplMetal_NewFrame(passDescriptor);
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
-        SetupUi(Timer);
+        onSetupUi(m_timer);
 
         commandEncoder->pushDebugGroup(MTLSTR("IMGUI RENDERING"));
 

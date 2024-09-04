@@ -15,17 +15,17 @@ Gamepad::Gamepad(SDL_JoystickID id)
         throw std::runtime_error(fmt::format("Failed to open gamepad: {}", SDL_GetError()));
     }
 
-    Gamepad_.reset(SDL_OpenGamepad(id));
+    m_gamepad.reset(SDL_OpenGamepad(id));
 }
 
-float Gamepad::LeftThumbstickHorizontal() const
+float Gamepad::leftThumbstickHorizontal() const
 {
-    const auto axisValue = SDL_GetGamepadAxis(Gamepad_.get(), SDL_GAMEPAD_AXIS_LEFTX);
+    const auto axisValue = SDL_GetGamepadAxis(m_gamepad.get(), SDL_GAMEPAD_AXIS_LEFTX);
     return static_cast<float>(axisValue) / static_cast<float>(std::numeric_limits<int16_t>::max());
 }
 
-float Gamepad::LeftThumbstickVertical() const
+float Gamepad::leftThumbstickVertical() const
 {
-    const auto axisValue = SDL_GetGamepadAxis(Gamepad_.get(), SDL_GAMEPAD_AXIS_LEFTY);
+    const auto axisValue = SDL_GetGamepadAxis(m_gamepad.get(), SDL_GAMEPAD_AXIS_LEFTY);
     return static_cast<float>(axisValue) / static_cast<float>(std::numeric_limits<int16_t>::max());
 }

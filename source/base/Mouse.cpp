@@ -5,100 +5,83 @@
 
 #include "Mouse.hpp"
 
-Mouse::Mouse(SDL_Window* window) : Window(window)
+Mouse::Mouse(SDL_Window* window)
+    : m_window(window)
 {
     // Enable relative mouse location tracking for deltas
     // SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
-bool Mouse::LeftClick() const
+bool Mouse::didLeftClick() const
 {
-    return !CurrentState[SDL_BUTTON_LEFT].Pressed && PreviousState[SDL_BUTTON_LEFT].Pressed;
+    return !m_currentState[SDL_BUTTON_LEFT].isPressed && m_previousState[SDL_BUTTON_LEFT].isPressed;
 }
 
-bool Mouse::LeftDoubleClick() const
+bool Mouse::didLeftDoubleClick() const
 {
-    return (CurrentState[SDL_BUTTON_LEFT].Pressed && CurrentState[SDL_BUTTON_LEFT].IsDoubleClick);
+    return (
+        m_currentState[SDL_BUTTON_LEFT].isPressed && m_currentState[SDL_BUTTON_LEFT].isDoubleClick);
 }
 
-bool Mouse::LeftPressed() const
+bool Mouse::isLeftPressed() const { return m_currentState[SDL_BUTTON_LEFT].isPressed; }
+
+bool Mouse::didRightClick() const
 {
-    return CurrentState[SDL_BUTTON_LEFT].Pressed;
+    return !m_currentState[SDL_BUTTON_RIGHT].isPressed
+        && m_previousState[SDL_BUTTON_RIGHT].isPressed;
 }
 
-bool Mouse::RightClick() const
+bool Mouse::didRightDoubleClick() const
 {
-    return !CurrentState[SDL_BUTTON_RIGHT].Pressed && PreviousState[SDL_BUTTON_RIGHT].Pressed;
+    return (m_currentState[SDL_BUTTON_RIGHT].isPressed
+        && m_currentState[SDL_BUTTON_RIGHT].isDoubleClick);
 }
 
-bool Mouse::RightDoubleClick() const
-{
-    return (CurrentState[SDL_BUTTON_RIGHT].Pressed && CurrentState[SDL_BUTTON_RIGHT].IsDoubleClick);
-}
+int32_t Mouse::x() const { return m_locationX; }
 
-int32_t Mouse::X() const
-{
-    return LocationX;
-}
+int32_t Mouse::y() const { return m_locationY; }
 
-int32_t Mouse::Y() const
-{
-    return LocationY;
-}
+int32_t Mouse::relativeX() const { return m_relativeX; }
 
-int32_t Mouse::RelativeX() const
-{
-    return XRelative;
-}
+int32_t Mouse::relativeY() const { return m_relativeY; }
 
-int32_t Mouse::RelativeY() const
-{
-    return YRelative;
-}
+float Mouse::wheelX() const { return m_preciseWheelX; }
 
-float Mouse::WheelX() const
-{
-    return PreciseWheelX;
-}
+float Mouse::wheelY() const { return m_preciseWheelY; }
 
-float Mouse::WheelY() const
-{
-    return PreciseWheelY;
-}
-
-void Mouse::Warp()
+void Mouse::warp()
 {
     int32_t w, h;
-    SDL_GetWindowSize(Window, &w, &h);
-    SDL_WarpMouseInWindow(Window, w / 2, h / 2);
+    SDL_GetWindowSize(m_window, &w, &h);
+    SDL_WarpMouseInWindow(m_window, w / 2, h / 2);
 }
 
-void Mouse::RegisterMouseMotion(SDL_MouseMotionEvent* event)
+void Mouse::registerMouseMotion(SDL_MouseMotionEvent* event)
 {
-    LocationX = event->x;
-    LocationY = event->y;
-    XRelative = event->xrel;
-    YRelative = event->yrel;
+    m_locationX = event->x;
+    m_locationY = event->y;
+    m_relativeX = event->xrel;
+    m_relativeY = event->yrel;
 }
 
-void Mouse::RegisterMouseWheel(SDL_MouseWheelEvent* event)
+void Mouse::registerMouseWheel(SDL_MouseWheelEvent* event)
 {
-    PreciseWheelX = event->x;
-    PreciseWheelY = event->y;
+    m_preciseWheelX = event->x;
+    m_preciseWheelY = event->y;
 }
 
-void Mouse::RegisterMouseButton(SDL_MouseButtonEvent* event)
+void Mouse::registerMouseButton(SDL_MouseButtonEvent* event)
 {
-    CurrentState[event->button] = {.IsDoubleClick = event->clicks > 1,
-                                   .Pressed = event->state == SDL_PRESSED,
-                                   .X = event->x,
-                                   .Y = event->y};
+    m_currentState[event->button] = { .isDoubleClick = event->clicks > 1,
+        .isPressed = event->state == SDL_PRESSED,
+        .x = event->x,
+        .y = event->y };
 }
 
-void Mouse::Update()
+void Mouse::update()
 {
-    PreviousState = CurrentState;
+    m_previousState = m_currentState;
     // CurrentState = {};
-    XRelative = 0;
-    YRelative = 0;
+    m_relativeX = 0;
+    m_relativeY = 0;
 }
