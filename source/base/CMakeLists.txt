@@ -28,7 +28,7 @@ set_target_properties(base PROPERTIES
 
 target_compile_definitions(base PRIVATE -DIMGUI_IMPL_METAL_CPP)
 target_include_directories(base PUBLIC .)
-target_link_libraries(base PUBLIC ktx fmt SDL3::SDL3-static AppleFrameworksCpp
+target_link_libraries(base PUBLIC fmt SDL3::SDL3-static AppleFrameworksCpp
         "-framework Foundation"
         "-framework Metal"
         "-framework MetalKit"

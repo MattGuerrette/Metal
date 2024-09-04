@@ -1,7 +1,11 @@
 
 set(EXAMPLE helloworld)
 
-set(RESOURCE_FILES "${PROJECT_BINARY_DIR}/generated/default.metallib")
+if (NOT CMAKE_GENERATOR MATCHES "Xcode")
+    set(RESOURCE_FILES "${PROJECT_BINARY_DIR}/generated/default.metallib")
+else ()
+    set(RESOURCE_FILES "")
+endif ()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
     list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard)
@@ -12,9 +16,17 @@ endif ()
 add_executable(${EXAMPLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${RESOURCE_FILES})
-
-# Ensure shader library is available
-add_dependencies(${EXAMPLE} CompileMetalShaders)
+if (CMAKE_GENERATOR MATCHES "Xcode")
+    target_sources(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR}/shaders/triangle/shader.metal)
+    set_source_files_properties(
+            ${CMAKE_SOURCE_DIR}/shaders/triangle/shader.metal PROPERTIES
+            LANGUAGE METAL
+            COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/shaders/triangle"
+    )
+else ()
+    # Ensure shader library is available
+    add_dependencies(${EXAMPLE} CompileMetalShaders)
+endif ()
 
 target_link_libraries(${EXAMPLE} base)
 set_target_properties(${EXAMPLE}

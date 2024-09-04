@@ -3,13 +3,16 @@
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifdef USE_KTX_LIBRARY
 #include <ktx.h>
+#endif
 
 #include <cstddef>
 #include <fmt/core.h>
 #include <memory>
 
 #include <Metal/Metal.hpp>
+#include <MetalKit/MetalKit.hpp>
 
 #include <imgui.h>
 
@@ -72,7 +75,11 @@ private:
 
     void updateUniforms();
 
-    MTL::Texture* newTextureFromFile(const std::string& fileName);
+#ifdef USE_KTX_LIBRARY
+    MTL::Texture* newTextureFromFileKTX(const std::string& fileName);
+#else
+    MTL::Texture* newTextureFromFileMTK(MTK::TextureLoader* loader, const std::string& fileName);
+#endif
 
     NS::SharedPtr<MTL::RenderPipelineState>               m_pipelineState;
     NS::SharedPtr<MTL::Buffer>                            m_vertexBuffer;
@@ -82,6 +89,7 @@ private:
     NS::SharedPtr<MTL::Heap>                              m_textureHeap;
     std::array<NS::SharedPtr<MTL::Buffer>, s_bufferCount> m_argumentBuffer;
     std::vector<NS::SharedPtr<MTL::Texture>>              m_heapTextures;
+    NS::SharedPtr<MTK::TextureLoader>                     m_textureLoader;
     float                                                 m_rotationX = 0.0F;
     float                                                 m_rotationY = 0.0F;
     int                                                   m_selectedTexture = 0;
@@ -106,6 +114,8 @@ bool Textures::onLoad()
 
     m_mainCamera = std::make_unique<Camera>(
         Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far);
+
+    m_textureLoader = NS::TransferPtr(MTK::TextureLoader::alloc()->init(m_device.get()));
 
     createBuffers();
 
@@ -166,6 +176,7 @@ void Textures::onResize(uint32_t width, uint32_t height)
     m_mainCamera->setProjection(fov, aspect, near, far);
 }
 
+#ifdef USE_KTX_LIBRARY
 MTL::Texture* Textures::newTextureFromFile(const std::string& fileName)
 {
     MTL::Texture* texture = nullptr;
@@ -237,6 +248,45 @@ MTL::Texture* Textures::newTextureFromFile(const std::string& fileName)
 
     return texture;
 }
+#else
+MTL::Texture* Textures::newTextureFromFileMTK(
+    MTK::TextureLoader* loader, const std::string& fileName)
+{
+    MTL::Texture* texture = nullptr;
+    try
+    {
+        const File file(fileName);
+
+        const auto bytes = file.readAll();
+
+        NS::Data* data = NS::Data::data(bytes.data(), bytes.size());
+
+        const void* keys[]
+            = { MTK::TextureLoaderOptionTextureUsage, MTK::TextureLoaderOptionTextureStorageMode };
+        NS::SharedPtr<NS::Number> usageMode
+            = NS::TransferPtr(NS::Number::number(MTL::TextureUsageShaderRead));
+        NS::SharedPtr<NS::Number> storageMode
+            = NS::TransferPtr(NS::Number::number(MTL::StorageModePrivate));
+        const void* values[] = { (const void*)(usageMode.get()), (const void*)(storageMode.get()) };
+        CFDictionaryRef textureLoaderOptions = CFDictionaryCreate(nullptr, keys, values, 2,
+            &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+
+        NS::Error* error = nullptr;
+        texture = loader->newTexture(data, (NS::Dictionary*)textureLoaderOptions, &error);
+        CFRelease(textureLoaderOptions);
+        if (error != nullptr)
+        {
+            throw std::runtime_error("Failed to create texture from file");
+        }
+    }
+    catch (std::exception& e)
+    {
+        fmt::println(stderr, e.what());
+    }
+
+    return texture;
+}
+#endif
 
 void Textures::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& /*timer*/)
 {
@@ -372,7 +422,13 @@ void Textures::createTextureHeap()
     for (size_t i = 0; i < g_textureCount; i++)
     {
         const auto fileName = fmt::format("00{}_basecolor.ktx", i + 1);
-        textures[i] = newTextureFromFile(fileName);
+#ifdef USE_KTX_LIBRARY
+        // Load KTX textures using KTX library directly
+        textures[i] = newTextureFromFileKTX(fileName);
+#else
+        // Load KTX textures using MTKTextureLoader
+        textures[i] = newTextureFromFileMTK(m_textureLoader.get(), fileName);
+#endif
     }
 
     MTL::HeapDescriptor* heapDescriptor = MTL::HeapDescriptor::alloc()->init();

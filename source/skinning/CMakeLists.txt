@@ -1,6 +1,11 @@
 
 set(EXAMPLE skinning)
-set(RESOURCE_FILES "${PROJECT_BINARY_DIR}/generated/default.metallib")
+
+if (NOT CMAKE_GENERATOR MATCHES "Xcode")
+    set(RESOURCE_FILES "${PROJECT_BINARY_DIR}/generated/default.metallib")
+else ()
+    set(RESOURCE_FILES "")
+endif ()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
     list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard)
@@ -15,8 +20,13 @@ add_executable(${EXAMPLE}
         GLTFAsset.cpp
         ${RESOURCE_FILES})
 
-# Ensure shader library is available
-add_dependencies(${EXAMPLE} CompileMetalShaders)
+if (CMAKE_GENERATOR MATCHES "Xcode")
+    # TODO: Add shaders for sample here
+    #target_sources(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR}/shaders/skinning/shader.metal)
+else ()
+    # Ensure shader library is available
+    add_dependencies(${EXAMPLE} CompileMetalShaders)
+endif ()
 
 target_link_libraries(${EXAMPLE} base)
 target_include_directories(${EXAMPLE} PRIVATE ${cgltf_SOURCE_DIR})

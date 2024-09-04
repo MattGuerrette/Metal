@@ -22,6 +22,7 @@ class Skinning : public Example
 {
 public:
     static Skinning* s_example;
+
     Skinning();
 
     ~Skinning() override;
