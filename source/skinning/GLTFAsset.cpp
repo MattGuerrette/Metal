@@ -23,33 +23,30 @@ GLTFAsset::GLTFAsset(const std::string& name)
     std::filesystem::path path = resourcePath;
     path.append(name);
 
-    Init(path);
+    init(path);
 }
 
-GLTFAsset::GLTFAsset(const std::filesystem::path filePath)
+GLTFAsset::GLTFAsset(const std::filesystem::path& filePath)
 {
-    Init(filePath);
+    init(filePath);
 }
 
-void GLTFAsset::Init(const std::filesystem::path& filePath)
+void GLTFAsset::init(const std::filesystem::path& filePath)
 {
+    cgltf_data*   data = nullptr;
     cgltf_options options = {};
-    cgltf_result  result = cgltf_parse_file(&options, filePath.c_str(), &m_data);
+    cgltf_result  result = cgltf_parse_file(&options, filePath.c_str(), &data);
     if (result != cgltf_result_success)
     {
         throw std::runtime_error("Failed to parse GLTF asset");
     }
+    m_data.reset(data);
 
-    result = cgltf_load_buffers(&options, m_data, filePath.c_str());
+    result = cgltf_load_buffers(&options, m_data.get(), filePath.c_str());
     if (result != cgltf_result_success)
     {
         throw std::runtime_error("Failed to load buffers");
     }
-}
-
-GLTFAsset::~GLTFAsset()
-{
-    cgltf_free(m_data);
 }
 
 std::vector<std::string> GLTFAsset::animations() const
@@ -79,4 +76,19 @@ const cgltf_animation* GLTFAsset::getAnimation(int32_t index) const
     assert(m_data != nullptr);
 
     return &m_data->animations[index];
+}
+
+void GLTFAsset::initDeviceResources()
+{
+    // TODO: Load device resources such as pipelines and GPU buffers
+
+    for (uint32_t i = 0; i < m_data->meshes_count; ++i)
+    {
+        const cgltf_mesh* mesh = &m_data->meshes[i];
+    }
+}
+
+void GLTFAsset::render(MTL::RenderCommandEncoder* commandEncoder)
+{
+    // TODO: Draw meshes using command encoder
 }

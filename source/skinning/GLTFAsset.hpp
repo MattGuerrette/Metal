@@ -9,22 +9,45 @@
 #include <string>
 #include <vector>
 
+#include <Metal/Metal.hpp>
+
 #include <cgltf.h>
+
+struct MeshGeometry
+{
+    NS::SharedPtr<MTL::Buffer> m_vertexBuffer;
+    NS::SharedPtr<MTL::Buffer> m_indexBuffer;
+};
 
 class GLTFAsset final
 {
+    struct DataDeleter
+    {
+        void operator()(cgltf_data* data)
+        {
+            if (data != nullptr)
+            {
+                cgltf_free(data);
+            }
+        }
+    };
+    using UniqueData = std::unique_ptr<cgltf_data, DataDeleter>;
+
 public:
     explicit GLTFAsset(const std::string& name);
-    explicit GLTFAsset(const std::filesystem::path filePath);
+    explicit GLTFAsset(const std::filesystem::path& filePath);
 
-    ~GLTFAsset();
+    [[nodiscard]] std::vector<std::string> animations() const;
 
-    std::vector<std::string> animations() const;
+    [[nodiscard]] const cgltf_animation* getAnimation(int32_t index) const;
 
-    const cgltf_animation* getAnimation(int32_t index) const;
+    void initDeviceResources();
+
+    void render(MTL::RenderCommandEncoder* commandEncoder);
 
 private:
-    void Init(const std::filesystem::path& filePath);
+    void init(const std::filesystem::path& filePath);
 
-    cgltf_data* m_data;
+    UniqueData                m_data;
+    std::vector<MeshGeometry> m_meshes;
 };

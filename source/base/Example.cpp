@@ -154,10 +154,12 @@ uint32_t Example::GetFrameHeight() const
     return h;
 }
 
+#ifdef SDL_PLATFORM_MACOS
 NS::Menu* Example::createMenuBar()
 {
     return nullptr;
 }
+#endif
 
 int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 {
@@ -198,6 +200,8 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
                 ImGuiIO& io = ImGui::GetIO();
                 io.DisplaySize =
                     ImVec2((float)e.window.data1 * density, (float)e.window.data2 * density);
+
+                onResize(e.window.data1, e.window.data2);
             }
 
             if (e.type == SDL_EVENT_JOYSTICK_ADDED)

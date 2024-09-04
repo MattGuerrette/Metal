@@ -56,6 +56,8 @@ public:
 
     void SetupUi(const GameTimer& timer) override;
 
+    void onResize(uint32_t width, uint32_t height) override;
+
     void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
 
 private:
@@ -116,7 +118,7 @@ bool Textures::Load()
 void Textures::SetupUi(const GameTimer& timer)
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
-    ImGui::SetNextWindowPos(ImVec2(10, 10));
+    ImGui::SetNextWindowPos(ImVec2(10, 20));
     ImGui::SetNextWindowSize(ImVec2(125 * ImGui::GetIO().DisplayFramebufferScale.x, 0),
                              ImGuiCond_FirstUseEver);
     ImGui::Begin("Metal Example", nullptr,
@@ -151,6 +153,15 @@ void Textures::Update(const GameTimer& timer)
     {
         RotationY += static_cast<float>(Gamepad_->LeftThumbstickHorizontal()) * elapsed;
     }
+}
+
+void Textures::onResize(uint32_t width, uint32_t height)
+{
+    const float aspect = (float)width / (float)height;
+    const float fov = XMConvertToRadians(75.0f);
+    const float near = 0.01f;
+    const float far = 1000.0f;
+    MainCamera->setProjection(fov, aspect, near, far);
 }
 
 MTL::Texture* Textures::LoadTextureFromFile(const std::string& fileName)

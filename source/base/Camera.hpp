@@ -30,6 +30,8 @@ public:
 
     [[nodiscard]] const CameraUniforms& GetUniforms() const;
 
+    void setProjection(float fov, float aspect, float zNear, float zFar);
+
 private:
     void UpdateBasisVectors(Vector3 direction);
 

@@ -3,15 +3,12 @@
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <ktx.h>
-
-#include <array>
-#include <fmt/core.h>
 #include <memory>
 
 #include <AppKit/AppKit.hpp>
 #include <Metal/Metal.hpp>
 
+#include <fmt/format.h>
 #include <imgui.h>
 
 #include "Camera.hpp"
@@ -34,6 +31,8 @@ public:
     void Update(const GameTimer& timer) override;
 
     void SetupUi(const GameTimer& timer) override;
+
+    void onResize(uint32_t width, uint32_t height) override;
 
     void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
 
@@ -68,6 +67,15 @@ Skinning::Skinning() : Example("GLTF Skinning", 800, 600)
 }
 
 Skinning::~Skinning() = default;
+
+void Skinning::onResize(uint32_t width, uint32_t height)
+{
+    const float aspect = (float)width / (float)height;
+    const float fov = XMConvertToRadians(75.0f);
+    const float near = 0.01f;
+    const float far = 1000.0f;
+    m_mainCamera->setProjection(fov, aspect, near, far);
+}
 
 #ifdef SDL_PLATFORM_MACOS
 NS::Menu* Skinning::createMenuBar()
@@ -185,7 +193,7 @@ void Skinning::SetupUi(const GameTimer& timer)
                 auto names = reinterpret_cast<std::vector<std::string>*>(data);
                 return names->at(index).c_str();
             },
-            &animations, animations.size()))
+            &animations, (int)animations.size()))
     {
         //		/// Update argument buffer index
         //		for (const auto& buffer: ArgumentBuffer) {

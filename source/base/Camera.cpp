@@ -25,6 +25,15 @@ const CameraUniforms& Camera::GetUniforms() const
     return Uniforms;
 }
 
+void Camera::setProjection(float fov, float aspect, float zNear, float zFar)
+{
+    FieldOfView = fov;
+    AspectRatio = aspect;
+    NearPlane = zNear;
+    FarPlane = zFar;
+    UpdateUniforms();
+}
+
 void Camera::UpdateBasisVectors(Vector3 direction)
 {
     Direction = direction;

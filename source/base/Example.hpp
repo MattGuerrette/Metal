@@ -43,6 +43,8 @@ public:
 
     virtual void SetupUi(const GameTimer& timer);
 
+    virtual void onResize(uint32_t width, uint32_t height) = 0;
+
     virtual void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) = 0;
 
     void metalDisplayLinkNeedsUpdate(CA::MetalDisplayLink*       displayLink,
