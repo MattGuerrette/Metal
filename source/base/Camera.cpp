@@ -25,7 +25,10 @@ Camera::Camera(Vector3 position,
     updateUniforms();
 }
 
-const CameraUniforms& Camera::uniforms() const { return m_uniforms; }
+const CameraUniforms& Camera::uniforms() const
+{
+    return m_uniforms;
+}
 
 void Camera::setProjection(float fov, float aspect, float zNear, float zFar)
 {

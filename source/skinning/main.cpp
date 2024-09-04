@@ -18,7 +18,8 @@
 
 #include <SDL3/SDL_main.h>
 
-class Skinning : public Example {
+class Skinning : public Example
+{
 public:
     static Skinning* s_example;
     Skinning();
@@ -110,7 +111,8 @@ NS::Menu* Skinning::createMenuBar()
               panel->beginSheetModal(window, ^(NS::ModalResponseType response) {
                   auto urls = panel->urls();
                   auto numUrls = urls->count();
-                  for (NS::UInteger i = 0; i < numUrls; ++i) {
+                  for (NS::UInteger i = 0; i < numUrls; ++i)
+                  {
                       auto url = (NS::URL*)urls->object(i);
                       auto path = url->fileSystemRepresentation();
 
@@ -164,10 +166,13 @@ bool Skinning::onLoad()
 
     createArgumentBuffers();
 
-    try {
+    try
+    {
         m_asset = std::make_unique<GLTFAsset>(std::string("alien-bug.glb"));
         fmt::println("");
-    } catch (std::exception& e) {
+    }
+    catch (std::exception& e)
+    {
     }
 
     return true;
@@ -188,20 +193,24 @@ void Skinning::onSetupUi(const GameTimer& timer)
                 auto names = reinterpret_cast<std::vector<std::string>*>(data);
                 return names->at(index).c_str();
             },
-            &animations, (int)animations.size())) {
+            &animations, (int)animations.size()))
+    {
         //		/// Update argument buffer index
         //		for (const auto& buffer: ArgumentBuffer) {
         //			auto* contents =
-        //reinterpret_cast<FragmentArgumentBuffer*>(buffer->contents()); 			contents->TextureIndex =
-        //SelectedTexture;
+        // reinterpret_cast<FragmentArgumentBuffer*>(buffer->contents());
+        // contents->TextureIndex = SelectedTexture;
         //		}
         m_animationTime = 0.0f;
     }
 
     const auto animation = m_asset->getAnimation(m_selectedTexture);
-    if (animation != nullptr) {
+    if (animation != nullptr)
+    {
         if (ImGui::SliderFloat(
-                "##", &m_animationTime, 0.0f, animation->channels[0].sampler->input->max[0])) { }
+                "##", &m_animationTime, 0.0f, animation->channels[0].sampler->input->max[0]))
+        {
+        }
     }
 #if defined(SDL_PLATFORM_MACOS)
     ImGui::Text("Press Esc to quit");
@@ -214,11 +223,13 @@ void Skinning::onUpdate(const GameTimer& timer)
 {
     const auto elapsed = static_cast<float>(timer.elapsedSeconds());
     // RotationX += elapsed;
-    if (m_mouse->isLeftPressed()) {
+    if (m_mouse->isLeftPressed())
+    {
         m_rotationY += static_cast<float>(m_mouse->relativeX()) * elapsed;
     }
 
-    if (m_gamepad) {
+    if (m_gamepad)
+    {
         m_rotationY += static_cast<float>(m_gamepad->leftThumbstickHorizontal()) * elapsed;
     }
 }
@@ -253,10 +264,13 @@ void Skinning::createArgumentBuffers()
 int main(int argc, char** argv)
 {
     int result = EXIT_FAILURE;
-    try {
+    try
+    {
         auto example = std::make_unique<Skinning>();
         result = example->run(argc, argv);
-    } catch (const std::runtime_error& error) {
+    }
+    catch (const std::runtime_error& error)
+    {
         fmt::println("Exiting...");
     }
 

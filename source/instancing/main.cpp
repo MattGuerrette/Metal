@@ -23,11 +23,18 @@ XM_ALIGNED_STRUCT(16) Vertex
     Vector4 color;
 };
 
-XM_ALIGNED_STRUCT(16) Uniforms { [[maybe_unused]] Matrix modelViewProjection; };
+XM_ALIGNED_STRUCT(16) Uniforms
+{
+    [[maybe_unused]] Matrix modelViewProjection;
+};
 
-XM_ALIGNED_STRUCT(16) InstanceData { Matrix transform; };
+XM_ALIGNED_STRUCT(16) InstanceData
+{
+    Matrix transform;
+};
 
-class Instancing : public Example {
+class Instancing : public Example
+{
     static constexpr int s_instanceCount = 3;
 
 public:
@@ -160,7 +167,8 @@ void Instancing::createPipelineState()
 
     NS::Error* error = nullptr;
     m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
-    if (error != nullptr) {
+    if (error != nullptr)
+    {
         throw std::runtime_error(fmt::format(
             "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
@@ -193,7 +201,8 @@ void Instancing::createBuffers()
 
     const size_t instanceDataSize
         = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(InstanceData);
-    for (auto index = 0; index < s_bufferCount; index++) {
+    for (auto index = 0; index < s_bufferCount; index++)
+    {
         const auto                      label = fmt::format("Instance Buffer: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
@@ -208,7 +217,8 @@ void Instancing::updateUniforms()
     MTL::Buffer* instanceBuffer = m_instanceBuffer[m_frameIndex].get();
 
     auto* instanceData = static_cast<InstanceData*>(instanceBuffer->contents());
-    for (auto index = 0; index < s_instanceCount; ++index) {
+    for (auto index = 0; index < s_instanceCount; ++index)
+    {
         auto position = Vector3(-5.0F + (5.0F * (float)index), 0.0F, -10.0F);
         auto rotationX = m_rotationX;
         auto rotationY = m_rotationY;
@@ -232,10 +242,13 @@ void Instancing::updateUniforms()
 int main(int argc, char** argv)
 {
     int result = EXIT_FAILURE;
-    try {
+    try
+    {
         auto example = std::make_unique<Instancing>();
         result = example->run(argc, argv);
-    } catch (const std::runtime_error& error) {
+    }
+    catch (const std::runtime_error& error)
+    {
         fmt::println("Exiting...");
     }
 

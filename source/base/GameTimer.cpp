@@ -23,17 +23,35 @@ GameTimer::GameTimer()
     m_qpcMaxDelta = m_qpcFrequency / 10;
 }
 
-uint64_t GameTimer::elapsedTicks() const noexcept { return m_elapsedTicks; }
+uint64_t GameTimer::elapsedTicks() const noexcept
+{
+    return m_elapsedTicks;
+}
 
-double GameTimer::elapsedSeconds() const noexcept { return ticksToSeconds(m_elapsedTicks); }
+double GameTimer::elapsedSeconds() const noexcept
+{
+    return ticksToSeconds(m_elapsedTicks);
+}
 
-uint64_t GameTimer::totalTicks() const noexcept { return m_totalTicks; }
+uint64_t GameTimer::totalTicks() const noexcept
+{
+    return m_totalTicks;
+}
 
-double GameTimer::totalSeconds() const noexcept { return ticksToSeconds(m_totalTicks); }
+double GameTimer::totalSeconds() const noexcept
+{
+    return ticksToSeconds(m_totalTicks);
+}
 
-uint32_t GameTimer::frameCount() const noexcept { return m_frameCount; }
+uint32_t GameTimer::frameCount() const noexcept
+{
+    return m_frameCount;
+}
 
-uint32_t GameTimer::framesPerSecond() const noexcept { return m_framesPerSecond; }
+uint32_t GameTimer::framesPerSecond() const noexcept
+{
+    return m_framesPerSecond;
+}
 
 void GameTimer::setFixedTimeStep(const bool isFixedTimeStep) noexcept
 {

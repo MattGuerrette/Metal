@@ -9,7 +9,8 @@
 
 #include <SDL3/SDL.h>
 
-class Keyboard final {
+class Keyboard final
+{
     using KeyState = std::map<SDL_Scancode, bool>;
 
 public:

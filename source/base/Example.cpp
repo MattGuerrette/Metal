@@ -31,7 +31,8 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     // Initialize SDL
     if (const int result
         = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD | SDL_INIT_TIMER);
-        result < 0) {
+        result < 0)
+    {
         fmt::println(fmt::format("Failed to initialize SDL: {}", SDL_GetError()));
         abort();
     }
@@ -55,7 +56,8 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 #endif
 
     m_window = SDL_CreateWindow(title, screenWidth, screenHeight, flags);
-    if (m_window == nullptr) {
+    if (m_window == nullptr)
+    {
         throw std::runtime_error(fmt::format("Failed to create SDL window: {}", SDL_GetError()));
     }
     m_view = SDL_Metal_CreateView(m_window);
@@ -104,7 +106,8 @@ Example::~Example()
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
-    if (m_window != nullptr) {
+    if (m_window != nullptr)
+    {
         SDL_DestroyWindow(m_window);
     }
     SDL_Quit();
@@ -140,34 +143,43 @@ void Example::createDepthStencil()
 }
 
 #ifdef SDL_PLATFORM_MACOS
-NS::Menu* Example::createMenuBar() { return nullptr; }
+NS::Menu* Example::createMenuBar()
+{
+    return nullptr;
+}
 #endif
 
 int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 {
 #ifdef SDL_PLATFORM_MACOS
     NS::Menu* menu = createMenuBar();
-    if (menu) {
+    if (menu)
+    {
         NS::Application::sharedApplication()->setMainMenu(menu);
     }
 #endif
-    if (!onLoad()) {
+    if (!onLoad())
+    {
         return EXIT_FAILURE;
     }
 
     m_displayLink->addToRunLoop(NS::RunLoop::mainRunLoop(), NS::DefaultRunLoopMode);
 
-    while (m_running) {
+    while (m_running)
+    {
         SDL_Event e;
-        if (SDL_WaitEvent(&e)) {
+        if (SDL_WaitEvent(&e))
+        {
             ImGui_ImplSDL3_ProcessEvent(&e);
 
-            if (e.type == SDL_EVENT_QUIT) {
+            if (e.type == SDL_EVENT_QUIT)
+            {
                 m_running = false;
                 break;
             }
 
-            if (e.type == SDL_EVENT_WINDOW_RESIZED) {
+            if (e.type == SDL_EVENT_WINDOW_RESIZED)
+            {
                 const float     density = SDL_GetWindowPixelDensity(m_window);
                 CA::MetalLayer* layer = (CA::MetalLayer*)SDL_Metal_GetLayer(m_view);
                 layer->setDrawableSize(
@@ -181,32 +193,41 @@ int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
                 onResize(e.window.data1, e.window.data2);
             }
 
-            if (e.type == SDL_EVENT_JOYSTICK_ADDED) {
-                if (SDL_IsGamepad(e.jdevice.which)) {
+            if (e.type == SDL_EVENT_JOYSTICK_ADDED)
+            {
+                if (SDL_IsGamepad(e.jdevice.which))
+                {
                     m_gamepad = std::make_unique<Gamepad>(e.jdevice.which);
                 }
             }
 
-            if (e.type == SDL_EVENT_JOYSTICK_REMOVED) {
-                if (SDL_IsGamepad(e.jdevice.which)) {
+            if (e.type == SDL_EVENT_JOYSTICK_REMOVED)
+            {
+                if (SDL_IsGamepad(e.jdevice.which))
+                {
                     m_gamepad.reset();
                 }
             }
 
-            if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
+            if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP)
+            {
                 m_keyboard->registerKeyEvent(&e.key);
             }
-            if (e.type == SDL_EVENT_MOUSE_BUTTON_UP || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+            if (e.type == SDL_EVENT_MOUSE_BUTTON_UP || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+            {
                 m_mouse->registerMouseButton(&e.button);
             }
-            if (e.type == SDL_EVENT_MOUSE_MOTION) {
+            if (e.type == SDL_EVENT_MOUSE_MOTION)
+            {
                 m_mouse->registerMouseMotion(&e.motion);
             }
-            if (e.type == SDL_EVENT_MOUSE_WHEEL) {
+            if (e.type == SDL_EVENT_MOUSE_WHEEL)
+            {
                 m_mouse->registerMouseWheel(&e.wheel);
             }
 
-            if (m_keyboard->isKeyClicked(SDL_SCANCODE_ESCAPE)) {
+            if (m_keyboard->isKeyClicked(SDL_SCANCODE_ESCAPE))
+            {
                 quit();
             }
         }
@@ -228,7 +249,10 @@ void Example::onSetupUi(const GameTimer& timer)
     ImGui::PopStyleVar();
 }
 
-void Example::quit() { m_running = false; }
+void Example::quit()
+{
+    m_running = false;
+}
 
 void Example::metalDisplayLinkNeedsUpdate(
     CA::MetalDisplayLink* displayLink, CA::MetalDisplayLinkUpdate* update)
@@ -247,10 +271,12 @@ void Example::metalDisplayLinkNeedsUpdate(
         [this](MTL::CommandBuffer* /*buffer*/) { dispatch_semaphore_signal(m_frameSemaphore); });
 
     CA::MetalDrawable* drawable = update->drawable();
-    if (drawable != nullptr) {
+    if (drawable != nullptr)
+    {
         // Update depth stencil texture if necessary¬
         if (drawable->texture()->width() != m_depthStencilTexture->width()
-            || drawable->texture()->height() != m_depthStencilTexture->height()) {
+            || drawable->texture()->height() != m_depthStencilTexture->height())
+        {
             m_depthStencilTexture.reset();
 
             int32_t frameWidth = 0;

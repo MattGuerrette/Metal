@@ -20,7 +20,8 @@
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 
-class Example : public CA::MetalDisplayLinkDelegate {
+class Example : public CA::MetalDisplayLinkDelegate
+{
 public:
     Example(const char* title, uint32_t width, uint32_t height);
 

@@ -10,11 +10,14 @@
 
 #include <SDL3/SDL_iostream.h>
 
-class File {
-    struct StreamDeleter {
+class File
+{
+    struct StreamDeleter
+    {
         void operator()(SDL_IOStream* stream)
         {
-            if (stream != nullptr) {
+            if (stream != nullptr)
+            {
                 SDL_CloseIO(stream);
             }
         }

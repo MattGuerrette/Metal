@@ -17,7 +17,8 @@ XM_ALIGNED_STRUCT(16) CameraUniforms
 };
 
 /// @todo Improve this Camera class to use Quaternion rotation
-class Camera {
+class Camera
+{
 public:
     Camera(Vector3 position,
         Vector3    direction,

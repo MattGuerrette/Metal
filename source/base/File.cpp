@@ -11,7 +11,8 @@
 
 #include <SDL3/SDL_storage.h>
 
-namespace {
+namespace
+{
     std::string pathForResource(const std::string& resourceName)
     {
         std::filesystem::path resourcePath = SDL_GetBasePath();
@@ -26,13 +27,17 @@ File::File(const std::string& fileName)
     const auto filePath = pathForResource(fileName);
 
     m_stream.reset(SDL_IOFromFile(filePath.c_str(), "rb"));
-    if (m_stream == nullptr) {
+    if (m_stream == nullptr)
+    {
         throw std::runtime_error(
             fmt::format("Failed to open {} for read. SDL_Error: {}", fileName, SDL_GetError()));
     }
 }
 
-SDL_IOStream* File::stream() const { return m_stream.get(); }
+SDL_IOStream* File::stream() const
+{
+    return m_stream.get();
+}
 
 std::vector<std::byte> File::readAll() const
 {
@@ -45,7 +50,8 @@ std::vector<std::byte> File::readAll() const
 
     size_t numBytesRead;
     void*  data = SDL_LoadFile_IO(m_stream.get(), &numBytesRead, SDL_FALSE);
-    if (data == nullptr) {
+    if (data == nullptr)
+    {
         return {};
     }
 

@@ -9,8 +9,10 @@
 
 #include <SDL3/SDL.h>
 
-class Mouse final {
-    struct ButtonState {
+class Mouse final
+{
+    struct ButtonState
+    {
         bool  isDoubleClick;
         bool  isPressed;
         float x;

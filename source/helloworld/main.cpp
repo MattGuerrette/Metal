@@ -24,9 +24,13 @@ XM_ALIGNED_STRUCT(16) Vertex
     Vector4 color;
 };
 
-XM_ALIGNED_STRUCT(16) Uniforms { [[maybe_unused]] Matrix modelViewProjection; };
+XM_ALIGNED_STRUCT(16) Uniforms
+{
+    [[maybe_unused]] Matrix modelViewProjection;
+};
 
-class HelloWorld : public Example {
+class HelloWorld : public Example
+{
 public:
     HelloWorld();
 
@@ -159,7 +163,8 @@ void HelloWorld::createPipelineState()
 
     NS::Error* error = nullptr;
     m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
-    if (error != nullptr) {
+    if (error != nullptr)
+    {
         throw std::runtime_error(fmt::format(
             "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
@@ -185,7 +190,8 @@ void HelloWorld::createBuffers()
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     constexpr size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
-    for (auto index = 0; index < s_bufferCount; index++) {
+    for (auto index = 0; index < s_bufferCount; index++)
+    {
         const auto                      label = fmt::format("Uniform: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
@@ -226,10 +232,13 @@ void HelloWorld::updateUniforms()
 int main(int argc, char** argv)
 {
     int result = EXIT_FAILURE;
-    try {
+    try
+    {
         auto example = std::make_unique<HelloWorld>();
         result = example->run(argc, argv);
-    } catch (const std::runtime_error& error) {
+    }
+    catch (const std::runtime_error& error)
+    {
         fmt::println("Exiting...");
     }
 

@@ -25,7 +25,10 @@ XM_ALIGNED_STRUCT(16) Vertex
     Vector2 texCoord;
 };
 
-XM_ALIGNED_STRUCT(16) Uniforms { [[maybe_unused]] Matrix modelViewProjection; };
+XM_ALIGNED_STRUCT(16) Uniforms
+{
+    [[maybe_unused]] Matrix modelViewProjection;
+};
 
 static constexpr size_t g_textureCount = 5;
 
@@ -39,7 +42,8 @@ XM_ALIGNED_STRUCT(16) FragmentArgumentBuffer
 static const std::array<const char*, g_textureCount> g_comboItems
     = { "Texture 0", "Texture 1", "Texture 2", "Texture 3", "Texture 4" };
 
-class Textures : public Example {
+class Textures : public Example
+{
     static constexpr int s_instanceCount = 3;
 
 public:
@@ -122,9 +126,11 @@ void Textures::onSetupUi(const GameTimer& timer)
     ImGui::Begin("Metal Example", nullptr,
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
     ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(m_window), timer.framesPerSecond());
-    if (ImGui::Combo(" ", &m_selectedTexture, g_comboItems.data(), g_comboItems.size())) {
+    if (ImGui::Combo(" ", &m_selectedTexture, g_comboItems.data(), g_comboItems.size()))
+    {
         /// Update argument buffer index
-        for (const auto& buffer : m_argumentBuffer) {
+        for (const auto& buffer : m_argumentBuffer)
+        {
             auto* contents = reinterpret_cast<FragmentArgumentBuffer*>(buffer->contents());
             contents->textureIndex = m_selectedTexture;
         }
@@ -140,11 +146,13 @@ void Textures::onUpdate(const GameTimer& timer)
 {
     const auto elapsed = static_cast<float>(timer.elapsedSeconds());
     // RotationX += elapsed;
-    if (m_mouse->isLeftPressed()) {
+    if (m_mouse->isLeftPressed())
+    {
         m_rotationY += static_cast<float>(m_mouse->relativeX()) * elapsed;
     }
 
-    if (m_gamepad) {
+    if (m_gamepad)
+    {
         m_rotationY += m_gamepad->leftThumbstickHorizontal() * elapsed;
     }
 }
@@ -162,7 +170,8 @@ MTL::Texture* Textures::newTextureFromFile(const std::string& fileName)
 {
     MTL::Texture* texture = nullptr;
 
-    try {
+    try
+    {
         const File file(fileName);
 
         const auto bytes = file.readAll();
@@ -173,7 +182,8 @@ MTL::Texture* Textures::newTextureFromFile(const std::string& fileName)
         ktxTexture2* ktx2Texture = nullptr;
         result = ktxTexture2_CreateFromMemory(
             (ktx_uint8_t*)bytes.data(), bytes.size(), flags, &ktx2Texture);
-        if (result != KTX_SUCCESS) {
+        if (result != KTX_SUCCESS)
+        {
             return nullptr;
         }
 
@@ -204,7 +214,8 @@ MTL::Texture* Textures::newTextureFromFile(const std::string& fileName)
         auto*              ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
         const ktx_uint32_t layer = 0;
         const ktx_uint32_t faceSlice = 0;
-        for (ktx_uint32_t level = 0; level < ktx2Texture->numLevels; ++level) {
+        for (ktx_uint32_t level = 0; level < ktx2Texture->numLevels; ++level)
+        {
             ktx_size_t offset = 0;
             result = ktxTexture_GetImageOffset(ktx1Texture, level, layer, faceSlice, &offset);
             ktx_uint8_t*       imageBytes = ktxTexture_GetData(ktx1Texture) + offset;
@@ -218,7 +229,9 @@ MTL::Texture* Textures::newTextureFromFile(const std::string& fileName)
         }
 
         ktxTexture_Destroy((ktxTexture*)ktx1Texture);
-    } catch (const std::runtime_error& error) {
+    }
+    catch (const std::runtime_error& error)
+    {
         fmt::println(error.what());
     }
 
@@ -285,7 +298,8 @@ void Textures::createPipelineState()
 
     NS::Error* error = nullptr;
     m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
-    if (error != nullptr) {
+    if (error != nullptr)
+    {
         throw std::runtime_error(fmt::format(
             "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
@@ -313,7 +327,8 @@ void Textures::createBuffers()
 
     const size_t instanceDataSize
         = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(Matrix);
-    for (auto index = 0; index < s_bufferCount; index++) {
+    for (auto index = 0; index < s_bufferCount; index++)
+    {
         const auto                      label = fmt::format("Instance Buffer: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
@@ -329,7 +344,8 @@ void Textures::updateUniforms()
     MTL::Buffer* instanceBuffer = m_instanceBuffer[m_frameIndex].get();
 
     auto* instanceData = static_cast<Matrix*>(instanceBuffer->contents());
-    for (auto index = 0; index < s_instanceCount; ++index) {
+    for (auto index = 0; index < s_instanceCount; ++index)
+    {
         auto position = Vector3(-5.0F + (5.0F * (float)index), 0.0F, -8.0F);
         auto rotationX = m_rotationX;
         auto rotationY = m_rotationY;
@@ -353,7 +369,8 @@ void Textures::updateUniforms()
 void Textures::createTextureHeap()
 {
     auto** textures = new MTL::Texture*[g_textureCount];
-    for (size_t i = 0; i < g_textureCount; i++) {
+    for (size_t i = 0; i < g_textureCount; i++)
+    {
         const auto fileName = fmt::format("00{}_basecolor.ktx", i + 1);
         textures[i] = newTextureFromFile(fileName);
     }
@@ -365,9 +382,11 @@ void Textures::createTextureHeap()
 
     // Allocate space in heap for each texture
     NS::UInteger heapSize = 0;
-    for (size_t i = 0; i < g_textureCount; i++) {
+    for (size_t i = 0; i < g_textureCount; i++)
+    {
         MTL::Texture* texture = textures[i];
-        if (texture == nullptr) {
+        if (texture == nullptr)
+        {
             continue;
         }
 
@@ -395,7 +414,8 @@ void Textures::createTextureHeap()
     MTL::CommandBuffer* commandBuffer = m_commandQueue->commandBuffer();
 
     MTL::BlitCommandEncoder* blitCommandEncoder = commandBuffer->blitCommandEncoder();
-    for (int i = 0; i < g_textureCount; i++) {
+    for (int i = 0; i < g_textureCount; i++)
+    {
         MTL::Texture*           texture = textures[i];
         MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
         textureDescriptor->setTextureType(texture->textureType());
@@ -412,8 +432,10 @@ void Textures::createTextureHeap()
         textureDescriptor->release();
 
         MTL::Region blitRegion = MTL::Region(0, 0, texture->width(), texture->height());
-        for (auto level = 0; level < texture->mipmapLevelCount(); level++) {
-            for (auto slice = 0; slice < texture->arrayLength(); slice++) {
+        for (auto level = 0; level < texture->mipmapLevelCount(); level++)
+        {
+            for (auto slice = 0; slice < texture->arrayLength(); slice++)
+            {
                 blitCommandEncoder->copyFromTexture(texture, slice, level, blitRegion.origin,
                     blitRegion.size, heapTexture.get(), slice, level, blitRegion.origin);
             }
@@ -421,11 +443,13 @@ void Textures::createTextureHeap()
             blitRegion.size.width /= 2;
             blitRegion.size.height /= 2;
 
-            if (blitRegion.size.width == 0) {
+            if (blitRegion.size.width == 0)
+            {
                 blitRegion.size.width = 1;
             }
 
-            if (blitRegion.size.height == 0) {
+            if (blitRegion.size.height == 0)
+            {
                 blitRegion.size.height = 1;
             }
         }
@@ -439,7 +463,8 @@ void Textures::createTextureHeap()
     blitCommandEncoder->release();
     commandBuffer->release();
 
-    for (int i = 0; i < g_textureCount; i++) {
+    for (int i = 0; i < g_textureCount; i++)
+    {
         textures[i]->release();
         textures[i] = nullptr;
     }
@@ -449,8 +474,10 @@ void Textures::createTextureHeap()
 void Textures::createArgumentBuffers()
 {
     // Tier 2 argument buffers
-    if (m_device->argumentBuffersSupport() == MTL::ArgumentBuffersTier2) {
-        for (auto i = 0; i < s_bufferCount; i++) {
+    if (m_device->argumentBuffersSupport() == MTL::ArgumentBuffersTier2)
+    {
+        for (auto i = 0; i < s_bufferCount; i++)
+        {
             const auto size = sizeof(FragmentArgumentBuffer);
             m_argumentBuffer[i] = NS::TransferPtr(
                 m_device->newBuffer(size, MTL::ResourceOptionCPUCacheModeDefault));
@@ -463,7 +490,8 @@ void Textures::createArgumentBuffers()
             auto* buffer
                 = reinterpret_cast<FragmentArgumentBuffer*>(m_argumentBuffer[i]->contents());
             // Bind each texture's GPU id into argument buffer for access in fragment shader
-            for (auto j = 0; j < m_heapTextures.size(); j++) {
+            for (auto j = 0; j < m_heapTextures.size(); j++)
+            {
                 auto texture = m_heapTextures[j];
                 buffer->textures[j] = texture->gpuResourceID();
 
@@ -471,7 +499,9 @@ void Textures::createArgumentBuffers()
             }
             buffer->textureIndex = 0;
         }
-    } else {
+    }
+    else
+    {
         // TODO: Add support for Tier1 argument buffers?
         // Or maybe just wait for Apple to phase out
         // support for Tier1 hardware.
@@ -481,10 +511,13 @@ void Textures::createArgumentBuffers()
 int main(int argc, char** argv)
 {
     int result = EXIT_FAILURE;
-    try {
+    try
+    {
         auto example = std::make_unique<Textures>();
         result = example->run(argc, argv);
-    } catch (const std::runtime_error& error) {
+    }
+    catch (const std::runtime_error& error)
+    {
         fmt::println("Exiting...");
     }
 

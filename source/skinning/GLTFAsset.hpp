@@ -15,8 +15,8 @@
 
 struct MeshGeometry
 {
-    NS::SharedPtr<MTL::Buffer> m_vertexBuffer;
-    NS::SharedPtr<MTL::Buffer> m_indexBuffer;
+    NS::SharedPtr<MTL::Buffer> vertexBuffer;
+    NS::SharedPtr<MTL::Buffer> indexBuffer;
 };
 
 class GLTFAsset final

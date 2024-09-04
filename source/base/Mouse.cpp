@@ -23,7 +23,10 @@ bool Mouse::didLeftDoubleClick() const
         m_currentState[SDL_BUTTON_LEFT].isPressed && m_currentState[SDL_BUTTON_LEFT].isDoubleClick);
 }
 
-bool Mouse::isLeftPressed() const { return m_currentState[SDL_BUTTON_LEFT].isPressed; }
+bool Mouse::isLeftPressed() const
+{
+    return m_currentState[SDL_BUTTON_LEFT].isPressed;
+}
 
 bool Mouse::didRightClick() const
 {
@@ -37,17 +40,35 @@ bool Mouse::didRightDoubleClick() const
         && m_currentState[SDL_BUTTON_RIGHT].isDoubleClick);
 }
 
-int32_t Mouse::x() const { return m_locationX; }
+int32_t Mouse::x() const
+{
+    return m_locationX;
+}
 
-int32_t Mouse::y() const { return m_locationY; }
+int32_t Mouse::y() const
+{
+    return m_locationY;
+}
 
-int32_t Mouse::relativeX() const { return m_relativeX; }
+int32_t Mouse::relativeX() const
+{
+    return m_relativeX;
+}
 
-int32_t Mouse::relativeY() const { return m_relativeY; }
+int32_t Mouse::relativeY() const
+{
+    return m_relativeY;
+}
 
-float Mouse::wheelX() const { return m_preciseWheelX; }
+float Mouse::wheelX() const
+{
+    return m_preciseWheelX;
+}
 
-float Mouse::wheelY() const { return m_preciseWheelY; }
+float Mouse::wheelY() const
+{
+    return m_preciseWheelY;
+}
 
 void Mouse::warp()
 {

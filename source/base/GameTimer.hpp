@@ -9,7 +9,8 @@
 
 #include <algorithm>
 
-class GameTimer {
+class GameTimer
+{
     static constexpr uint64_t s_ticksPerSecond = 10000000;
 
 public:
@@ -51,14 +52,17 @@ public:
         delta /= m_qpcFrequency;
 
         const uint32_t lastFrameCount = m_frameCount;
-        if (m_isFixedTimeStep) {
+        if (m_isFixedTimeStep)
+        {
             if (static_cast<uint64_t>(std::abs(static_cast<int64_t>(delta - m_targetElapsedTicks)))
-                < s_ticksPerSecond / 4000) {
+                < s_ticksPerSecond / 4000)
+            {
                 delta = m_targetElapsedTicks;
             }
 
             m_leftOverTicks += delta;
-            while (m_leftOverTicks >= m_targetElapsedTicks) {
+            while (m_leftOverTicks >= m_targetElapsedTicks)
+            {
                 m_elapsedTicks = m_targetElapsedTicks;
                 m_totalTicks += m_targetElapsedTicks;
                 m_leftOverTicks -= m_targetElapsedTicks;
@@ -66,7 +70,9 @@ public:
 
                 update();
             }
-        } else {
+        }
+        else
+        {
             m_elapsedTicks = delta;
             m_totalTicks += delta;
             m_leftOverTicks = 0;
@@ -75,11 +81,13 @@ public:
             update();
         }
 
-        if (m_frameCount != lastFrameCount) {
+        if (m_frameCount != lastFrameCount)
+        {
             m_framesThisSecond++;
         }
 
-        if (m_qpcSecondCounter >= m_qpcFrequency) {
+        if (m_qpcSecondCounter >= m_qpcFrequency)
+        {
             m_framesPerSecond = m_framesThisSecond;
             m_framesThisSecond = 0;
             m_qpcSecondCounter %= m_qpcFrequency;
