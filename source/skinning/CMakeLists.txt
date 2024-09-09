@@ -14,6 +14,11 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
 endif ()
 
 list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/alien-bug.glb)
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/skinAnimation.bin)
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/skinGeometry.bin)
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/skinningData.bin)
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/inverseBindMatrices.bin)
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/SimpleSkin.gltf)
 
 add_executable(${EXAMPLE}
         main.cpp
@@ -21,8 +26,12 @@ add_executable(${EXAMPLE}
         ${RESOURCE_FILES})
 
 if (CMAKE_GENERATOR MATCHES "Xcode")
-    # TODO: Add shaders for sample here
-    #target_sources(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR}/shaders/skinning/shader.metal)
+    target_sources(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR}/shaders/skinning/shader.metal)
+    set_source_files_properties(
+            ${CMAKE_SOURCE_DIR}/shaders/skinning/shader.metal PROPERTIES
+            LANGUAGE METAL
+            COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/shaders/skinning"
+    )
 else ()
     # Ensure shader library is available
     add_dependencies(${EXAMPLE} CompileMetalShaders)
