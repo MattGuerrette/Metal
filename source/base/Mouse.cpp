@@ -90,7 +90,7 @@ void Mouse::RegisterMouseWheel(SDL_MouseWheelEvent* event)
 void Mouse::RegisterMouseButton(SDL_MouseButtonEvent* event)
 {
     CurrentState[event->button] = {.IsDoubleClick = event->clicks > 1,
-                                   .Pressed = event->state == SDL_PRESSED,
+                                   .Pressed = event->down,
                                    .X = event->x,
                                    .Y = event->y};
 }
