@@ -1,4 +1,4 @@
-BasedOnStyle: Microsoft
+BasedOnStyle: WebKit
 NamespaceIndentation: All
 AlignTrailingComments: true
 AlignConsecutiveDeclarations: AcrossComments
@@ -8,3 +8,16 @@ PointerAlignment: Left
 AccessModifierOffset: -4
 AlwaysBreakTemplateDeclarations: Yes
 ColumnLimit: 100
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+BreakBeforeBraces: Custom
+AllowShortFunctionsOnASingleLine: None

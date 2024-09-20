@@ -1,6 +1,11 @@
 
 set(EXAMPLE textures)
-set(RESOURCE_FILES "${PROJECT_BINARY_DIR}/generated/default.metallib")
+
+if (NOT CMAKE_GENERATOR MATCHES "Xcode")
+    set(RESOURCE_FILES "${PROJECT_BINARY_DIR}/generated/default.metallib")
+else ()
+    set(RESOURCE_FILES "")
+endif ()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "iOS")
     list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard)
@@ -20,11 +25,25 @@ add_executable(${EXAMPLE}
         ${RESOURCE_FILES})
 
 
-# Ensure shader library is available
-add_dependencies(${EXAMPLE} CompileMetalShaders)
+if (CMAKE_GENERATOR MATCHES "Xcode")
+    target_sources(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR}/shaders/textures/shader.metal)
+    set_source_files_properties(
+            ${CMAKE_SOURCE_DIR}/shaders/textures/shader.metal PROPERTIES
+            LANGUAGE METAL
+            COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/shaders/textures"
+    )
+
+else ()
+    # Ensure shader library is available
+    add_dependencies(${EXAMPLE} CompileMetalShaders)
+endif ()
 
 
 target_link_libraries(${EXAMPLE} base)
+if (USE_KTX_LIBRARY)
+    target_link_libraries(${EXAMPLE} ktx)
+    target_compile_definitions(${EXAMPLE} USE_KTX_LIBRARY)
+endif ()
 set_target_properties(${EXAMPLE}
         PROPERTIES
         MACOSX_BUNDLE TRUE

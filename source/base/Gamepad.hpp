@@ -26,10 +26,10 @@ class Gamepad
 public:
     explicit Gamepad(SDL_JoystickID id);
 
-    float LeftThumbstickHorizontal() const;
+    float leftThumbstickHorizontal() const;
 
-    float LeftThumbstickVertical() const;
+    float leftThumbstickVertical() const;
 
 private:
-    UniqueGamepad Gamepad_;
+    UniqueGamepad m_gamepad;
 };

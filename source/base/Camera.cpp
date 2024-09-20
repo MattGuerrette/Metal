@@ -7,39 +7,53 @@
 #include "Camera.hpp"
 
 Camera::Camera(Vector3 position,
-               Vector3 direction,
-               Vector3 up,
-               float   fov,
-               float   aspectRatio,
-               float   nearPlane,
-               float   farPlane)
-    : Position(position), Direction(direction), Up(up), FieldOfView(fov), AspectRatio(aspectRatio),
-      NearPlane(nearPlane), FarPlane(farPlane)
+    Vector3            direction,
+    Vector3            up,
+    float              fov,
+    float              aspectRatio,
+    float              nearPlane,
+    float              farPlane)
+    : m_position(position)
+    , m_direction(direction)
+    , m_up(up)
+    , m_fieldOfView(fov)
+    , m_aspectRatio(aspectRatio)
+    , m_nearPlane(nearPlane)
+    , m_farPlane(farPlane)
 {
-    UpdateBasisVectors(Direction);
-    UpdateUniforms();
+    updateBasisVectors(m_direction);
+    updateUniforms();
 }
 
-const CameraUniforms& Camera::GetUniforms() const
+const CameraUniforms& Camera::uniforms() const
 {
-    return Uniforms;
+    return m_uniforms;
 }
 
-void Camera::UpdateBasisVectors(Vector3 direction)
+void Camera::setProjection(float fov, float aspect, float zNear, float zFar)
 {
-    Direction = direction;
-    Direction.Normalize();
-
-    Vector3 up = Up;
-    Vector3 right = up.Cross(Direction);
-    Vector3 newUp = right.Cross(Direction);
-    Up = up;
+    m_fieldOfView = fov;
+    m_aspectRatio = aspect;
+    m_nearPlane = zNear;
+    m_farPlane = zFar;
+    updateUniforms();
 }
 
-void Camera::UpdateUniforms()
+void Camera::updateBasisVectors(Vector3 direction)
 {
-    Uniforms.View = Matrix::CreateLookAt(Position, Direction, Up);
-    Uniforms.Projection =
-        Matrix::CreatePerspectiveFieldOfView(FieldOfView, AspectRatio, NearPlane, FarPlane);
-    Uniforms.ViewProjection = Uniforms.Projection * Uniforms.View;
+    m_direction = direction;
+    m_direction.Normalize();
+
+    const Vector3 up = m_up;
+    const Vector3 right = up.Cross(m_direction);
+    const Vector3 newUp = right.Cross(m_direction);
+    m_up = up;
+}
+
+void Camera::updateUniforms()
+{
+    m_uniforms.view = Matrix::CreateLookAt(m_position, m_direction, m_up);
+    m_uniforms.projection = Matrix::CreatePerspectiveFieldOfView(
+        m_fieldOfView, m_aspectRatio, m_nearPlane, m_farPlane);
+    m_uniforms.viewProjection = m_uniforms.projection * m_uniforms.view;
 }

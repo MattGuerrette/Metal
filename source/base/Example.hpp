@@ -8,6 +8,10 @@
 
 #include <SDL3/SDL.h>
 
+#ifdef SDL_PLATFORM_MACOS
+#include <AppKit/AppKit.hpp>
+#endif
+
 #include <Metal/Metal.hpp>
 #include <QuartzCore/QuartzCore.hpp>
 
@@ -19,59 +23,60 @@
 class Example : public CA::MetalDisplayLinkDelegate
 {
 public:
-    SDL_Window* Window;
-
     Example(const char* title, uint32_t width, uint32_t height);
 
     ~Example() override;
 
-    int Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv);
+    int run([[maybe_unused]] int argc, [[maybe_unused]] char** argv);
 
-    void Quit();
+    void quit();
 
-    [[nodiscard]] uint32_t GetFrameWidth() const;
-
-    [[nodiscard]] uint32_t GetFrameHeight() const;
-
-    virtual bool Load() = 0;
-
-    virtual void Update(const GameTimer& timer) = 0;
-
-    virtual void SetupUi(const GameTimer& timer);
-
-    virtual void Render(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) = 0;
-
-    void metalDisplayLinkNeedsUpdate(CA::MetalDisplayLink*       displayLink,
-                                     CA::MetalDisplayLinkUpdate* update) override;
+    void metalDisplayLinkNeedsUpdate(
+        CA::MetalDisplayLink* displayLink, CA::MetalDisplayLinkUpdate* update) override;
 
 protected:
-    static constexpr int BufferCount = 3;
+    static constexpr int s_bufferCount = 3;
 
-    SDL_MetalView View;
+    virtual bool onLoad() = 0;
+
+    virtual void onUpdate(const GameTimer& timer) = 0;
+
+    virtual void onSetupUi(const GameTimer& timer);
+
+    virtual void onResize(uint32_t width, uint32_t height) = 0;
+
+    virtual void onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) = 0;
+
+#ifdef SDL_PLATFORM_MACOS
+    virtual NS::Menu* createMenuBar();
+#endif
+
+    SDL_Window*   m_window;
+    SDL_MetalView m_view;
 
     // Keyboard and Mouse
-    std::unique_ptr<class Keyboard> Keyboard;
-    std::unique_ptr<class Mouse>    Mouse;
-    std::unique_ptr<Gamepad>        Gamepad_;
+    std::unique_ptr<class Keyboard> m_keyboard;
+    std::unique_ptr<class Mouse>    m_mouse;
+    std::unique_ptr<Gamepad>        m_gamepad;
 
     // Metal
-    NS::SharedPtr<CA::MetalDisplayLink>   DisplayLink_;
-    NS::SharedPtr<MTL::Device>            Device;
-    NS::SharedPtr<MTL::CommandQueue>      CommandQueue;
-    NS::SharedPtr<MTL::Texture>           DepthStencilTexture;
-    NS::SharedPtr<MTL::DepthStencilState> DepthStencilState;
-    NS::SharedPtr<MTL::Library>           PipelineLibrary;
-    MTL::PixelFormat                      FrameBufferPixelFormat;
+    NS::SharedPtr<CA::MetalDisplayLink>   m_displayLink;
+    NS::SharedPtr<MTL::Device>            m_device;
+    NS::SharedPtr<MTL::CommandQueue>      m_commandQueue;
+    NS::SharedPtr<MTL::Texture>           m_depthStencilTexture;
+    NS::SharedPtr<MTL::DepthStencilState> m_depthStencilState;
+    NS::SharedPtr<MTL::Library>           m_pipelineLibrary;
+    MTL::PixelFormat                      m_frameBufferPixelFormat;
 
     // Sync primitives
-    uint32_t             FrameIndex = 0;
-    dispatch_semaphore_t FrameSemaphore;
+    uint32_t             m_frameIndex = 0;
+    dispatch_semaphore_t m_frameSemaphore;
 
 private:
-    uint32_t  Width;
-    uint32_t  Height;
-    GameTimer Timer;
-    bool      Running;
+    uint32_t  m_width;
+    uint32_t  m_height;
+    GameTimer m_timer;
+    bool      m_running;
 
-    void CreateDepthStencil();
+    void createDepthStencil();
 };

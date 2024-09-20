@@ -1,5 +1,5 @@
 
-set(EXAMPLE helloworld)
+set(EXAMPLE skinning)
 
 if (NOT CMAKE_GENERATOR MATCHES "Xcode")
     set(RESOURCE_FILES "${PROJECT_BINARY_DIR}/generated/default.metallib")
@@ -13,15 +13,24 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
     list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/tvOS/LaunchScreen.storyboard)
 endif ()
 
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/alien-bug.glb)
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/skinAnimation.bin)
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/skinGeometry.bin)
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/skinningData.bin)
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/inverseBindMatrices.bin)
+list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/SimpleSkin.gltf)
+
 add_executable(${EXAMPLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+        main.cpp
+        GLTFAsset.cpp
         ${RESOURCE_FILES})
+
 if (CMAKE_GENERATOR MATCHES "Xcode")
-    target_sources(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR}/shaders/triangle/shader.metal)
+    target_sources(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR}/shaders/skinning/shader.metal)
     set_source_files_properties(
-            ${CMAKE_SOURCE_DIR}/shaders/triangle/shader.metal PROPERTIES
+            ${CMAKE_SOURCE_DIR}/shaders/skinning/shader.metal PROPERTIES
             LANGUAGE METAL
-            COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/shaders/triangle"
+            COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/shaders/skinning"
     )
 else ()
     # Ensure shader library is available
@@ -29,6 +38,7 @@ else ()
 endif ()
 
 target_link_libraries(${EXAMPLE} base)
+target_include_directories(${EXAMPLE} PRIVATE ${cgltf_SOURCE_DIR})
 set_target_properties(${EXAMPLE}
         PROPERTIES
         MACOSX_BUNDLE TRUE
@@ -38,7 +48,7 @@ set_target_properties(${EXAMPLE}
         XCODE_ATTRIBUTE_TVOS_DEPLOYMENT_TARGET 17.0
         XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 17.0
         XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET 14.0
-        XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
+        XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC NO
         XCODE_ATTRIBUTE_PRODUCT_NAME ${EXAMPLE}
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.github.MattGuerrette.${EXAMPLE}
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
