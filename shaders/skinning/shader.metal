@@ -43,7 +43,7 @@ vertex Vertex skinning_vertex(
     
     
     Vertex vertexOut;
-    float4 worldPosition = skinMatrix * vertices[vid].position;
+    float4 worldPosition = vertices[vid].position;
     vertexOut.position = argBuffer.data[iid].transform * worldPosition;
     vertexOut.color = vertices[vid].color;
     vertexOut.color *= 1;

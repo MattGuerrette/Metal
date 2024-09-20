@@ -49,7 +49,7 @@ std::vector<std::byte> File::readAll() const
     result.resize(numBytes);
 
     size_t numBytesRead;
-    void*  data = SDL_LoadFile_IO(m_stream.get(), &numBytesRead, SDL_FALSE);
+    void*  data = SDL_LoadFile_IO(m_stream.get(), &numBytesRead, false);
     if (data == nullptr)
     {
         return {};

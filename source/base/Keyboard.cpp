@@ -17,7 +17,7 @@ bool Keyboard::isKeyPressed(SDL_Scancode key)
 
 void Keyboard::registerKeyEvent(SDL_KeyboardEvent* event)
 {
-    m_currentKeyState[event->scancode] = event->state == SDL_PRESSED;
+    m_currentKeyState[event->scancode] = event->down;
 }
 
 void Keyboard::update()
