@@ -177,7 +177,7 @@ void Textures::onResize(uint32_t width, uint32_t height)
 }
 
 #ifdef USE_KTX_LIBRARY
-MTL::Texture* Textures::newTextureFromFile(const std::string& fileName)
+MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName)
 {
     MTL::Texture* texture = nullptr;
 

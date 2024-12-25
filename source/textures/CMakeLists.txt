@@ -42,7 +42,7 @@ endif ()
 target_link_libraries(${EXAMPLE} base)
 if (USE_KTX_LIBRARY)
     target_link_libraries(${EXAMPLE} ktx)
-    target_compile_definitions(${EXAMPLE} USE_KTX_LIBRARY)
+    target_compile_definitions(${EXAMPLE} PRIVATE USE_KTX_LIBRARY)
 endif ()
 set_target_properties(${EXAMPLE}
         PROPERTIES
