@@ -91,7 +91,7 @@ void Skinning::onResize(uint32_t width, uint32_t height)
     const float fov = XMConvertToRadians(75.0f);
     const float near = 0.01f;
     const float far = 1000.0f;
-    m_mainCamera->setProjection(fov, aspect, near, far);
+    m_mainCamera->setProjection(fov, aspect, near, far, width, height);
 }
 
 #ifdef SDL_PLATFORM_MACOS
@@ -174,13 +174,11 @@ bool Skinning::onLoad()
     const float far = 1000.0f;
 
     m_mainCamera = std::make_unique<Camera>(
-        Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far);
+        Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far, width, height);
 
     createBuffers();
 
     createPipelineState();
-
-
 
     try
     {
@@ -194,7 +192,7 @@ bool Skinning::onLoad()
     catch (std::exception& e)
     {
     }
-    
+
     createArgumentBuffers();
 
     return true;
@@ -249,11 +247,62 @@ void Skinning::onSetupUi(const GameTimer& timer)
 
 void Skinning::onUpdate(const GameTimer& timer)
 {
+    int windowWidth;
+    int windowHeight;
+    SDL_GetWindowSize(m_window, &windowWidth, &windowHeight);
+    // SDL_WarpMouseInWindow(m_window, windowWidth / 2, windowHeight / 2);
+
     const auto elapsed = static_cast<float>(timer.elapsedSeconds());
     // RotationX += elapsed;
     if (m_mouse->isLeftPressed())
     {
         m_rotationY += static_cast<float>(m_mouse->relativeX()) * elapsed;
+    }
+
+    if (m_keyboard->isKeyPressed(SDL_SCANCODE_LSHIFT))
+    {
+        m_mainCamera->rotate(timer.elapsedSeconds() * m_mouse->relativeY(),
+            timer.elapsedSeconds() * -m_mouse->relativeX());
+    }
+
+    if (m_keyboard->isKeyPressed(SDL_SCANCODE_J))
+    {
+        m_mainCamera->rotate(0.0f, timer.elapsedSeconds() * 1.0f);
+    }
+
+    if (m_keyboard->isKeyPressed(SDL_SCANCODE_I))
+    {
+        m_mainCamera->rotate(timer.elapsedSeconds() * 1.0f, 0.0f);
+    }
+
+    if (m_keyboard->isKeyPressed(SDL_SCANCODE_K))
+    {
+        m_mainCamera->rotate(timer.elapsedSeconds() * -1.0f, 0.0f);
+    }
+
+    if (m_keyboard->isKeyPressed(SDL_SCANCODE_L))
+    {
+        m_mainCamera->rotate(0.0f, timer.elapsedSeconds() * -1.0f);
+    }
+
+    if (m_keyboard->isKeyPressed(SDL_SCANCODE_A))
+    {
+        m_mainCamera->strafeLeft(timer.elapsedSeconds() * 1.0f);
+    }
+
+    if (m_keyboard->isKeyPressed(SDL_SCANCODE_D))
+    {
+        m_mainCamera->strafeRight(timer.elapsedSeconds() * 1.0f);
+    }
+
+    if (m_keyboard->isKeyPressed(SDL_SCANCODE_W))
+    {
+        m_mainCamera->moveForward(timer.elapsedSeconds() * 1.0f);
+    }
+
+    if (m_keyboard->isKeyPressed(SDL_SCANCODE_S))
+    {
+        m_mainCamera->moveBackward(timer.elapsedSeconds() * 1.0f);
     }
 
     if (m_gamepad)
@@ -382,19 +431,19 @@ void Skinning::updateUniforms()
         const Vector3 xAxis = Vector3::Right;
         const Vector3 yAxis = Vector3::Up;
 
-        const Matrix         xRot = Matrix::CreateFromAxisAngle(xAxis, rotationX);
-        const Matrix         yRot = Matrix::CreateFromAxisAngle(yAxis, rotationY);
-        const Matrix         rotation = xRot * yRot;
-        const Matrix         translation = Matrix::CreateTranslation(position);
-        const Matrix         scale = Matrix::CreateScale(scaleFactor);
-        const Matrix         model = scale * rotation * translation;
-        const CameraUniforms cameraUniforms = m_mainCamera->uniforms();
+        const Matrix xRot = Matrix::CreateFromAxisAngle(xAxis, rotationX);
+        const Matrix yRot = Matrix::CreateFromAxisAngle(yAxis, rotationY);
+        const Matrix rotation = xRot * yRot;
+        const Matrix translation = Matrix::CreateTranslation(position);
+        const Matrix scale = Matrix::CreateScale(scaleFactor);
+        const Matrix model = scale * rotation * translation;
+        const auto   viewProjection = m_mainCamera->viewProjection();
 
-        instanceData[index].transform = model * cameraUniforms.viewProjection;
+        instanceData[index].transform = model * viewProjection;
 
-        //argData->bone = m_bones.front().Transpose();
-        //argData->bones[0] = m_bones[0].Transpose();
-        //argData->bones[1] = m_bones[1].Transpose();
+        // argData->bone = m_bones.front().Transpose();
+        // argData->bones[0] = m_bones[0].Transpose();
+        // argData->bones[1] = m_bones[1].Transpose();
     }
 }
 
