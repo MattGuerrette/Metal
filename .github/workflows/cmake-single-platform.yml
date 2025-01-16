@@ -29,10 +29,16 @@ jobs:
     - name: Install Ninja
       run: brew install ninja
 
+    - name: Install vcpkg
+      run: brew install vcpkg
+
+    - name: Clone vcpkg
+      run: git clone https://github.com/microsoft/vcpkg "${{github.workspace}}/vcpkg"; ${{github.workspace}}/vcpkg/vcpkg-bootstrap.sh
+
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -GNinja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -GNinja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build
       # Build your program with the given configuration
