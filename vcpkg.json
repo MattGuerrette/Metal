@@ -1,0 +1,23 @@
+{
+  "name" : "metal",
+  "builtin-baseline" : "6220088b956e4e4c7de27fb5f5eff8c9745cb4c8",
+  "dependencies" : [ {
+    "name" : "directxmath",
+    "version>=" : "2024-10-15"
+  }, {
+    "name" : "fmt",
+    "version>=" : "11.0.2#1"
+  }, {
+    "name" : "sdl3",
+    "version>=" : "3.1.6-preview#1"
+  }, {
+    "name" : "cgltf",
+    "version>=" : "1.14"
+  }, {
+    "name" : "ktx",
+    "version>=" : "4.3.2"
+  }, {
+    "name" : "imgui",
+    "version>=" : "1.91.6"
+  } ]
+}

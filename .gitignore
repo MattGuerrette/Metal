@@ -5,6 +5,8 @@
 .DS_Store
 .idea/
 
+vcpkg_installed
+
 ## Build generated
 cmake-build*/
 _build*/

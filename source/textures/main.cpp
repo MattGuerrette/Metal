@@ -176,7 +176,6 @@ void Textures::onResize(uint32_t width, uint32_t height)
     m_mainCamera->setProjection(fov, aspect, near, far);
 }
 
-#ifdef USE_KTX_LIBRARY
 MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName)
 {
     MTL::Texture* texture = nullptr;
@@ -248,45 +247,6 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName)
 
     return texture;
 }
-#else
-MTL::Texture* Textures::newTextureFromFileMTK(
-    MTK::TextureLoader* loader, const std::string& fileName)
-{
-    MTL::Texture* texture = nullptr;
-    try
-    {
-        const File file(fileName);
-
-        const auto bytes = file.readAll();
-
-        NS::Data* data = NS::Data::data(bytes.data(), bytes.size());
-
-        const void* keys[]
-            = { MTK::TextureLoaderOptionTextureUsage, MTK::TextureLoaderOptionTextureStorageMode };
-        NS::SharedPtr<NS::Number> usageMode
-            = NS::TransferPtr(NS::Number::number(MTL::TextureUsageShaderRead));
-        NS::SharedPtr<NS::Number> storageMode
-            = NS::TransferPtr(NS::Number::number(MTL::StorageModePrivate));
-        const void* values[] = { (const void*)(usageMode.get()), (const void*)(storageMode.get()) };
-        CFDictionaryRef textureLoaderOptions = CFDictionaryCreate(nullptr, keys, values, 2,
-            &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-
-        NS::Error* error = nullptr;
-        texture = loader->newTexture(data, (NS::Dictionary*)textureLoaderOptions, &error);
-        CFRelease(textureLoaderOptions);
-        if (error != nullptr)
-        {
-            throw std::runtime_error("Failed to create texture from file");
-        }
-    }
-    catch (std::exception& e)
-    {
-        fmt::println(stderr, e.what());
-    }
-
-    return texture;
-}
-#endif
 
 void Textures::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& /*timer*/)
 {
@@ -422,13 +382,9 @@ void Textures::createTextureHeap()
     for (size_t i = 0; i < g_textureCount; i++)
     {
         const auto fileName = fmt::format("00{}_basecolor.ktx", i + 1);
-#ifdef USE_KTX_LIBRARY
+
         // Load KTX textures using KTX library directly
         textures[i] = newTextureFromFileKTX(fileName);
-#else
-        // Load KTX textures using MTKTextureLoader
-        textures[i] = newTextureFromFileMTK(m_textureLoader.get(), fileName);
-#endif
     }
 
     MTL::HeapDescriptor* heapDescriptor = MTL::HeapDescriptor::alloc()->init();
