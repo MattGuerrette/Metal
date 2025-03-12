@@ -24,8 +24,7 @@ These samples are developed using **C++20** and target the following platforms a
 
 ## Building
 
-These example applications use [CMake](https://www.cmake.org) and are actively developed using
-both [CLion](https://www.jetbrains.com/clion/) and [Xcode](https://developer.apple.com/xcode/)
+These example applications use [Vcpkg](https://vcpkg.io/en/), [CMake](https://www.cmake.org) and are actively developed using both [CLion](https://www.jetbrains.com/clion/) and [Xcode](https://developer.apple.com/xcode/)
 
 For those wanting to build the projects from a terminal invoking CMake directly or to
 generate the Xcode project files here are some example commands:
@@ -37,7 +36,7 @@ generate the Xcode project files here are some example commands:
    cd Metal
    mkdir cmake-build-debug
    cd cmake-build-debug
-   cmake .. -GNinja
+   cmake .. -GNinja -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
    cmake --build .
 ```
 
@@ -48,7 +47,7 @@ generate the Xcode project files here are some example commands:
    cd Metal
    mkdir cmake-build-xcode
    cd cmake-build-xcode
-   cmake .. -GXcode -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=<Apple Developer ID>
+   cmake .. -GXcode -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=<Apple Developer ID>
    cmake --build .
 ```
 
