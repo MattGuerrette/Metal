@@ -1,21 +1,26 @@
 {
-  "name" : "metal",
-  "builtin-baseline" : "6220088b956e4e4c7de27fb5f5eff8c9745cb4c8",
-  "dependencies" : [ {
-    "name" : "directxmath",
-    "version>=" : "2024-10-15"
-  }, {
-    "name" : "fmt",
-    "version>=" : "11.0.2#1"
-  }, {
-    "name" : "sdl3",
-    "version>=" : "3.2.8"
-  }, {
-    "name" : "cgltf",
-    "version>=" : "1.14"
-  }, {
-    "name" : "ktx",
-    "version>=" : "4.3.2"
-  }
- ]
+  "name": "metal",
+  "builtin-baseline": "41c447cc210dc39aa85d4a5f58b4a1b9e573b3dc",
+  "dependencies": [
+    {
+      "name": "directxmath",
+      "version>=": "2025-04-03"
+    },
+    {
+      "name": "fmt",
+      "version>=": "11.0.2#1"
+    },
+    {
+      "name": "sdl3",
+      "version>=": "3.2.10"
+    },
+    {
+      "name": "cgltf",
+      "version>=": "1.14"
+    },
+    {
+      "name": "ktx",
+      "version>=": "4.3.2"
+    }
+  ]
 }
