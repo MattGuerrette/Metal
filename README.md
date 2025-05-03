@@ -16,11 +16,11 @@ it is actively updated with the latest fixes and additions from Apple as well.
 
 These samples are developed using **C++20** and target the following platforms and os versions:
 
-| Platform | OS Version |
-|----------|------------|
-| macOS    | 14.0+      |
-| iOS      | 17.0+      |
-| tvOS     | 17.0+      |
+| Platform | OS Version | |
+|----------|------------|-- |
+| macOS    | 14.0+      | |
+| iOS      | 17.0+      | |
+| tvOS     | 17.0+      |Needs vcpkg support [#12](https://github.com/MattGuerrette/Metal/issues/12) |
 
 ## Building
 
