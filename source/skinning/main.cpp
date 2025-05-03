@@ -335,6 +335,7 @@ void Skinning::createPipelineState()
     pipelineDescriptor->setVertexFunction(vertexFunction);
     pipelineDescriptor->setFragmentFunction(fragmentFunction);
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
+    pipelineDescriptor->setSampleCount(s_multisampleCount);
 
     NS::Error* error = nullptr;
     m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));

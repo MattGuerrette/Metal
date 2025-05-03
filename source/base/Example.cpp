@@ -29,8 +29,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     ImGui::StyleColorsDark();
 
     // Initialize SDL
-    if (const int result
-        = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD);
+    if (const int result = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD);
         result < 0)
     {
         fmt::println(fmt::format("Failed to initialize SDL: {}", SDL_GetError()));
@@ -115,6 +114,21 @@ Example::~Example()
 
 void Example::createDepthStencil()
 {
+    int32_t frameWidth = 0;
+    int32_t frameHeight = 0;
+    SDL_GetWindowSizeInPixels(m_window, &frameWidth, &frameHeight);
+
+    // Create a multisample texture
+    MTL::TextureDescriptor* msaaTextureDescriptor = MTL::TextureDescriptor::texture2DDescriptor(
+        MTL::PixelFormatBGRA8Unorm_sRGB, frameWidth, frameHeight, false);
+    msaaTextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+    msaaTextureDescriptor->setSampleCount(s_multisampleCount); // Set sample count for MSAA
+    msaaTextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+    msaaTextureDescriptor->setStorageMode(MTL::StorageModePrivate);
+
+    m_msaaTexture = NS::TransferPtr(m_device->newTexture(msaaTextureDescriptor));
+    msaaTextureDescriptor->release();
+
     m_depthStencilState.reset();
 
     MTL::DepthStencilDescriptor* depthStencilDescriptor
@@ -126,12 +140,10 @@ void Example::createDepthStencil()
 
     depthStencilDescriptor->release();
 
-    int32_t frameWidth = 0;
-    int32_t frameHeight = 0;
-    SDL_GetWindowSizeInPixels(m_window, &frameWidth, &frameHeight);
     MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::texture2DDescriptor(
         MTL::PixelFormatDepth32Float_Stencil8, frameWidth, frameHeight, false);
-    textureDescriptor->setSampleCount(1);
+    textureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+    textureDescriptor->setSampleCount(s_multisampleCount);
     textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
     textureDescriptor->setResourceOptions(
         MTL::ResourceOptionCPUCacheModeDefault | MTL::ResourceStorageModePrivate);
@@ -277,16 +289,30 @@ void Example::metalDisplayLinkNeedsUpdate(
         if (drawable->texture()->width() != m_depthStencilTexture->width()
             || drawable->texture()->height() != m_depthStencilTexture->height())
         {
-            m_depthStencilTexture.reset();
-
             int32_t frameWidth = 0;
             int32_t frameHeight = 0;
             SDL_GetWindowSizeInPixels(m_window, &frameWidth, &frameHeight);
 
+            m_msaaTexture.reset();
+
+            // Create a multisample texture
+            MTL::TextureDescriptor* msaaTextureDescriptor
+                = MTL::TextureDescriptor::texture2DDescriptor(
+                    MTL::PixelFormatBGRA8Unorm_sRGB, frameWidth, frameHeight, false);
+            msaaTextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+            msaaTextureDescriptor->setSampleCount(s_multisampleCount); // Set sample count for MSAA
+            msaaTextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+            msaaTextureDescriptor->setStorageMode(MTL::StorageModePrivate);
+
+            m_msaaTexture = NS::TransferPtr(m_device->newTexture(msaaTextureDescriptor));
+
+            m_depthStencilTexture.reset();
+
             MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::texture2DDescriptor(
 
                 MTL::PixelFormatDepth32Float_Stencil8, frameWidth, frameHeight, false);
-            textureDescriptor->setSampleCount(1);
+            textureDescriptor->setSampleCount(s_multisampleCount);
+            textureDescriptor->setTextureType(MTL::TextureType2DMultisample);
             textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
             textureDescriptor->setResourceOptions(
                 MTL::ResourceOptionCPUCacheModeDefault | MTL::ResourceStorageModePrivate);
@@ -297,9 +323,10 @@ void Example::metalDisplayLinkNeedsUpdate(
 
         MTL::RenderPassDescriptor* passDescriptor
             = MTL::RenderPassDescriptor::renderPassDescriptor();
-        passDescriptor->colorAttachments()->object(0)->setTexture(drawable->texture());
+        passDescriptor->colorAttachments()->object(0)->setResolveTexture(drawable->texture());
+        passDescriptor->colorAttachments()->object(0)->setTexture(m_msaaTexture.get());
         passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
-        passDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
+        passDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionMultisampleResolve);
         passDescriptor->colorAttachments()->object(0)->setClearColor(
             MTL::ClearColor(.39, .58, .92, 1.0));
         passDescriptor->depthAttachment()->setTexture(m_depthStencilTexture.get());
@@ -310,6 +337,7 @@ void Example::metalDisplayLinkNeedsUpdate(
         passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
         passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
         passDescriptor->stencilAttachment()->setClearStencil(0);
+        
         MTL::RenderCommandEncoder* commandEncoder
             = commandBuffer->renderCommandEncoder(passDescriptor);
 

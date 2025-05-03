@@ -164,7 +164,8 @@ void Instancing::createPipelineState()
     pipelineDescriptor->setFragmentFunction(m_pipelineLibrary->newFunction(
         NS::String::string("instancing_fragment", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
-
+    pipelineDescriptor->setSampleCount(s_multisampleCount);
+    
     NS::Error* error = nullptr;
     m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
     if (error != nullptr)

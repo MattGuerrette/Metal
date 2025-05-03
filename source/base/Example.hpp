@@ -36,6 +36,7 @@ public:
 
 protected:
     static constexpr int s_bufferCount = 3;
+    static constexpr int s_multisampleCount = 4;
 
     virtual bool onLoad() = 0;
 
@@ -63,6 +64,7 @@ protected:
     NS::SharedPtr<CA::MetalDisplayLink>   m_displayLink;
     NS::SharedPtr<MTL::Device>            m_device;
     NS::SharedPtr<MTL::CommandQueue>      m_commandQueue;
+    NS::SharedPtr<MTL::Texture>           m_msaaTexture;
     NS::SharedPtr<MTL::Texture>           m_depthStencilTexture;
     NS::SharedPtr<MTL::DepthStencilState> m_depthStencilState;
     NS::SharedPtr<MTL::Library>           m_pipelineLibrary;

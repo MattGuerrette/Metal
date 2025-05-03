@@ -160,7 +160,8 @@ void HelloWorld::createPipelineState()
     pipelineDescriptor->setFragmentFunction(m_pipelineLibrary->newFunction(
         NS::String::string("triangle_fragment", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
-
+    pipelineDescriptor->setSampleCount(s_multisampleCount);
+    
     NS::Error* error = nullptr;
     m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
     if (error != nullptr)
