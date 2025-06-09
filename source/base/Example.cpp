@@ -94,7 +94,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
 
     m_displayLink = NS::TransferPtr(CA::MetalDisplayLink::alloc()->init(layer));
     // Enable 120HZ refresh for devices that support Pro Motion
-    m_displayLink->setPreferredFrameRateRange({ 60, 120, 120 });
+    m_displayLink->setPreferredFrameRateRange({ 60, mode->refresh_rate, mode->refresh_rate });
     m_displayLink->setDelegate(this);
 }
 
