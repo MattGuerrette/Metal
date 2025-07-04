@@ -1,6 +1,6 @@
 {
   "name": "metal",
-  "builtin-baseline": "41c447cc210dc39aa85d4a5f58b4a1b9e573b3dc",
+  "builtin-baseline": "9e8416f15d93fa9347e3291bd8c128dd44200ba5",
   "dependencies": [
     {
       "name": "directxmath",
@@ -12,7 +12,7 @@
     },
     {
       "name": "sdl3",
-      "version>=": "3.2.10"
+      "version>=": "3.2.16"
     },
     {
       "name": "cgltf",
