@@ -32,7 +32,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     if (const int result = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD);
         result < 0)
     {
-        fmt::println(fmt::format("Failed to initialize SDL: {}", SDL_GetError()));
+        fmt::println("SDL_Init failed: {}", SDL_GetError());
         abort();
     }
 

@@ -9,7 +9,6 @@
 #include <fmt/core.h>
 
 #include <Metal/Metal.hpp>
-#include <QuartzCore/QuartzCore.hpp>
 
 #include "Camera.hpp"
 #include "Example.hpp"
@@ -49,7 +48,7 @@ private:
 
     void createPipelineState();
 
-    void updateUniforms();
+    void updateUniforms() const;
 
     NS::SharedPtr<MTL::RenderPipelineState>               m_pipelineState;
     NS::SharedPtr<MTL::Buffer>                            m_vertexBuffer;
@@ -71,10 +70,10 @@ bool HelloWorld::onLoad()
     int32_t width;
     int32_t height;
     SDL_GetWindowSizeInPixels(m_window, &width, &height);
-    const float aspect = (float)width / (float)height;
-    const float fov = (75.0F * (float)M_PI) / 180.0F;
-    const float near = 0.01F;
-    const float far = 1000.0F;
+    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
+    constexpr float fov = XMConvertToRadians(75.0F);
+    constexpr float near = 0.01F;
+    constexpr float far = 1000.0F;
 
     m_mainCamera = std::make_unique<Camera>(XMFLOAT3 { 0.0F, 0.0F, 0.0F },
         XMFLOAT3 { 0.0F, 0.0F, -1.0F }, XMFLOAT3 { 0.0F, 1.0F, 0.0F }, fov, aspect, near, far);
@@ -97,8 +96,8 @@ void HelloWorld::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameT
 {
     updateUniforms();
 
-    const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
-    const auto   uniformBufferOffset = alignedUniformSize * m_frameIndex;
+    constexpr size_t alignedUniformSize = sizeof(Uniforms) + 0xFF & -0x100;
+    const auto       uniformBufferOffset = alignedUniformSize * m_frameIndex;
 
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
     commandEncoder->setDepthStencilState(m_depthStencilState.get());
@@ -111,12 +110,12 @@ void HelloWorld::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameT
         m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(), 0);
 }
 
-void HelloWorld::onResize(uint32_t width, uint32_t height)
+void HelloWorld::onResize(const uint32_t width, const uint32_t height)
 {
-    const float aspect = (float)width / (float)height;
-    const float fov = (75.0F * (float)M_PI) / 180.0F;
-    const float near = 0.01F;
-    const float far = 1000.0F;
+    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
+    constexpr float fov = XMConvertToRadians(75.0F);
+    constexpr float near = 0.01F;
+    constexpr float far = 1000.0F;
     m_mainCamera->setProjection(fov, aspect, near, far);
 }
 
@@ -161,7 +160,7 @@ void HelloWorld::createPipelineState()
         NS::String::string("triangle_fragment", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
     pipelineDescriptor->setSampleCount(s_multisampleCount);
-    
+
     NS::Error* error = nullptr;
     m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
     if (error != nullptr)
@@ -176,11 +175,11 @@ void HelloWorld::createPipelineState()
 
 void HelloWorld::createBuffers()
 {
-    static const Vertex vertices[] = { { .position = { 0, 1, 0, 1 }, .color = { 1, 0, 0, 1 } },
+    constexpr Vertex vertices[] = { { .position = { 0, 1, 0, 1 }, .color = { 1, 0, 0, 1 } },
         { .position = { -1, -1, 0, 1 }, .color = { 0, 1, 0, 1 } },
         { .position = { 1, -1, 0, 1 }, .color = { 0, 0, 1, 1 } } };
 
-    static const uint16_t indices[] = { 0, 1, 2 };
+    constexpr uint16_t indices[] = { 0, 1, 2 };
 
     m_vertexBuffer = NS::TransferPtr(
         m_device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
@@ -190,8 +189,8 @@ void HelloWorld::createBuffers()
         m_device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
-    constexpr size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
-    for (auto index = 0; index < s_bufferCount; index++)
+    constexpr size_t alignedUniformSize = sizeof(Uniforms) + 0xFF & -0x100;
+    for (auto index = 0; std::cmp_less(index, s_bufferCount); index++)
     {
         const auto                      label = fmt::format("Uniform: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
@@ -202,7 +201,7 @@ void HelloWorld::createBuffers()
     }
 }
 
-void HelloWorld::updateUniforms()
+void HelloWorld::updateUniforms() const
 {
     auto position = Vector3(0.0F, 0.0, -10.0F);
     auto rotationX = 0.0F;
@@ -223,22 +222,22 @@ void HelloWorld::updateUniforms()
     Uniforms uniforms {};
     uniforms.modelViewProjection = model * cameraUniforms.viewProjection;
 
-    const size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
-    const size_t uniformBufferOffset = alignedUniformSize * m_frameIndex;
+    constexpr size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
+    const size_t     uniformBufferOffset = alignedUniformSize * m_frameIndex;
 
-    char* buffer = reinterpret_cast<char*>(this->m_uniformBuffer[m_frameIndex]->contents());
+    auto buffer = static_cast<char*>(this->m_uniformBuffer[m_frameIndex]->contents());
     memcpy(buffer + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
 
-int main(int argc, char** argv)
+int main(const int argc, char** argv)
 {
     int result = EXIT_FAILURE;
     try
     {
-        auto example = std::make_unique<HelloWorld>();
+        const auto example = std::make_unique<HelloWorld>();
         result = example->run(argc, argv);
     }
-    catch (const std::runtime_error& error)
+    catch (const std::runtime_error&)
     {
         fmt::println("Exiting...");
     }

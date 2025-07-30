@@ -42,10 +42,10 @@ XM_ALIGNED_STRUCT(16) FragmentArgumentBuffer
     [[maybe_unused]] Matrix*                                     transforms;
 };
 
-static const std::array<const char*, g_textureCount> g_comboItems
+static constexpr std::array g_comboItems
     = { "Texture 0", "Texture 1", "Texture 2", "Texture 3", "Texture 4" };
 
-class Textures : public Example
+class Textures final : public Example
 {
     static constexpr int s_instanceCount = 3;
 
@@ -73,10 +73,10 @@ private:
 
     void createArgumentBuffers();
 
-    void updateUniforms();
+    void updateUniforms() const;
 
 #ifdef USE_KTX_LIBRARY
-    MTL::Texture* newTextureFromFileKTX(const std::string& fileName);
+    [[nodiscard]] MTL::Texture* newTextureFromFileKTX(const std::string& fileName) const;
 #else
     MTL::Texture* newTextureFromFileMTK(MTK::TextureLoader* loader, const std::string& fileName);
 #endif
@@ -107,10 +107,10 @@ bool Textures::onLoad()
     int32_t width;
     int32_t height;
     SDL_GetWindowSizeInPixels(m_window, &width, &height);
-    const float aspect = (float)width / (float)height;
-    const float fov = XMConvertToRadians(75.0F);
-    const float near = 0.01F;
-    const float far = 1000.0F;
+    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
+    constexpr float fov = XMConvertToRadians(75.0F);
+    constexpr float near = 0.01F;
+    constexpr float far = 1000.0F;
 
     m_mainCamera = std::make_unique<Camera>(
         Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far);
@@ -141,7 +141,7 @@ void Textures::onSetupUi(const GameTimer& timer)
         /// Update argument buffer index
         for (const auto& buffer : m_argumentBuffer)
         {
-            auto* contents = reinterpret_cast<FragmentArgumentBuffer*>(buffer->contents());
+            auto* contents = static_cast<FragmentArgumentBuffer*>(buffer->contents());
             contents->textureIndex = m_selectedTexture;
         }
     }
@@ -167,16 +167,16 @@ void Textures::onUpdate(const GameTimer& timer)
     }
 }
 
-void Textures::onResize(uint32_t width, uint32_t height)
+void Textures::onResize(const uint32_t width, const uint32_t height)
 {
-    const float aspect = (float)width / (float)height;
-    const float fov = XMConvertToRadians(75.0F);
-    const float near = 0.01F;
-    const float far = 1000.0F;
+    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
+    constexpr float fov = XMConvertToRadians(75.0F);
+    constexpr float near = 0.01F;
+    constexpr float far = 1000.0F;
     m_mainCamera->setProjection(fov, aspect, near, far);
 }
 
-MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName)
+MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
 {
     MTL::Texture* texture = nullptr;
 
@@ -186,25 +186,24 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName)
 
         const auto bytes = file.readAll();
 
-        KTX_error_code result;
-        const uint32_t flags
+        constexpr uint32_t flags
             = KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT | KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
-        ktxTexture2* ktx2Texture = nullptr;
-        result = ktxTexture2_CreateFromMemory(
-            (ktx_uint8_t*)bytes.data(), bytes.size(), flags, &ktx2Texture);
+        ktxTexture2*   ktx2Texture = nullptr;
+        KTX_error_code result = ktxTexture2_CreateFromMemory(
+            reinterpret_cast<const ktx_uint8_t*>(bytes.data()), bytes.size(), flags, &ktx2Texture);
         if (result != KTX_SUCCESS)
         {
             return nullptr;
         }
 
-        const MTL::TextureType type = MTL::TextureType2D;
-        const MTL::PixelFormat pixelFormat = MTL::PixelFormatASTC_8x8_sRGB;
-        const bool             genMipmaps = ktx2Texture->generateMipmaps;
-        const NS::UInteger     levelCount = ktx2Texture->numLevels;
-        const NS::UInteger     baseWidth = ktx2Texture->baseWidth;
-        const NS::UInteger     baseHeight = ktx2Texture->baseHeight;
-        const NS::UInteger     baseDepth = ktx2Texture->baseDepth;
-        auto                   maxMipLevelCount = static_cast<NS::UInteger>(
+        constexpr MTL::TextureType type = MTL::TextureType2D;
+        constexpr MTL::PixelFormat pixelFormat = MTL::PixelFormatASTC_8x8_sRGB;
+        const bool                 genMipmaps = ktx2Texture->generateMipmaps;
+        const NS::UInteger         levelCount = ktx2Texture->numLevels;
+        const NS::UInteger         baseWidth = ktx2Texture->baseWidth;
+        const NS::UInteger         baseHeight = ktx2Texture->baseHeight;
+        const NS::UInteger         baseDepth = ktx2Texture->baseDepth;
+        const auto                 maxMipLevelCount = static_cast<NS::UInteger>(
             std::floor(std::log2(std::fmax(baseWidth, baseHeight))) + 1);
         const NS::UInteger storedMipLevelCount = genMipmaps ? maxMipLevelCount : levelCount;
 
@@ -212,8 +211,8 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName)
         textureDescriptor->setTextureType(type);
         textureDescriptor->setPixelFormat(pixelFormat);
         textureDescriptor->setWidth(baseWidth);
-        textureDescriptor->setHeight((ktx2Texture->numDimensions > 1) ? baseHeight : 1);
-        textureDescriptor->setDepth((ktx2Texture->numDimensions > 2) ? baseDepth : 1);
+        textureDescriptor->setHeight(ktx2Texture->numDimensions > 1 ? baseHeight : 1);
+        textureDescriptor->setDepth(ktx2Texture->numDimensions > 2 ? baseDepth : 1);
         textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
         textureDescriptor->setStorageMode(MTL::StorageModeShared);
         textureDescriptor->setArrayLength(1);
@@ -221,18 +220,20 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName)
 
         texture = m_device->newTexture(textureDescriptor);
 
-        auto*              ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
-        const ktx_uint32_t layer = 0;
-        const ktx_uint32_t faceSlice = 0;
+        auto* ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
         for (ktx_uint32_t level = 0; level < ktx2Texture->numLevels; ++level)
         {
-            ktx_size_t offset = 0;
+            constexpr ktx_uint32_t faceSlice = 0;
+            constexpr ktx_uint32_t layer = 0;
+            ktx_size_t             offset = 0;
             result = ktxTexture_GetImageOffset(ktx1Texture, level, layer, faceSlice, &offset);
-            ktx_uint8_t*       imageBytes = ktxTexture_GetData(ktx1Texture) + offset;
+            const ktx_uint8_t* imageBytes = ktxTexture_GetData(ktx1Texture) + offset;
             const ktx_uint32_t bytesPerRow = ktxTexture_GetRowPitch(ktx1Texture, level);
             const ktx_size_t   bytesPerImage = ktxTexture_GetImageSize(ktx1Texture, level);
-            auto levelWidth = static_cast<size_t>(std::fmax(1.0F, (float)(baseWidth >> level)));
-            auto levelHeight = static_cast<size_t>(std::fmax(1.0F, (float)(baseHeight >> level)));
+            const auto         levelWidth
+                = static_cast<size_t>(std::fmax(1.0F, static_cast<float>(baseWidth >> level)));
+            const auto levelHeight
+                = static_cast<size_t>(std::fmax(1.0F, static_cast<float>(baseHeight >> level)));
 
             texture->replaceRegion(MTL::Region(0, 0, levelWidth, levelHeight), level, faceSlice,
                 imageBytes, bytesPerRow, bytesPerImage);
@@ -242,7 +243,7 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName)
     }
     catch (const std::runtime_error& error)
     {
-        fmt::println(error.what());
+        fmt::println("{}", error.what());
     }
 
     return texture;
@@ -321,12 +322,12 @@ void Textures::createPipelineState()
 
 void Textures::createBuffers()
 {
-    static const Vertex vertices[] = { { .position = { -1, -1, 0, 1 }, .texCoord = { 0, 0 } },
+    static constexpr Vertex vertices[] = { { .position = { -1, -1, 0, 1 }, .texCoord = { 0, 0 } },
         { .position = { -1, 1, 0, 1 }, .texCoord = { 0, 1 } },
         { .position = { 1, -1, 0, 1 }, .texCoord = { 1, 0 } },
         { .position = { 1, 1, 0, 1 }, .texCoord = { 1, 1 } } };
 
-    static const uint16_t indices[] = { 0, 1, 2, 2, 1, 3 };
+    static constexpr uint16_t indices[] = { 0, 1, 2, 2, 1, 3 };
 
     m_vertexBuffer = NS::TransferPtr(
         m_device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
@@ -336,7 +337,7 @@ void Textures::createBuffers()
         m_device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
-    const size_t instanceDataSize
+    constexpr size_t instanceDataSize
         = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(Matrix);
     for (auto index = 0; index < s_bufferCount; index++)
     {
@@ -350,14 +351,14 @@ void Textures::createBuffers()
     }
 }
 
-void Textures::updateUniforms()
+void Textures::updateUniforms() const
 {
     MTL::Buffer* instanceBuffer = m_instanceBuffer[m_frameIndex].get();
 
     auto* instanceData = static_cast<Matrix*>(instanceBuffer->contents());
     for (auto index = 0; index < s_instanceCount; ++index)
     {
-        auto position = Vector3(-5.0F + (5.0F * (float)index), 0.0F, -8.0F);
+        auto position = Vector3(-5.0F + 5.0F * static_cast<float>(index), 0.0F, -8.0F);
         auto rotationX = m_rotationX;
         auto rotationY = m_rotationY;
         auto scaleFactor = 1.0F;
@@ -384,7 +385,7 @@ void Textures::createTextureHeap()
     {
         const auto fileName = fmt::format("00{}_basecolor.ktx", i + 1);
 
-        // Load KTX textures using KTX library directly
+        // Load KTX textures using KTX lib directly
         textures[i] = newTextureFromFileKTX(fileName);
     }
 
@@ -393,7 +394,7 @@ void Textures::createTextureHeap()
     heapDescriptor->setStorageMode(MTL::StorageModePrivate);
     heapDescriptor->setSize(0);
 
-    // Allocate space in heap for each texture
+    // Allocate space in the heap for each texture
     NS::UInteger heapSize = 0;
     for (size_t i = 0; i < g_textureCount; i++)
     {
@@ -491,7 +492,7 @@ void Textures::createArgumentBuffers()
     {
         for (auto i = 0; i < s_bufferCount; i++)
         {
-            const auto size = sizeof(FragmentArgumentBuffer);
+            constexpr auto size = sizeof(FragmentArgumentBuffer);
             m_argumentBuffer[i] = NS::TransferPtr(
                 m_device->newBuffer(size, MTL::ResourceOptionCPUCacheModeDefault));
 
@@ -500,15 +501,14 @@ void Textures::createArgumentBuffers()
             m_argumentBuffer[i]->setLabel(label);
             label->release();
 
-            auto* buffer
-                = reinterpret_cast<FragmentArgumentBuffer*>(m_argumentBuffer[i]->contents());
+            auto* buffer = static_cast<FragmentArgumentBuffer*>(m_argumentBuffer[i]->contents());
             // Bind each texture's GPU id into argument buffer for access in fragment shader
             for (auto j = 0; j < m_heapTextures.size(); j++)
             {
-                auto texture = m_heapTextures[j];
+                const auto texture = m_heapTextures[j];
                 buffer->textures[j] = texture->gpuResourceID();
 
-                buffer->transforms = (Matrix*)m_instanceBuffer[i]->gpuAddress();
+                buffer->transforms = reinterpret_cast<Matrix*>(m_instanceBuffer[i]->gpuAddress());
             }
             buffer->textureIndex = 0;
         }
@@ -521,15 +521,15 @@ void Textures::createArgumentBuffers()
     }
 }
 
-int main(int argc, char** argv)
+int main(const int argc, char** argv)
 {
     int result = EXIT_FAILURE;
     try
     {
-        auto example = std::make_unique<Textures>();
+        const auto example = std::make_unique<Textures>();
         result = example->run(argc, argv);
     }
-    catch (const std::runtime_error& error)
+    catch (const std::runtime_error&)
     {
         fmt::println("Exiting...");
     }

@@ -10,7 +10,6 @@
 #include <fmt/core.h>
 
 #include <Metal/Metal.hpp>
-#include <QuartzCore/QuartzCore.hpp>
 
 #include "Camera.hpp"
 #include "Example.hpp"
@@ -33,7 +32,7 @@ XM_ALIGNED_STRUCT(16) InstanceData
     Matrix transform;
 };
 
-class Instancing : public Example
+class Instancing final : public Example
 {
     static constexpr int s_instanceCount = 3;
 
@@ -55,7 +54,7 @@ private:
 
     void createPipelineState();
 
-    void updateUniforms();
+    void updateUniforms() const;
 
     NS::SharedPtr<MTL::RenderPipelineState>                 m_pipelineState;
     NS::SharedPtr<MTL::Buffer>                              m_vertexBuffer;
@@ -78,10 +77,10 @@ bool Instancing::onLoad()
     int32_t width;
     int32_t height;
     SDL_GetWindowSizeInPixels(m_window, &width, &height);
-    const float aspect = (float)width / (float)height;
-    const float fov = (75.0F * (float)M_PI) / 180.0F;
-    const float near = 0.01F;
-    const float far = 1000.0F;
+    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
+    constexpr float fov = XMConvertToRadians(75.0f);
+    constexpr float near = 0.01F;
+    constexpr float far = 1000.0F;
 
     m_mainCamera = std::make_unique<Camera>(XMFLOAT3 { 0.0F, 0.0F, 0.0F },
         XMFLOAT3 { 0.0F, 0.0F, -1.0F }, XMFLOAT3 { 0.0F, 1.0F, 0.0F }, fov, aspect, near, far);
@@ -95,10 +94,10 @@ bool Instancing::onLoad()
 
 void Instancing::onResize(uint32_t width, uint32_t height)
 {
-    const float aspect = (float)width / (float)height;
-    const float fov = (75.0F * (float)M_PI) / 180.0F;
-    const float near = 0.01F;
-    const float far = 1000.0F;
+    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
+    constexpr float fov = XMConvertToRadians(75.0f);
+    constexpr float near = 0.01F;
+    constexpr float far = 1000.0F;
     m_mainCamera->setProjection(fov, aspect, near, far);
 }
 
@@ -165,7 +164,7 @@ void Instancing::createPipelineState()
         NS::String::string("instancing_fragment", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
     pipelineDescriptor->setSampleCount(s_multisampleCount);
-    
+
     NS::Error* error = nullptr;
     m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
     if (error != nullptr)
@@ -200,9 +199,9 @@ void Instancing::createBuffers()
         m_device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
-    const size_t instanceDataSize
+    constexpr size_t instanceDataSize
         = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(InstanceData);
-    for (auto index = 0; index < s_bufferCount; index++)
+    for (auto index = 0; std::cmp_less(index, s_bufferCount); index++)
     {
         const auto                      label = fmt::format("Instance Buffer: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
@@ -213,14 +212,14 @@ void Instancing::createBuffers()
     }
 }
 
-void Instancing::updateUniforms()
+void Instancing::updateUniforms() const
 {
     MTL::Buffer* instanceBuffer = m_instanceBuffer[m_frameIndex].get();
 
     auto* instanceData = static_cast<InstanceData*>(instanceBuffer->contents());
     for (auto index = 0; index < s_instanceCount; ++index)
     {
-        auto position = Vector3(-5.0F + (5.0F * (float)index), 0.0F, -10.0F);
+        auto position = Vector3(-5.0F + 5.0F * static_cast<float>(index), 0.0F, -10.0F);
         auto rotationX = m_rotationX;
         auto rotationY = m_rotationY;
         auto scaleFactor = 1.0F;
@@ -245,10 +244,10 @@ int main(int argc, char** argv)
     int result = EXIT_FAILURE;
     try
     {
-        auto example = std::make_unique<Instancing>();
+        const auto example = std::make_unique<Instancing>();
         result = example->run(argc, argv);
     }
-    catch (const std::runtime_error& error)
+    catch (const std::runtime_error&)
     {
         fmt::println("Exiting...");
     }

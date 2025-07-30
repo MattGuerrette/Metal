@@ -14,7 +14,7 @@ class File
 {
     struct StreamDeleter
     {
-        void operator()(SDL_IOStream* stream)
+        void operator()(SDL_IOStream* stream) const
         {
             if (stream != nullptr)
             {
