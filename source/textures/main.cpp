@@ -79,6 +79,7 @@ private:
     [[nodiscard]] MTL::Texture* newTextureFromFileKTX(const std::string& fileName) const;
 #else
     MTL::Texture* newTextureFromFileMTK(MTK::TextureLoader* loader, const std::string& fileName);
+    NS::SharedPtr<MTK::TextureLoader> m_textureLoader;
 #endif
 
     NS::SharedPtr<MTL::RenderPipelineState>               m_pipelineState;
@@ -89,7 +90,6 @@ private:
     NS::SharedPtr<MTL::Heap>                              m_textureHeap;
     std::array<NS::SharedPtr<MTL::Buffer>, s_bufferCount> m_argumentBuffer;
     std::vector<NS::SharedPtr<MTL::Texture>>              m_heapTextures;
-    NS::SharedPtr<MTK::TextureLoader>                     m_textureLoader;
     float                                                 m_rotationX = 0.0F;
     float                                                 m_rotationY = 0.0F;
     int                                                   m_selectedTexture = 0;
@@ -104,9 +104,8 @@ Textures::~Textures() = default;
 
 bool Textures::onLoad()
 {
-    int32_t width;
-    int32_t height;
-    SDL_GetWindowSizeInPixels(m_window, &width, &height);
+    const auto      width = windowWidth();
+    const auto      height = windowHeight();
     const float     aspect = static_cast<float>(width) / static_cast<float>(height);
     constexpr float fov = XMConvertToRadians(75.0F);
     constexpr float near = 0.01F;
@@ -115,7 +114,9 @@ bool Textures::onLoad()
     m_mainCamera = std::make_unique<Camera>(
         Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far);
 
-    m_textureLoader = NS::TransferPtr(MTK::TextureLoader::alloc()->init(m_device.get()));
+#ifndef USE_KTX_LIBRARY
+    m_textureLoader = NS::TransferPtr(MTK::TextureLoader::alloc()->init(device()));
+#endif
 
     createBuffers();
 
@@ -135,7 +136,7 @@ void Textures::onSetupUi(const GameTimer& timer)
     ImGui::SetNextWindowSize(ImVec2(250, 0), ImGuiCond_FirstUseEver);
     ImGui::Begin("Metal Example", nullptr,
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
-    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(m_window), timer.framesPerSecond());
+    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(window()), timer.framesPerSecond());
     if (ImGui::Combo(" ", &m_selectedTexture, g_comboItems.data(), g_comboItems.size()))
     {
         /// Update argument buffer index
@@ -155,16 +156,17 @@ void Textures::onSetupUi(const GameTimer& timer)
 void Textures::onUpdate(const GameTimer& timer)
 {
     const auto elapsed = static_cast<float>(timer.elapsedSeconds());
-    // RotationX += elapsed;
-    if (m_mouse->isLeftPressed())
+
+    if (mouse().isLeftPressed())
     {
-        m_rotationY += static_cast<float>(m_mouse->relativeX()) * elapsed;
+        m_rotationY += static_cast<float>(mouse().relativeX()) * elapsed;
     }
 
-    if (m_gamepad)
-    {
-        m_rotationY += m_gamepad->leftThumbstickHorizontal() * elapsed;
-    }
+    // TODO: Re-add back gamepad support
+    // if (m_gamepad)
+    // {
+    //     m_rotationY += m_gamepad->leftThumbstickHorizontal() * elapsed;
+    // }
 }
 
 void Textures::onResize(const uint32_t width, const uint32_t height)
@@ -218,10 +220,10 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
         textureDescriptor->setArrayLength(1);
         textureDescriptor->setMipmapLevelCount(storedMipLevelCount);
 
-        texture = m_device->newTexture(textureDescriptor);
+        texture = device()->newTexture(textureDescriptor);
 
         auto* ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
-        for (ktx_uint32_t level = 0; level < ktx2Texture->numLevels; ++level)
+        for (ktx_uint32_t level = 0; std::cmp_less(level, ktx2Texture->numLevels); ++level)
         {
             constexpr ktx_uint32_t faceSlice = 0;
             constexpr ktx_uint32_t layer = 0;
@@ -253,15 +255,17 @@ void Textures::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTim
 {
     updateUniforms();
 
+    const auto currentFrameIndex = frameIndex();
+
     commandEncoder->useHeap(m_textureHeap.get());
-    commandEncoder->useResource(m_instanceBuffer[m_frameIndex].get(), MTL::ResourceUsageRead);
+    commandEncoder->useResource(m_instanceBuffer[currentFrameIndex].get(), MTL::ResourceUsageRead);
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
-    commandEncoder->setDepthStencilState(m_depthStencilState.get());
+    commandEncoder->setDepthStencilState(depthStencilState());
     commandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
     commandEncoder->setCullMode(MTL::CullModeNone);
-    commandEncoder->setFragmentBuffer(m_argumentBuffer[m_frameIndex].get(), 0, 0);
+    commandEncoder->setFragmentBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 0);
     commandEncoder->setVertexBuffer(m_vertexBuffer.get(), 0, 0);
-    commandEncoder->setVertexBuffer(m_argumentBuffer[m_frameIndex].get(), 0, 1);
+    commandEncoder->setVertexBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 1);
     commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
         m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(), 0,
         s_instanceCount);
@@ -286,7 +290,7 @@ void Textures::createPipelineState()
 
     MTL::RenderPipelineDescriptor* pipelineDescriptor
         = MTL::RenderPipelineDescriptor::alloc()->init();
-    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(m_frameBufferPixelFormat);
+    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
     pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
     pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
         MTL::BlendFactorSourceAlpha);
@@ -301,15 +305,15 @@ void Textures::createPipelineState()
         MTL::BlendOperationAdd);
     pipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
     pipelineDescriptor->setStencilAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
-    pipelineDescriptor->setVertexFunction(m_pipelineLibrary->newFunction(
+    pipelineDescriptor->setVertexFunction(shaderLibrary()->newFunction(
         NS::String::string("texture_vertex", NS::ASCIIStringEncoding)));
-    pipelineDescriptor->setFragmentFunction(m_pipelineLibrary->newFunction(
+    pipelineDescriptor->setFragmentFunction(shaderLibrary()->newFunction(
         NS::String::string("texture_fragment", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
     pipelineDescriptor->setSampleCount(s_multisampleCount);
 
     NS::Error* error = nullptr;
-    m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
+    m_pipelineState = NS::TransferPtr(device()->newRenderPipelineState(pipelineDescriptor, &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
@@ -322,41 +326,46 @@ void Textures::createPipelineState()
 
 void Textures::createBuffers()
 {
-    static constexpr Vertex vertices[] = { { .position = { -1, -1, 0, 1 }, .texCoord = { 0, 0 } },
-        { .position = { -1, 1, 0, 1 }, .texCoord = { 0, 1 } },
-        { .position = { 1, -1, 0, 1 }, .texCoord = { 1, 0 } },
-        { .position = { 1, 1, 0, 1 }, .texCoord = { 1, 1 } } };
+    constexpr std::array vertices
+        = std::to_array<Vertex>({ { .position = { -1, -1, 0, 1 }, .texCoord = { 0, 0 } },
+            { .position = { -1, 1, 0, 1 }, .texCoord = { 0, 1 } },
+            { .position = { 1, -1, 0, 1 }, .texCoord = { 1, 0 } },
+            { .position = { 1, 1, 0, 1 }, .texCoord = { 1, 1 } } });
+    constexpr size_t vertexBufferLength = vertices.size() * sizeof(Vertex);
 
-    static constexpr uint16_t indices[] = { 0, 1, 2, 2, 1, 3 };
+    constexpr std::array indices = std::to_array<uint16_t>({ 0, 1, 2, 2, 1, 3 });
+    constexpr size_t     indexBufferLength = indices.size() * sizeof(uint16_t);
 
-    m_vertexBuffer = NS::TransferPtr(
-        m_device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
+    m_vertexBuffer = NS::TransferPtr(device()->newBuffer(
+        vertices.data(), vertexBufferLength, MTL::ResourceCPUCacheModeDefaultCache));
     m_vertexBuffer->setLabel(NS::String::string("Vertices", NS::ASCIIStringEncoding));
 
-    m_indexBuffer = NS::TransferPtr(
-        m_device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
+    m_indexBuffer = NS::TransferPtr(device()->newBuffer(
+        indices.data(), indexBufferLength, MTL::ResourceOptionCPUCacheModeDefault));
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     constexpr size_t instanceDataSize
         = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(Matrix);
-    for (auto index = 0; index < s_bufferCount; index++)
+    for (auto index = 0; std::cmp_less(index, s_bufferCount); ++index)
     {
         const auto                      label = fmt::format("Instance Buffer: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
 
         m_instanceBuffer[index] = NS::TransferPtr(
-            m_device->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
+            device()->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
         m_instanceBuffer[index]->setLabel(nsLabel.get());
     }
 }
 
 void Textures::updateUniforms() const
 {
-    MTL::Buffer* instanceBuffer = m_instanceBuffer[m_frameIndex].get();
+    const auto currentFrameIndex = frameIndex();
+
+    MTL::Buffer* instanceBuffer = m_instanceBuffer[currentFrameIndex].get();
 
     auto* instanceData = static_cast<Matrix*>(instanceBuffer->contents());
-    for (auto index = 0; index < s_instanceCount; ++index)
+    for (auto index = 0; std::cmp_less(index, s_bufferCount); ++index)
     {
         auto position = Vector3(-5.0F + 5.0F * static_cast<float>(index), 0.0F, -8.0F);
         auto rotationX = m_rotationX;
@@ -381,7 +390,7 @@ void Textures::updateUniforms() const
 void Textures::createTextureHeap()
 {
     auto** textures = new MTL::Texture*[g_textureCount];
-    for (size_t i = 0; i < g_textureCount; i++)
+    for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
         const auto fileName = fmt::format("00{}_basecolor.ktx", i + 1);
 
@@ -396,9 +405,9 @@ void Textures::createTextureHeap()
 
     // Allocate space in the heap for each texture
     NS::UInteger heapSize = 0;
-    for (size_t i = 0; i < g_textureCount; i++)
+    for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
-        MTL::Texture* texture = textures[i];
+        const MTL::Texture* texture = textures[i];
         if (texture == nullptr)
         {
             continue;
@@ -414,23 +423,23 @@ void Textures::createTextureHeap()
         textureDescriptor->setSampleCount(texture->sampleCount());
         textureDescriptor->setStorageMode(MTL::StorageModePrivate);
 
-        auto sizeAndAlignment = m_device->heapTextureSizeAndAlign(textureDescriptor);
-        heapSize += sizeAndAlignment.size;
+        auto [size, align] = device()->heapTextureSizeAndAlign(textureDescriptor);
+        heapSize += size;
 
         textureDescriptor->release();
     }
     heapDescriptor->setSize(heapSize);
 
-    m_textureHeap = NS::TransferPtr(m_device->newHeap(heapDescriptor));
+    m_textureHeap = NS::TransferPtr(device()->newHeap(heapDescriptor));
     heapDescriptor->release();
 
     // Move texture memory into heap
-    MTL::CommandBuffer* commandBuffer = m_commandQueue->commandBuffer();
+    MTL::CommandBuffer* commandBuffer = commandQueue()->commandBuffer();
 
     MTL::BlitCommandEncoder* blitCommandEncoder = commandBuffer->blitCommandEncoder();
-    for (int i = 0; i < g_textureCount; i++)
+    for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
-        MTL::Texture*           texture = textures[i];
+        const MTL::Texture*     texture = textures[i];
         MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
         textureDescriptor->setTextureType(texture->textureType());
         textureDescriptor->setPixelFormat(texture->pixelFormat());
@@ -445,10 +454,10 @@ void Textures::createTextureHeap()
             = NS::TransferPtr(m_textureHeap->newTexture(textureDescriptor));
         textureDescriptor->release();
 
-        MTL::Region blitRegion = MTL::Region(0, 0, texture->width(), texture->height());
-        for (auto level = 0; level < texture->mipmapLevelCount(); level++)
+        auto blitRegion = MTL::Region(0, 0, texture->width(), texture->height());
+        for (auto level = 0; std::cmp_less(level, texture->mipmapLevelCount()); ++level)
         {
-            for (auto slice = 0; slice < texture->arrayLength(); slice++)
+            for (auto slice = 0; std::cmp_less(slice, texture->arrayLength()); ++slice)
             {
                 blitCommandEncoder->copyFromTexture(texture, slice, level, blitRegion.origin,
                     blitRegion.size, heapTexture.get(), slice, level, blitRegion.origin);
@@ -477,7 +486,7 @@ void Textures::createTextureHeap()
     blitCommandEncoder->release();
     commandBuffer->release();
 
-    for (int i = 0; i < g_textureCount; i++)
+    for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
         textures[i]->release();
         textures[i] = nullptr;
@@ -488,13 +497,13 @@ void Textures::createTextureHeap()
 void Textures::createArgumentBuffers()
 {
     // Tier 2 argument buffers
-    if (m_device->argumentBuffersSupport() == MTL::ArgumentBuffersTier2)
+    if (device()->argumentBuffersSupport() == MTL::ArgumentBuffersTier2)
     {
-        for (auto i = 0; i < s_bufferCount; i++)
+        for (auto i = 0; std::cmp_less(i, s_bufferCount); ++i)
         {
             constexpr auto size = sizeof(FragmentArgumentBuffer);
             m_argumentBuffer[i] = NS::TransferPtr(
-                m_device->newBuffer(size, MTL::ResourceOptionCPUCacheModeDefault));
+                device()->newBuffer(size, MTL::ResourceOptionCPUCacheModeDefault));
 
             NS::String* label = NS::String::string(
                 fmt::format("Argument Buffer {}", i).c_str(), NS::UTF8StringEncoding);
@@ -503,7 +512,7 @@ void Textures::createArgumentBuffers()
 
             auto* buffer = static_cast<FragmentArgumentBuffer*>(m_argumentBuffer[i]->contents());
             // Bind each texture's GPU id into argument buffer for access in fragment shader
-            for (auto j = 0; j < m_heapTextures.size(); j++)
+            for (auto j = 0; std::cmp_less(j, m_heapTextures.size()); ++j)
             {
                 const auto texture = m_heapTextures[j];
                 buffer->textures[j] = texture->gpuResourceID();

@@ -10,9 +10,9 @@
 
 #include <SDL3/SDL_iostream.h>
 
-class File
+namespace SDL
 {
-    struct StreamDeleter
+    struct IOStreamDeleter
     {
         void operator()(SDL_IOStream* stream) const
         {
@@ -22,8 +22,11 @@ class File
             }
         }
     };
-    using UniqueStream = std::unique_ptr<SDL_IOStream, StreamDeleter>;
+    using IOStreamPtr = std::unique_ptr<SDL_IOStream, IOStreamDeleter>;
+}
 
+class File
+{
 public:
     /// @brief Opens specified file for reading/
     /// @note This file should be located within the app resource folder.
@@ -41,5 +44,5 @@ public:
     [[nodiscard]] std::vector<std::byte> readAll() const;
 
 private:
-    UniqueStream m_stream; ///< SDL Read/Write stream handle.
+    SDL::IOStreamPtr m_stream; ///< SDL Read/Write stream handle.
 };

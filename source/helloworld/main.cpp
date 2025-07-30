@@ -1,4 +1,3 @@
-
 ////////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2024. Matt Guerrette
 // SPDX-License-Identifier: MIT
@@ -27,8 +26,9 @@ XM_ALIGNED_STRUCT(16) Uniforms
 {
     [[maybe_unused]] Matrix modelViewProjection;
 };
+constexpr size_t g_alignedUniformSize = sizeof(Uniforms) + 0xFF & -0x100;
 
-class HelloWorld : public Example
+class HelloWorld final : public Example
 {
 public:
     HelloWorld();
@@ -67,9 +67,8 @@ HelloWorld::~HelloWorld() = default;
 
 bool HelloWorld::onLoad()
 {
-    int32_t width;
-    int32_t height;
-    SDL_GetWindowSizeInPixels(m_window, &width, &height);
+    const auto      width = windowWidth();
+    const auto      height = windowHeight();
     const float     aspect = static_cast<float>(width) / static_cast<float>(height);
     constexpr float fov = XMConvertToRadians(75.0F);
     constexpr float near = 0.01F;
@@ -96,15 +95,16 @@ void HelloWorld::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameT
 {
     updateUniforms();
 
-    constexpr size_t alignedUniformSize = sizeof(Uniforms) + 0xFF & -0x100;
-    const auto       uniformBufferOffset = alignedUniformSize * m_frameIndex;
+    const auto currentFrameIndex = frameIndex();
+    const auto uniformBufferOffset = g_alignedUniformSize * currentFrameIndex;
 
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
-    commandEncoder->setDepthStencilState(m_depthStencilState.get());
+    commandEncoder->setDepthStencilState(depthStencilState());
     commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
     commandEncoder->setCullMode(MTL::CullModeNone);
     commandEncoder->setVertexBuffer(m_vertexBuffer.get(), 0, 0);
-    commandEncoder->setVertexBuffer(m_uniformBuffer[m_frameIndex].get(), uniformBufferOffset, 1);
+    commandEncoder->setVertexBuffer(
+        m_uniformBuffer[currentFrameIndex].get(), uniformBufferOffset, 1);
 
     commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
         m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(), 0);
@@ -121,7 +121,6 @@ void HelloWorld::onResize(const uint32_t width, const uint32_t height)
 
 void HelloWorld::createPipelineState()
 {
-
     MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
 
     // Position
@@ -139,7 +138,7 @@ void HelloWorld::createPipelineState()
 
     MTL::RenderPipelineDescriptor* pipelineDescriptor
         = MTL::RenderPipelineDescriptor::alloc()->init();
-    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(m_frameBufferPixelFormat);
+    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
     pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
     pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
         MTL::BlendFactorSourceAlpha);
@@ -154,15 +153,15 @@ void HelloWorld::createPipelineState()
         MTL::BlendOperationAdd);
     pipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
     pipelineDescriptor->setStencilAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
-    pipelineDescriptor->setVertexFunction(m_pipelineLibrary->newFunction(
+    pipelineDescriptor->setVertexFunction(shaderLibrary()->newFunction(
         NS::String::string("triangle_vertex", NS::ASCIIStringEncoding)));
-    pipelineDescriptor->setFragmentFunction(m_pipelineLibrary->newFunction(
+    pipelineDescriptor->setFragmentFunction(shaderLibrary()->newFunction(
         NS::String::string("triangle_fragment", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
     pipelineDescriptor->setSampleCount(s_multisampleCount);
 
     NS::Error* error = nullptr;
-    m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
+    m_pipelineState = NS::TransferPtr(device()->newRenderPipelineState(pipelineDescriptor, &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
@@ -175,34 +174,38 @@ void HelloWorld::createPipelineState()
 
 void HelloWorld::createBuffers()
 {
-    constexpr Vertex vertices[] = { { .position = { 0, 1, 0, 1 }, .color = { 1, 0, 0, 1 } },
-        { .position = { -1, -1, 0, 1 }, .color = { 0, 1, 0, 1 } },
-        { .position = { 1, -1, 0, 1 }, .color = { 0, 0, 1, 1 } } };
+    constexpr std::array vertices
+        = std::to_array<Vertex>({ { .position = { 0, 1, 0, 1 }, .color = { 1, 0, 0, 1 } },
+            { .position = { -1, -1, 0, 1 }, .color = { 0, 1, 0, 1 } },
+            { .position = { 1, -1, 0, 1 }, .color = { 0, 0, 1, 1 } } });
+    constexpr size_t vertexBufferLength = vertices.size() * sizeof(Vertex);
 
-    constexpr uint16_t indices[] = { 0, 1, 2 };
+    constexpr std::array indices = std::to_array<uint16_t>({ 0, 1, 2 });
+    constexpr size_t     indexBufferLength = indices.size() * sizeof(uint16_t);
 
-    m_vertexBuffer = NS::TransferPtr(
-        m_device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
+    m_vertexBuffer = NS::TransferPtr(device()->newBuffer(
+        vertices.data(), vertexBufferLength, MTL::ResourceCPUCacheModeDefaultCache));
     m_vertexBuffer->setLabel(NS::String::string("Vertices", NS::ASCIIStringEncoding));
 
-    m_indexBuffer = NS::TransferPtr(
-        m_device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
+    m_indexBuffer = NS::TransferPtr(device()->newBuffer(
+        indices.data(), indexBufferLength, MTL::ResourceOptionCPUCacheModeDefault));
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
-    constexpr size_t alignedUniformSize = sizeof(Uniforms) + 0xFF & -0x100;
     for (auto index = 0; std::cmp_less(index, s_bufferCount); index++)
     {
         const auto                      label = fmt::format("Uniform: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
-        m_uniformBuffer[index] = NS::TransferPtr(m_device->newBuffer(
-            alignedUniformSize * s_bufferCount, MTL::ResourceOptionCPUCacheModeDefault));
+        m_uniformBuffer[index] = NS::TransferPtr(device()->newBuffer(
+            g_alignedUniformSize * s_bufferCount, MTL::ResourceOptionCPUCacheModeDefault));
         m_uniformBuffer[index]->setLabel(nsLabel.get());
     }
 }
 
 void HelloWorld::updateUniforms() const
 {
+    const auto currentFrameIndex = frameIndex();
+
     auto position = Vector3(0.0F, 0.0, -10.0F);
     auto rotationX = 0.0F;
     auto rotationY = m_rotationY;
@@ -222,10 +225,9 @@ void HelloWorld::updateUniforms() const
     Uniforms uniforms {};
     uniforms.modelViewProjection = model * cameraUniforms.viewProjection;
 
-    constexpr size_t alignedUniformSize = (sizeof(Uniforms) + 0xFF) & -0x100;
-    const size_t     uniformBufferOffset = alignedUniformSize * m_frameIndex;
+    const size_t uniformBufferOffset = g_alignedUniformSize * currentFrameIndex;
 
-    auto buffer = static_cast<char*>(this->m_uniformBuffer[m_frameIndex]->contents());
+    auto* buffer = static_cast<char*>(this->m_uniformBuffer[currentFrameIndex]->contents());
     memcpy(buffer + uniformBufferOffset, &uniforms, sizeof(uniforms));
 }
 

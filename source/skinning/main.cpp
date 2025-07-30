@@ -55,7 +55,7 @@ private:
 
     void createArgumentBuffers();
 
-    void updateUniforms();
+    void updateUniforms() const;
 
 #ifdef SDL_PLATFORM_MACOS
     NS::Menu* createMenuBar() override;
@@ -68,10 +68,10 @@ private:
     NS::SharedPtr<MTL::RenderPipelineState>               m_pipelineState;
     std::array<NS::SharedPtr<MTL::Buffer>, s_bufferCount> m_instanceBuffer;
     std::array<NS::SharedPtr<MTL::Buffer>, s_bufferCount> m_argumentBuffer;
-    float                                                 m_rotationX = 0.0f;
-    float                                                 m_rotationY = 0.0f;
+    float                                                 m_rotationX = 0.0F;
+    float                                                 m_rotationY = 0.0F;
     int                                                   m_selectedTexture = 0;
-    float                                                 m_animationTime = 0.0f;
+    float                                                 m_animationTime = 0.0F;
     std::vector<Matrix>                                   m_bones;
 };
 
@@ -87,10 +87,10 @@ Skinning::~Skinning() = default;
 
 void Skinning::onResize(uint32_t width, uint32_t height)
 {
-    const float aspect = (float)width / (float)height;
-    const float fov = XMConvertToRadians(75.0f);
-    const float near = 0.01f;
-    const float far = 1000.0f;
+    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
+    constexpr float fov = XMConvertToRadians(75.0F);
+    constexpr float near = 0.01F;
+    constexpr float far = 1000.0F;
     m_mainCamera->setProjection(fov, aspect, near, far);
 }
 
@@ -121,16 +121,16 @@ NS::Menu* Skinning::createMenuBar()
 
     SEL openFileCallback
         = NS::MenuItem::registerActionCallback("openFile", [](void*, SEL, const NS::Object*) {
-              auto*          appInstance = NS::Application::sharedApplication();
-              auto           window = (NS::Window*)appInstance->windows()->object(0);
+              auto* appInstance = NS::Application::sharedApplication();
+              auto* window = reinterpret_cast<NS::Window*>(appInstance->windows()->object(0));
               NS::OpenPanel* panel = NS::OpenPanel::openPanel();
               panel->beginSheetModal(window, ^(NS::ModalResponseType response) {
-                  auto urls = panel->urls();
-                  auto numUrls = urls->count();
-                  for (NS::UInteger i = 0; i < numUrls; ++i)
+                  const auto* urls = panel->urls();
+                  const auto  numUrls = urls->count();
+                  for (NS::UInteger i = 0; std::cmp_less(i, numUrls); ++i)
                   {
-                      auto url = (NS::URL*)urls->object(i);
-                      auto path = url->fileSystemRepresentation();
+                      const auto* url = static_cast<NS::URL*>(urls->object(i));
+                      const auto* path = url->fileSystemRepresentation();
 
                       s_example->loadAsset(path);
                   }
@@ -160,18 +160,17 @@ NS::Menu* Skinning::createMenuBar()
 
 void Skinning::loadAsset(const char* filePath)
 {
-    m_asset = std::make_unique<GLTFAsset>(m_device.get(), std::filesystem::path(filePath));
+    m_asset = std::make_unique<GLTFAsset>(device(), std::filesystem::path(filePath));
 }
 
 bool Skinning::onLoad()
 {
-    int32_t width;
-    int32_t height;
-    SDL_GetWindowSizeInPixels(m_window, &width, &height);
-    const float aspect = (float)width / (float)height;
-    const float fov = XMConvertToRadians(75.0f);
-    const float near = 0.01f;
-    const float far = 1000.0f;
+    const auto      width = windowWidth();
+    const auto      height = windowHeight();
+    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
+    constexpr float fov = XMConvertToRadians(75.0F);
+    constexpr float near = 0.01F;
+    constexpr float far = 1000.0F;
 
     m_mainCamera = std::make_unique<Camera>(
         Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far);
@@ -180,21 +179,16 @@ bool Skinning::onLoad()
 
     createPipelineState();
 
-
-
     try
     {
-        m_asset = std::make_unique<GLTFAsset>(m_device.get(), std::string("SimpleSkin.gltf"));
-
-        m_bones = m_asset->boneMatricesForAnimation(0);
-
-        // m_asset = std::make_unique<GLTFAsset>(m_device.get(), std::string("alien-bug.glb"));
-        fmt::println("");
+        m_asset = std::make_unique<GLTFAsset>(device(), std::string("SimpleSkin.gltf"));
     }
     catch (std::exception& e)
     {
+        fmt::println("Failed to load asset: {}", e.what());
+        return false;
     }
-    
+
     createArgumentBuffers();
 
     return true;
@@ -206,15 +200,15 @@ void Skinning::onSetupUi(const GameTimer& timer)
     ImGui::SetNextWindowPos(ImVec2(10, 20));
     // ImGui::SetNextWindowSize(ImVec2(250, 0), ImGuiCond_FirstUseEver);
     ImGui::Begin("Metal Example", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
-    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(m_window), timer.framesPerSecond());
+    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(window()), timer.framesPerSecond());
     std::vector<std::string> animations = m_asset->animations();
     if (ImGui::Combo(
             "Animation", &m_selectedTexture,
             [](void* data, int index) -> const char* {
-                auto names = reinterpret_cast<std::vector<std::string>*>(data);
+                const auto* names = static_cast<std::vector<std::string>*>(data);
                 return names->at(index).c_str();
             },
-            &animations, (int)animations.size()))
+            &animations, static_cast<int>(animations.size())))
     {
         //		/// Update argument buffer index
         //		for (const auto& buffer: ArgumentBuffer) {
@@ -222,14 +216,14 @@ void Skinning::onSetupUi(const GameTimer& timer)
         // reinterpret_cast<FragmentArgumentBuffer*>(buffer->contents());
         // contents->TextureIndex = SelectedTexture;
         //		}
-        m_animationTime = 0.0f;
+        m_animationTime = 0.0F;
     }
 
-    const auto animation = m_asset->getAnimation(m_selectedTexture);
+    const auto* animation = m_asset->getAnimation(m_selectedTexture);
     if (animation != nullptr)
     {
         if (ImGui::SliderFloat(
-                "##", &m_animationTime, 0.0f, animation->channels[0].sampler->input->max[0]))
+                "##", &m_animationTime, 0.0F, animation->channels[0].sampler->input->max[0]))
         {
         }
 
@@ -250,30 +244,32 @@ void Skinning::onSetupUi(const GameTimer& timer)
 void Skinning::onUpdate(const GameTimer& timer)
 {
     const auto elapsed = static_cast<float>(timer.elapsedSeconds());
-    // RotationX += elapsed;
-    if (m_mouse->isLeftPressed())
+    if (mouse().isLeftPressed())
     {
-        m_rotationY += static_cast<float>(m_mouse->relativeX()) * elapsed;
+        m_rotationY += static_cast<float>(mouse().relativeX()) * elapsed;
     }
 
-    if (m_gamepad)
-    {
-        m_rotationY += static_cast<float>(m_gamepad->leftThumbstickHorizontal()) * elapsed;
-    }
+    // TODO: Re-add back gamepad support
+    // if (m_gamepad)
+    // {
+    //     m_rotationY += static_cast<float>(m_gamepad->leftThumbstickHorizontal()) * elapsed;
+    // }
 }
 
-void Skinning::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer)
+void Skinning::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& /*timer*/)
 {
     updateUniforms();
 
-    commandEncoder->useResource(m_instanceBuffer[m_frameIndex].get(), MTL::ResourceUsageRead);
+    const auto currentFrameIndex = frameIndex();
+
+    commandEncoder->useResource(m_instanceBuffer[currentFrameIndex].get(), MTL::ResourceUsageRead);
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
-    commandEncoder->setDepthStencilState(m_depthStencilState.get());
+    commandEncoder->setDepthStencilState(depthStencilState());
     // TODO: Render skinned mesh with specified animation
     if (m_asset)
     {
-        commandEncoder->setFragmentBuffer(m_argumentBuffer[m_frameIndex].get(), 0, 0);
-        commandEncoder->setVertexBuffer(m_argumentBuffer[m_frameIndex].get(), 0, 1);
+        commandEncoder->setFragmentBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 0);
+        commandEncoder->setVertexBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 1);
         m_asset->render(commandEncoder);
     }
 }
@@ -310,14 +306,14 @@ void Skinning::createPipelineState()
     vertexDescriptor->layouts()->object(0)->setStepFunction(MTL::VertexStepFunctionPerVertex);
     vertexDescriptor->layouts()->object(0)->setStride(sizeof(Vertex));
 
-    MTL::Function* vertexFunction = m_pipelineLibrary->newFunction(
+    MTL::Function* vertexFunction = shaderLibrary()->newFunction(
         NS::String::string("skinning_vertex", NS::ASCIIStringEncoding));
-    MTL::Function* fragmentFunction = m_pipelineLibrary->newFunction(
+    MTL::Function* fragmentFunction = shaderLibrary()->newFunction(
         NS::String::string("skinning_fragment", NS::ASCIIStringEncoding));
 
     MTL::RenderPipelineDescriptor* pipelineDescriptor
         = MTL::RenderPipelineDescriptor::alloc()->init();
-    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(m_frameBufferPixelFormat);
+    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
     pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
     pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
         MTL::BlendFactorSourceAlpha);
@@ -338,7 +334,7 @@ void Skinning::createPipelineState()
     pipelineDescriptor->setSampleCount(s_multisampleCount);
 
     NS::Error* error = nullptr;
-    m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
+    m_pipelineState = NS::TransferPtr(device()->newRenderPipelineState(pipelineDescriptor, &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
@@ -351,31 +347,32 @@ void Skinning::createPipelineState()
 
 void Skinning::createBuffers()
 {
-    const size_t instanceDataSize
-        = static_cast<unsigned long>(s_bufferCount * 1) * sizeof(InstanceData);
-    for (auto index = 0; index < s_bufferCount; index++)
+    constexpr size_t instanceDataSize = s_bufferCount * sizeof(InstanceData);
+    for (auto index = 0; std::cmp_less(index, s_bufferCount); ++index)
     {
         const auto                      label = fmt::format("Instance Buffer: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
         m_instanceBuffer[index] = NS::TransferPtr(
-            m_device->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
+            device()->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
         m_instanceBuffer[index]->setLabel(nsLabel.get());
     }
 }
 
-void Skinning::updateUniforms()
+void Skinning::updateUniforms() const
 {
-    MTL::Buffer* instanceBuffer = m_instanceBuffer[m_frameIndex].get();
+    const auto   currentFrameIndex = frameIndex();
+    MTL::Buffer* instanceBuffer = m_instanceBuffer[currentFrameIndex].get();
 
-    MTL::Buffer* argumentBuffer = m_argumentBuffer[m_frameIndex].get();
+    // MTL::Buffer* argumentBuffer = m_argumentBuffer[currentFrameIndex].get();
 
     auto* instanceData = static_cast<InstanceData*>(instanceBuffer->contents());
-    auto* argData = reinterpret_cast<SkinnedMeshArgumentBuffer*>(argumentBuffer->contents());
 
-    for (auto index = 0; index < 1; ++index)
+    // auto* argData = static_cast<SkinnedMeshArgumentBuffer*>(argumentBuffer->contents());
+
+    for (auto index = 0; std::cmp_less(index, 1); ++index)
     {
-        auto position = Vector3(0.0f, -5.0F, -20.0F);
+        auto position = Vector3(0.0F, -5.0F, -20.0F);
         auto rotationX = m_rotationX;
         auto rotationY = m_rotationY;
         auto scaleFactor = 10.0F;
@@ -393,9 +390,9 @@ void Skinning::updateUniforms()
 
         instanceData[index].transform = model * cameraUniforms.viewProjection;
 
-        //argData->bone = m_bones.front().Transpose();
-        //argData->bones[0] = m_bones[0].Transpose();
-        //argData->bones[1] = m_bones[1].Transpose();
+        // argData->bone = m_bones.front().Transpose();
+        // argData->bones[0] = m_bones[0].Transpose();
+        // argData->bones[1] = m_bones[1].Transpose();
     }
 }
 
@@ -403,33 +400,32 @@ void Skinning::createArgumentBuffers()
 {
     // TODO: Create any necessary argument buffers
     // Tier 2 argument buffers
-    if (m_device->argumentBuffersSupport() == MTL::ArgumentBuffersTier2)
+    if (device()->argumentBuffersSupport() == MTL::ArgumentBuffersTier2)
     {
-        for (auto i = 0; i < s_bufferCount; i++)
+        for (auto i = 0; std::cmp_less(i, s_bufferCount); ++i)
         {
-            const auto size = sizeof(SkinnedMeshArgumentBuffer);
+            constexpr auto size = sizeof(SkinnedMeshArgumentBuffer);
             m_argumentBuffer[i] = NS::TransferPtr(
-                m_device->newBuffer(size, MTL::ResourceOptionCPUCacheModeDefault));
+                device()->newBuffer(size, MTL::ResourceOptionCPUCacheModeDefault));
 
             NS::String* label = NS::String::string(
                 fmt::format("Argument Buffer {}", i).c_str(), NS::UTF8StringEncoding);
             m_argumentBuffer[i]->setLabel(label);
             label->release();
 
-            auto* buffer
-                = reinterpret_cast<SkinnedMeshArgumentBuffer*>(m_argumentBuffer[i]->contents());
-            buffer->data = (InstanceData*)m_instanceBuffer[i]->gpuAddress();
-            buffer->bone = m_bones.front();
-            //            // Bind each texture's GPU id into argument buffer for access in fragment
-            //            shader
-            //            for (auto j = 0; j < m_heapTextures.size(); j++)
-            //            {
-            //                auto texture = m_heapTextures[j];
-            //                buffer->textures[j] = texture->gpuResourceID();
+            auto* buffer = static_cast<SkinnedMeshArgumentBuffer*>(m_argumentBuffer[i]->contents());
+            buffer->data = reinterpret_cast<InstanceData*>(m_instanceBuffer[i]->gpuAddress());
+            // buffer->bone = m_bones.front();
+            //             // Bind each texture's GPU id into argument buffer for access in fragment
+            //             shader
+            //             for (auto j = 0; j < m_heapTextures.size(); j++)
+            //             {
+            //                 auto texture = m_heapTextures[j];
+            //                 buffer->textures[j] = texture->gpuResourceID();
             //
-            //                buffer->transforms = (Matrix*)m_instanceBuffer[i]->gpuAddress();
-            //            }
-            //            buffer->textureIndex = 0;
+            //                 buffer->transforms = (Matrix*)m_instanceBuffer[i]->gpuAddress();
+            //             }
+            //             buffer->textureIndex = 0;
         }
     }
     else
@@ -445,10 +441,10 @@ int main(int argc, char** argv)
     int result = EXIT_FAILURE;
     try
     {
-        auto example = std::make_unique<Skinning>();
+        const auto example = std::make_unique<Skinning>();
         result = example->run(argc, argv);
     }
-    catch (const std::runtime_error& error)
+    catch (const std::runtime_error&)
     {
         fmt::println("Exiting...");
     }

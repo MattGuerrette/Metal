@@ -74,9 +74,9 @@ Instancing::~Instancing() = default;
 
 bool Instancing::onLoad()
 {
-    int32_t width;
-    int32_t height;
-    SDL_GetWindowSizeInPixels(m_window, &width, &height);
+    const auto width = windowWidth();
+    const auto height = windowHeight();
+
     const float     aspect = static_cast<float>(width) / static_cast<float>(height);
     constexpr float fov = XMConvertToRadians(75.0f);
     constexpr float near = 0.01F;
@@ -113,12 +113,14 @@ void Instancing::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameT
 {
     updateUniforms();
 
+    const auto currentFrameIndex = frameIndex();
+
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
-    commandEncoder->setDepthStencilState(m_depthStencilState.get());
+    commandEncoder->setDepthStencilState(depthStencilState());
     commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
     commandEncoder->setCullMode(MTL::CullModeNone);
     commandEncoder->setVertexBuffer(m_vertexBuffer.get(), 0, 0);
-    commandEncoder->setVertexBuffer(m_instanceBuffer[m_frameIndex].get(), 0, 1);
+    commandEncoder->setVertexBuffer(m_instanceBuffer[currentFrameIndex].get(), 0, 1);
     commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
         m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(), 0,
         s_instanceCount);
@@ -143,7 +145,7 @@ void Instancing::createPipelineState()
 
     MTL::RenderPipelineDescriptor* pipelineDescriptor
         = MTL::RenderPipelineDescriptor::alloc()->init();
-    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(m_frameBufferPixelFormat);
+    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
     pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
     pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
         MTL::BlendFactorSourceAlpha);
@@ -158,15 +160,15 @@ void Instancing::createPipelineState()
         MTL::BlendOperationAdd);
     pipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
     pipelineDescriptor->setStencilAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
-    pipelineDescriptor->setVertexFunction(m_pipelineLibrary->newFunction(
+    pipelineDescriptor->setVertexFunction(shaderLibrary()->newFunction(
         NS::String::string("instancing_vertex", NS::ASCIIStringEncoding)));
-    pipelineDescriptor->setFragmentFunction(m_pipelineLibrary->newFunction(
+    pipelineDescriptor->setFragmentFunction(shaderLibrary()->newFunction(
         NS::String::string("instancing_fragment", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
     pipelineDescriptor->setSampleCount(s_multisampleCount);
 
     NS::Error* error = nullptr;
-    m_pipelineState = NS::TransferPtr(m_device->newRenderPipelineState(pipelineDescriptor, &error));
+    m_pipelineState = NS::TransferPtr(device()->newRenderPipelineState(pipelineDescriptor, &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
@@ -179,45 +181,50 @@ void Instancing::createPipelineState()
 
 void Instancing::createBuffers()
 {
-    static const Vertex vertices[] = { { .position = { -1, 1, 1, 1 }, .color = { 0, 1, 1, 1 } },
-        { .position = { -1, -1, 1, 1 }, .color = { 0, 0, 1, 1 } },
-        { .position = { 1, -1, 1, 1 }, .color = { 1, 0, 1, 1 } },
-        { .position = { 1, 1, 1, 1 }, .color = { 1, 1, 1, 1 } },
-        { .position = { -1, 1, -1, 1 }, .color = { 0, 1, 0, 1 } },
-        { .position = { -1, -1, -1, 1 }, .color = { 0, 0, 0, 1 } },
-        { .position = { 1, -1, -1, 1 }, .color = { 1, 0, 0, 1 } },
-        { .position = { 1, 1, -1, 1 }, .color = { 1, 1, 0, 1 } } };
+    constexpr std::array vertices
+        = std::to_array<Vertex>({ { .position = { -1, 1, 1, 1 }, .color = { 0, 1, 1, 1 } },
+            { .position = { -1, -1, 1, 1 }, .color = { 0, 0, 1, 1 } },
+            { .position = { 1, -1, 1, 1 }, .color = { 1, 0, 1, 1 } },
+            { .position = { 1, 1, 1, 1 }, .color = { 1, 1, 1, 1 } },
+            { .position = { -1, 1, -1, 1 }, .color = { 0, 1, 0, 1 } },
+            { .position = { -1, -1, -1, 1 }, .color = { 0, 0, 0, 1 } },
+            { .position = { 1, -1, -1, 1 }, .color = { 1, 0, 0, 1 } },
+            { .position = { 1, 1, -1, 1 }, .color = { 1, 1, 0, 1 } } });
+    constexpr size_t vertexBufferLength = vertices.size() * sizeof(Vertex);
 
-    static const uint16_t indices[] = { 3, 2, 6, 6, 7, 3, 4, 5, 1, 1, 0, 4, 4, 0, 3, 3, 7, 4, 1, 5,
-        6, 6, 2, 1, 0, 1, 2, 2, 3, 0, 7, 6, 5, 5, 4, 7 };
+    constexpr std::array indices = std::to_array<uint16_t>({ 3, 2, 6, 6, 7, 3, 4, 5, 1, 1, 0, 4, 4,
+        0, 3, 3, 7, 4, 1, 5, 6, 6, 2, 1, 0, 1, 2, 2, 3, 0, 7, 6, 5, 5, 4, 7 });
+    constexpr size_t     indexBufferLength = indices.size() * sizeof(uint16_t);
 
-    m_vertexBuffer = NS::TransferPtr(
-        m_device->newBuffer(vertices, sizeof(vertices), MTL::ResourceCPUCacheModeDefaultCache));
+    m_vertexBuffer = NS::TransferPtr(device()->newBuffer(
+        vertices.data(), vertexBufferLength, MTL::ResourceCPUCacheModeDefaultCache));
     m_vertexBuffer->setLabel(NS::String::string("Vertices", NS::ASCIIStringEncoding));
 
-    m_indexBuffer = NS::TransferPtr(
-        m_device->newBuffer(indices, sizeof(indices), MTL::ResourceOptionCPUCacheModeDefault));
+    m_indexBuffer = NS::TransferPtr(device()->newBuffer(
+        indices.data(), indexBufferLength, MTL::ResourceOptionCPUCacheModeDefault));
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     constexpr size_t instanceDataSize
         = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(InstanceData);
-    for (auto index = 0; std::cmp_less(index, s_bufferCount); index++)
+    for (auto index = 0; std::cmp_less(index, s_bufferCount); ++index)
     {
         const auto                      label = fmt::format("Instance Buffer: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
         m_instanceBuffer[index] = NS::TransferPtr(
-            m_device->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
+            device()->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
         m_instanceBuffer[index]->setLabel(nsLabel.get());
     }
 }
 
 void Instancing::updateUniforms() const
 {
-    MTL::Buffer* instanceBuffer = m_instanceBuffer[m_frameIndex].get();
+    const auto currentFrameIndex = frameIndex();
+
+    MTL::Buffer* instanceBuffer = m_instanceBuffer[currentFrameIndex].get();
 
     auto* instanceData = static_cast<InstanceData*>(instanceBuffer->contents());
-    for (auto index = 0; index < s_instanceCount; ++index)
+    for (auto index = 0; std::cmp_less(index, s_instanceCount); ++index)
     {
         auto position = Vector3(-5.0F + 5.0F * static_cast<float>(index), 0.0F, -10.0F);
         auto rotationX = m_rotationX;
