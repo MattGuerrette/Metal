@@ -172,16 +172,10 @@ void HelloOGEX::createPipelineState()
 
 void HelloOGEX::createBuffers()
 {
-    std::vector<Vertex> positions;
-    positions.resize(24);
-    
+    std::vector<Vertex>   positions;
     std::vector<uint32_t> indices;
-    indices.resize(36); 
-    
-    const size_t vertexBufferLength = positions.size() * sizeof(Vertex);
-    const size_t indexBufferLength = indices.size() * sizeof(uint32_t);
 
-    const auto bytes = File::readTextFromPath("Cube.ogex");
+    const auto bytes = File::readTextFromPath("Monkey.ogex");
     if (bytes.has_value())
     {
         OpenGEX::OpenGexDataDescription ogexData;
@@ -213,8 +207,20 @@ void HelloOGEX::createBuffers()
                                 = static_cast<const OpenGEX::VertexArrayStructure*>(vertices);
                             if (vertexArray->GetAttribString() == "position")
                             {
-                                memcpy(positions.data(), vertexArray->GetVertexArrayData(),
-                                    vertexArray->GetVertexCount() * sizeof(Vertex));
+
+                                const float* data
+                                    = static_cast<const float*>(vertexArray->GetVertexArrayData());
+                                const auto componentCount = vertexArray->GetComponentCount();
+                                const auto count = vertexArray->GetVertexCount() * componentCount;
+                                positions.resize(vertexArray->GetVertexCount());
+
+                                for (size_t i = 0; std::cmp_less(i, count); i += componentCount)
+                                {
+                                    printf("v %f %f %f\n", data[i], data[i + 1], data[i + 2]);
+
+                                    positions[i / 3].position
+                                        = Vector3(data[i], data[i + 1], data[i + 2]);
+                                }
 
                                 fmt::println("Processing position data");
                             }
@@ -235,6 +241,8 @@ void HelloOGEX::createBuffers()
                                 = static_cast<const Terathon::PrimitiveStructure*>(
                                     indexArray->GetFirstSubnode());
 
+                            indices.resize(indexArray->GetIndexCount());
+
                             memcpy(indices.data(), indexArray->GetIndexArrayData(),
                                 indexArray->GetIndexCount() * sizeof(uint32_t));
 
@@ -254,6 +262,8 @@ void HelloOGEX::createBuffers()
         }
     }
 
+    const size_t vertexBufferLength = positions.size() * sizeof(Vertex);
+    const size_t indexBufferLength = indices.size() * sizeof(uint32_t);
     m_vertexBuffer = NS::TransferPtr(device()->newBuffer(
         positions.data(), vertexBufferLength, MTL::ResourceCPUCacheModeDefaultCache));
     m_vertexBuffer->setLabel(NS::String::string("Vertices", NS::ASCIIStringEncoding));
@@ -277,20 +287,27 @@ void HelloOGEX::updateUniforms() const
 {
     const auto currentFrameIndex = frameIndex();
 
-    auto position = Vector3(0.0F, 0.0, -10.0F);
+    auto position = Vector3(0.0F, 0.0F, -10.0F);
     auto rotationX = 0.0F;
-    auto rotationY = m_rotationY;
+    auto rotationY = 0.0F;
+    auto rotationZ = m_rotationY;
     auto scaleFactor = 3.0F;
 
     const Vector3 xAxis = Vector3::Right;
-    const Vector3 yAxis = Vector3::Up;
+    const Vector3 yAxis = Vector3::Forward;
 
-    const Matrix         xRot = Matrix::CreateFromAxisAngle(xAxis, rotationX);
-    const Matrix         yRot = Matrix::CreateFromAxisAngle(yAxis, rotationY);
-    const Matrix         rotation = xRot * yRot;
-    const Matrix         translation = Matrix::CreateTranslation(position);
-    const Matrix         scale = Matrix::CreateScale(scaleFactor);
-    const Matrix         model = scale * rotation * translation;
+    // Rotate to make Z-axis the up direction
+    const Matrix zUpRotation
+        = Matrix::CreateFromAxisAngle(Vector3::Right, XMConvertToRadians(-90.0F));
+
+    const Matrix xRot = Matrix::CreateFromAxisAngle(xAxis, rotationX);
+    const Matrix yRot = Matrix::CreateFromAxisAngle(yAxis, rotationZ);
+    const Matrix rotation = xRot * yRot;
+    const Matrix translation = Matrix::CreateTranslation(position);
+    const Matrix scale = Matrix::CreateScale(scaleFactor);
+
+    // Apply Z-up rotation
+    const Matrix         model = scale * rotation * zUpRotation * translation;
     const CameraUniforms cameraUniforms = m_mainCamera->uniforms();
 
     Uniforms uniforms {};
