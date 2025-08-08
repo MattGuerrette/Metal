@@ -10,6 +10,16 @@ else ()
     add_subdirectory(${METALCPP_DIR} metalcpp)
 endif ()
 
+if (NOT OPENGEX_DIR)
+    FetchContent_DeclarE(OpenGEX
+        GIT_REPOSITORY "https://github.com/MattGuerrette/OpenGEX"
+        GIT_TAG main
+    )
+    FetchContent_MakeAvailable(OpenGEX)
+else()
+    add_subdirectory(${OPENGEX_DIR} OpenGEX)
+endif()
+
 include_directories(${metalcpp_SOURCE_DIR})
 
 set_target_properties(

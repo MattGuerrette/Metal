@@ -13,50 +13,59 @@
 
 namespace
 {
-    std::string pathForResource(const std::string& resourceName)
+    std::string pathForResource(const std::string_view resource)
     {
         std::filesystem::path resourcePath = SDL_GetBasePath();
-        resourcePath.append(resourceName);
+        resourcePath.append(resource);
 
         return resourcePath.string();
     }
 } // namespace
-
-File::File(const std::string& fileName)
+std::expected<std::vector<uint8_t>, std::string> File::readBytesFromPath(
+    const std::string_view path)
 {
-    const auto filePath = pathForResource(fileName);
-
-    m_stream.reset(SDL_IOFromFile(filePath.c_str(), "rb"));
-    if (m_stream == nullptr)
+    const std::filesystem::path basePath = SDL_GetBasePath();
+    const std::filesystem::path fullPath = basePath / path;
+    SDL_IOStream*               stream = SDL_IOFromFile(fullPath.string().c_str(), "rb");
+    if (!stream)
     {
-        throw std::runtime_error(
-            fmt::format("Failed to open {} for read. SDL_Error: {}", fileName, SDL_GetError()));
+        return std::unexpected("Failed to open file stream");
     }
-}
-
-SDL_IOStream* File::stream() const
-{
-    return m_stream.get();
-}
-
-std::vector<std::byte> File::readAll() const
-{
-    SDL_SeekIO(m_stream.get(), 0, SDL_IO_SEEK_END);
-    const auto numBytes = SDL_TellIO(m_stream.get());
-    SDL_SeekIO(m_stream.get(), 0, SDL_IO_SEEK_SET);
-
-    std::vector<std::byte> result = {};
-    result.resize(numBytes);
 
     size_t numBytesRead;
-    void*  data = SDL_LoadFile_IO(m_stream.get(), &numBytesRead, false);
+    void*  data = SDL_LoadFile_IO(stream, &numBytesRead, true);
     if (data == nullptr)
     {
-        return {};
+        return std::unexpected("Failed to read from file stream");
     }
 
-    memcpy(result.data(), data, numBytesRead);
+    std::vector<uint8_t> bytes(numBytesRead);
+    memcpy(bytes.data(), data, numBytesRead);
     SDL_free(data);
 
-    return result;
+    return std::move(bytes);
+}
+
+std::expected<std::vector<uint8_t>, std::string> File::readTextFromPath(const std::string_view path)
+{
+    const std::filesystem::path basePath = SDL_GetBasePath();
+    const std::filesystem::path fullPath = basePath / path;
+    SDL_IOStream*               stream = SDL_IOFromFile(fullPath.string().c_str(), "r");
+    if (!stream)
+    {
+        return std::unexpected("Failed to open file stream");
+    }
+
+    size_t numBytesRead;
+    void*  data = SDL_LoadFile_IO(stream, &numBytesRead, true);
+    if (data == nullptr)
+    {
+        return std::unexpected("Failed to read from file stream");
+    }
+
+    std::vector<uint8_t> bytes(numBytesRead);
+    memcpy(bytes.data(), data, numBytesRead);
+    SDL_free(data);
+
+    return std::move(bytes);
 }

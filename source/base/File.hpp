@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <expected>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -28,21 +30,8 @@ namespace SDL
 class File
 {
 public:
-    /// @brief Opens specified file for reading/
-    /// @note This file should be located within the app resource folder.
-    /// @param [in] fileName The file located in resource folder to open for reading.
-    explicit File(const std::string& fileName);
-    File(const File& file) = delete;
-    File& operator=(const File& file) = delete;
+    static std::expected<std::vector<uint8_t>, std::string> readBytesFromPath(
+        std::string_view path);
 
-    /// @brief Accesses the SDL IO stream handle.
-    /// @return The SDL_IOStream handle.
-    [[nodiscard]] SDL_IOStream* stream() const;
-
-    /// @brief Reads all bytes from file.
-    /// @return File contents as a vector of bytes.
-    [[nodiscard]] std::vector<std::byte> readAll() const;
-
-private:
-    SDL::IOStreamPtr m_stream; ///< SDL Read/Write stream handle.
+    static std::expected<std::vector<uint8_t>, std::string> readTextFromPath(std::string_view path);
 };
