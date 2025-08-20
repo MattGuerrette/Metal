@@ -4,45 +4,50 @@
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
-#import "GraphicsMath.hpp"
+#pragma once
 
-XM_ALIGNED_STRUCT(16) CameraUniforms
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+struct alignas(16) CameraUniforms
 {
-    Matrix view;
-    Matrix projection;
-    Matrix viewProjection;
-    Matrix invProjection;
-    Matrix invView;
-    Matrix invViewProjection;
+    glm::mat4 view;
+    glm::mat4 projection;
+    glm::mat4 viewProjection;
+    glm::mat4 invProjection;
+    glm::mat4 invView;
+    glm::mat4 invViewProjection;
 };
 
 /// @todo Improve this Camera class to use Quaternion rotation
 class Camera
 {
 public:
-    Camera(Vector3 position,
-        Vector3    direction,
-        Vector3    up,
-        float      fov,
-        float      aspectRatio,
-        float      nearPlane,
-        float      farPlane);
+    Camera(glm::vec3 position,
+        glm::vec3    direction,
+        glm::vec3    up,
+        float        fov,
+        float        width,
+        float        height,
+        float        nearPlane,
+        float        farPlane);
 
     [[nodiscard]] const CameraUniforms& uniforms() const;
 
-    void setProjection(float fov, float aspect, float zNear, float zFar);
+    void setProjection(float fov, float width, float height, float zNear, float zFar);
 
 private:
-    void updateBasisVectors(Vector3 direction);
+    void updateBasisVectors(glm::vec3 direction);
 
     void updateUniforms();
 
     CameraUniforms m_uniforms {};
-    Vector3        m_position;
-    Vector3        m_direction;
-    Vector3        m_up;
+    glm::vec3      m_position;
+    glm::vec3      m_direction;
+    glm::vec3      m_up;
     float          m_fieldOfView;
-    float          m_aspectRatio;
+    float          m_width;
+    float          m_height;
     float          m_nearPlane;
     float          m_farPlane;
 };

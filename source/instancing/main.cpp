@@ -16,20 +16,20 @@
 
 #include <SDL3/SDL_main.h>
 
-XM_ALIGNED_STRUCT(16) Vertex
+struct alignas(16) Vertex
 {
-    Vector4 position;
-    Vector4 color;
+    glm::vec4 position;
+    glm::vec4 color;
 };
 
-XM_ALIGNED_STRUCT(16) Uniforms
+struct alignas(16) Uniforms
 {
-    [[maybe_unused]] Matrix modelViewProjection;
+    [[maybe_unused]] glm::mat4 modelViewProjection;
 };
 
-XM_ALIGNED_STRUCT(16) InstanceData
+struct alignas(16) InstanceData
 {
-    Matrix transform;
+    glm::mat4 transform;
 };
 
 class Instancing final : public Example
@@ -74,16 +74,17 @@ Instancing::~Instancing() = default;
 
 bool Instancing::onLoad()
 {
-    const auto width = windowWidth();
-    const auto height = windowHeight();
+    const auto width = static_cast<float>(windowWidth());
+    const auto height = static_cast<float>(windowHeight());
 
     const float     aspect = static_cast<float>(width) / static_cast<float>(height);
-    constexpr float fov = XMConvertToRadians(75.0f);
+    constexpr float fov = glm::radians(75.0f);
     constexpr float near = 0.01F;
     constexpr float far = 1000.0F;
 
-    m_mainCamera = std::make_unique<Camera>(XMFLOAT3 { 0.0F, 0.0F, 0.0F },
-        XMFLOAT3 { 0.0F, 0.0F, -1.0F }, XMFLOAT3 { 0.0F, 1.0F, 0.0F }, fov, aspect, near, far);
+    m_mainCamera
+        = std::make_unique<Camera>(glm::vec3 { 0.0F, 0.0F, 0.0F }, glm::vec3 { 0.0F, 0.0F, -1.0F },
+            glm::vec3 { 0.0F, 1.0F, 0.0F }, fov, width, height, near, far);
 
     createBuffers();
 
@@ -94,11 +95,12 @@ bool Instancing::onLoad()
 
 void Instancing::onResize(uint32_t width, uint32_t height)
 {
-    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
-    constexpr float fov = XMConvertToRadians(75.0f);
+    const auto      _width = static_cast<float>(width);
+    const auto      _height = static_cast<float>(height);
+    constexpr float fov = glm::radians(75.0f);
     constexpr float near = 0.01F;
     constexpr float far = 1000.0F;
-    m_mainCamera->setProjection(fov, aspect, near, far);
+    m_mainCamera->setProjection(fov, _width, _height, near, far);
 }
 
 void Instancing::onUpdate(const GameTimer& timer)
@@ -226,23 +228,23 @@ void Instancing::updateUniforms() const
     auto* instanceData = static_cast<InstanceData*>(instanceBuffer->contents());
     for (auto index = 0; std::cmp_less(index, s_instanceCount); ++index)
     {
-        auto position = Vector3(-5.0F + 5.0F * static_cast<float>(index), 0.0F, -10.0F);
+        auto position = glm::vec3(-5.0F + 5.0F * static_cast<float>(index), 0.0F, -10.0F);
         auto rotationX = m_rotationX;
         auto rotationY = m_rotationY;
         auto scaleFactor = 1.0F;
 
-        const Vector3 xAxis = Vector3::Right;
-        const Vector3 yAxis = Vector3::Up;
+        constexpr glm::vec3 xAxis = glm::vec3(1.0F, 0.0F, 0.0F);
+        constexpr glm::vec3 yAxis = glm::vec3(0.0F, 1.0F, 0.0F);
 
-        const Matrix         xRot = Matrix::CreateFromAxisAngle(xAxis, rotationX);
-        const Matrix         yRot = Matrix::CreateFromAxisAngle(yAxis, rotationY);
-        const Matrix         rotation = xRot * yRot;
-        const Matrix         translation = Matrix::CreateTranslation(position);
-        const Matrix         scale = Matrix::CreateScale(scaleFactor);
-        const Matrix         model = scale * rotation * translation;
+        const glm::mat4      xRot = glm::rotate(glm::mat4(1.0F), rotationX, xAxis);
+        const glm::mat4      yRot = glm::rotate(glm::mat4(1.0F), rotationY, yAxis);
+        const glm::mat4      rotation = xRot * yRot;
+        const glm::mat4      translation = glm::translate(glm::mat4(1.0F), position);
+        const glm::mat4      scale = glm::scale(glm::mat4(1.0F), glm::vec3(scaleFactor));
+        const glm::mat4      model = translation * rotation * scale;
         const CameraUniforms cameraUniforms = m_mainCamera->uniforms();
 
-        instanceData[index].transform = model * cameraUniforms.viewProjection;
+        instanceData[index].transform = cameraUniforms.viewProjection * model;
     }
 }
 

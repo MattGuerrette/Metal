@@ -6,18 +6,20 @@
 
 #include "Camera.hpp"
 
-Camera::Camera(Vector3 position,
-    Vector3            direction,
-    Vector3            up,
-    float              fov,
-    float              aspectRatio,
-    float              nearPlane,
-    float              farPlane)
+Camera::Camera(glm::vec3 position,
+    glm::vec3            direction,
+    glm::vec3            up,
+    float                fov,
+    float                width,
+    float                height,
+    float                nearPlane,
+    float                farPlane)
     : m_position(position)
     , m_direction(direction)
     , m_up(up)
     , m_fieldOfView(fov)
-    , m_aspectRatio(aspectRatio)
+    , m_width(width)
+    , m_height(height)
     , m_nearPlane(nearPlane)
     , m_farPlane(farPlane)
 {
@@ -30,30 +32,30 @@ const CameraUniforms& Camera::uniforms() const
     return m_uniforms;
 }
 
-void Camera::setProjection(float fov, float aspect, float zNear, float zFar)
+void Camera::setProjection(float fov, float width, float height, float zNear, float zFar)
 {
     m_fieldOfView = fov;
-    m_aspectRatio = aspect;
+    m_width = width;
+    m_height = height;
     m_nearPlane = zNear;
     m_farPlane = zFar;
     updateUniforms();
 }
 
-void Camera::updateBasisVectors(Vector3 direction)
+void Camera::updateBasisVectors(glm::vec3 direction)
 {
-    m_direction = direction;
-    m_direction.Normalize();
+    m_direction = glm::normalize(direction);
 
-    const Vector3 up = m_up;
-    const Vector3 right = up.Cross(m_direction);
-    const Vector3 newUp = right.Cross(m_direction);
+    const glm::vec3 up = m_up;
+    const glm::vec3 right = glm::cross(up, m_direction);
+    const glm::vec3 newUp = glm::cross(right, m_direction);
     m_up = up;
 }
 
 void Camera::updateUniforms()
 {
-    m_uniforms.view = Matrix::CreateLookAt(m_position, m_direction, m_up);
-    m_uniforms.projection = Matrix::CreatePerspectiveFieldOfView(
-        m_fieldOfView, m_aspectRatio, m_nearPlane, m_farPlane);
+    m_uniforms.view = glm::lookAt(m_position, m_direction, m_up);
+    m_uniforms.projection
+        = glm::perspectiveFovRH(m_fieldOfView, m_width, m_height, m_nearPlane, m_farPlane);
     m_uniforms.viewProjection = m_uniforms.projection * m_uniforms.view;
 }

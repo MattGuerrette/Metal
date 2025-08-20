@@ -11,6 +11,8 @@
 #include <fmt/format.h>
 #include <imgui.h>
 
+#include <glm/glm.hpp>
+
 #include "Camera.hpp"
 #include "Example.hpp"
 #include "File.hpp"
@@ -18,15 +20,15 @@
 
 #include <SDL3/SDL_main.h>
 
-XM_ALIGNED_STRUCT(16) InstanceData
+struct alignas(16) InstanceData
 {
-    Matrix transform;
+    glm::mat4 transform;
 };
 
-XM_ALIGNED_STRUCT(16) SkinnedMeshArgumentBuffer
+struct alignas(16) SkinnedMeshArgumentBuffer
 {
     InstanceData* data;
-    Matrix        bone;
+    glm::mat4     bone;
 };
 
 class Skinning : public Example
@@ -72,7 +74,7 @@ private:
     float                                                 m_rotationY = 0.0F;
     int                                                   m_selectedTexture = 0;
     float                                                 m_animationTime = 0.0F;
-    std::vector<Matrix>                                   m_bones;
+    std::vector<glm::mat4>                                m_bones;
 };
 
 Skinning* Skinning::s_example = nullptr;
@@ -87,11 +89,12 @@ Skinning::~Skinning() = default;
 
 void Skinning::onResize(uint32_t width, uint32_t height)
 {
-    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
-    constexpr float fov = XMConvertToRadians(75.0F);
+    const auto      _width = static_cast<float>(width);
+    const auto      _height = static_cast<float>(height);
+    constexpr float fov = glm::radians(75.0F);
     constexpr float near = 0.01F;
     constexpr float far = 1000.0F;
-    m_mainCamera->setProjection(fov, aspect, near, far);
+    m_mainCamera->setProjection(fov, _width, _height, near, far);
 }
 
 #ifdef SDL_PLATFORM_MACOS
@@ -165,15 +168,15 @@ void Skinning::loadAsset(const char* filePath)
 
 bool Skinning::onLoad()
 {
-    const auto      width = windowWidth();
-    const auto      height = windowHeight();
+    const auto      width = static_cast<float>(windowWidth());
+    const auto      height = static_cast<float>(windowHeight());
     const float     aspect = static_cast<float>(width) / static_cast<float>(height);
-    constexpr float fov = XMConvertToRadians(75.0F);
+    constexpr float fov = glm::radians(75.0F);
     constexpr float near = 0.01F;
     constexpr float far = 1000.0F;
 
-    m_mainCamera = std::make_unique<Camera>(
-        Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far);
+    m_mainCamera = std::make_unique<Camera>(glm::vec3(0.0F), glm::vec3(0.0F, 0.0F, -1.0F),
+        glm::vec3(0.0F, 1.0F, 0.0F), fov, width, height, near, far);
 
     createBuffers();
 
@@ -372,23 +375,23 @@ void Skinning::updateUniforms() const
 
     for (auto index = 0; std::cmp_less(index, 1); ++index)
     {
-        auto position = Vector3(0.0F, -5.0F, -20.0F);
+        auto position = glm::vec3(0.0F, -5.0F, -20.0F);
         auto rotationX = m_rotationX;
         auto rotationY = m_rotationY;
         auto scaleFactor = 10.0F;
 
-        const Vector3 xAxis = Vector3::Right;
-        const Vector3 yAxis = Vector3::Up;
+        constexpr glm::vec3 xAxis = glm::vec3(1.0F, 0.0F, 0.0F);
+        constexpr glm::vec3 yAxis = glm::vec3(0.0F, 1.0f, 0.0F);
 
-        const Matrix         xRot = Matrix::CreateFromAxisAngle(xAxis, rotationX);
-        const Matrix         yRot = Matrix::CreateFromAxisAngle(yAxis, rotationY);
-        const Matrix         rotation = xRot * yRot;
-        const Matrix         translation = Matrix::CreateTranslation(position);
-        const Matrix         scale = Matrix::CreateScale(scaleFactor);
-        const Matrix         model = scale * rotation * translation;
+        const glm::mat4      xRot = glm::rotate(glm::mat4(1.0F), rotationX, xAxis);
+        const glm::mat4      yRot = glm::rotate(glm::mat4(1.0F), rotationY, yAxis);
+        const glm::mat4      rotation = xRot * yRot;
+        const glm::mat4      translation = glm::translate(glm::mat4(1.0F), position);
+        const glm::mat4      scale = glm::scale(glm::mat4(1.0F), glm::vec3(scaleFactor));
+        const glm::mat4      model = translation * rotation * scale;
         const CameraUniforms cameraUniforms = m_mainCamera->uniforms();
 
-        instanceData[index].transform = model * cameraUniforms.viewProjection;
+        instanceData[index].transform = cameraUniforms.viewProjection * model;
 
         // argData->bone = m_bones.front().Transpose();
         // argData->bones[0] = m_bones[0].Transpose();

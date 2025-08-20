@@ -16,9 +16,9 @@
 
 #include <fmt/format.h>
 
-#include <SDL3/SDL_storage.h>
+#include <glm/gtc/type_ptr.hpp>
 
-#include "GraphicsMath.hpp"
+#include <SDL3/SDL_storage.h>
 
 struct PrimitiveInfo
 {
@@ -175,16 +175,18 @@ void GLTFAsset::init(const std::filesystem::path& filePath)
     }
 }
 
-std::vector<Matrix> GLTFAsset::boneMatricesForAnimation(int32_t animation) const
+std::vector<glm::mat4> GLTFAsset::boneMatricesForAnimation(int32_t animation) const
 {
-    std::vector<Matrix> result;
+    std::vector<glm::mat4> result;
 
     const cgltf_skin* skin = &m_data->skins[0];
     for (uint32_t i = 0; i < skin->inverse_bind_matrices->count; ++i)
     {
         auto matrix = new float[64];
         LoadAttribute(&skin->inverse_bind_matrices[i], matrix);
-        result.emplace_back(matrix);
+
+        glm::mat4 _matrix = glm::make_mat4(matrix);
+        result.emplace_back(_matrix);
         delete[] matrix;
     }
 
@@ -394,24 +396,24 @@ Primitive::Primitive(MTL::Device* device, const cgltf_primitive* prim)
         const int32_t w2 = iWeight + 2;
         const int32_t w3 = iWeight + 3;
 
-        vertices[j].position = Vector4(positions[v0], positions[v1], positions[v2], 1.0f);
+        vertices[j].position = glm::vec4(positions[v0], positions[v1], positions[v2], 1.0f);
 
         if (info.numColors > 0)
         {
-            vertices[j].color = Vector4(colors[c0], colors[c1], colors[c2], 1.0f);
+            vertices[j].color = glm::vec4(colors[c0], colors[c1], colors[c2], 1.0f);
         }
         else
         {
 
-            vertices[j].color = Vector4(DirectX::Colors::Red.f);
+            vertices[j].color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
         }
 
         // vertices[j].normal = Vector3(normals[n0], normals[n1], normals[n2]);
 
-        vertices[j].texcoord = Vector2(texcoords[uv0], texcoords[uv1]);
+        vertices[j].texcoord = glm::vec2(texcoords[uv0], texcoords[uv1]);
 
-        vertices[j].joint = Vector4(joints[j0], joints[j1], joints[j2], joints[j3]);
-        vertices[j].weight = Vector4(weights[w0], weights[w1], weights[w2], weights[w3]);
+        vertices[j].joint = glm::uvec4(joints[j0], joints[j1], joints[j2], joints[j3]);
+        vertices[j].weight = glm::vec4(weights[w0], weights[w1], weights[w2], weights[w3]);
 
         iVertex += 3;
         iTexCoord += 2;

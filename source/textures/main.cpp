@@ -22,24 +22,24 @@
 
 #include <SDL3/SDL_main.h>
 
-XM_ALIGNED_STRUCT(16) Vertex
+struct alignas(16) Vertex
 {
-    Vector4 position;
-    Vector2 texCoord;
+    glm::vec4 position;
+    glm::vec2 texCoord;
 };
 
-XM_ALIGNED_STRUCT(16) Uniforms
+struct alignas(16) Uniforms
 {
-    [[maybe_unused]] Matrix modelViewProjection;
+    [[maybe_unused]] glm::mat4 modelViewProjection;
 };
 
 static constexpr size_t g_textureCount = 5;
 
-XM_ALIGNED_STRUCT(16) FragmentArgumentBuffer
+struct alignas(16) FragmentArgumentBuffer
 {
     [[maybe_unused]] std::array<MTL::ResourceID, g_textureCount> textures;
     [[maybe_unused]] uint32_t                                    textureIndex;
-    [[maybe_unused]] Matrix*                                     transforms;
+    [[maybe_unused]] glm::mat4*                                  transforms;
 };
 
 static constexpr std::array g_comboItems
@@ -104,15 +104,15 @@ Textures::~Textures() = default;
 
 bool Textures::onLoad()
 {
-    const auto      width = windowWidth();
-    const auto      height = windowHeight();
+    const auto      width = static_cast<float>(windowWidth());
+    const auto      height = static_cast<float>(windowHeight());
     const float     aspect = static_cast<float>(width) / static_cast<float>(height);
-    constexpr float fov = XMConvertToRadians(75.0F);
+    constexpr float fov = glm::radians(75.0F);
     constexpr float near = 0.01F;
     constexpr float far = 1000.0F;
 
-    m_mainCamera = std::make_unique<Camera>(
-        Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far);
+    m_mainCamera = std::make_unique<Camera>(glm::vec3 { 0.0F }, glm::vec3 { 0.0F, 0.0F, -1.0F },
+        glm::vec3 { 0.0F, 1.0F, 0.0F }, fov, width, height, near, far);
 
 #ifndef USE_KTX_LIBRARY
     m_textureLoader = NS::TransferPtr(MTK::TextureLoader::alloc()->init(device()));
@@ -171,11 +171,12 @@ void Textures::onUpdate(const GameTimer& timer)
 
 void Textures::onResize(const uint32_t width, const uint32_t height)
 {
-    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
-    constexpr float fov = XMConvertToRadians(75.0F);
+    const auto      _width = static_cast<float>(width);
+    const auto      _height = static_cast<float>(height);
+    constexpr float fov = glm::radians(75.0F);
     constexpr float near = 0.01F;
     constexpr float far = 1000.0F;
-    m_mainCamera->setProjection(fov, aspect, near, far);
+    m_mainCamera->setProjection(fov, _width, _height, near, far);
 }
 
 MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
@@ -345,7 +346,7 @@ void Textures::createBuffers()
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     constexpr size_t instanceDataSize
-        = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(Matrix);
+        = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(glm::mat4);
     for (auto index = 0; std::cmp_less(index, s_bufferCount); ++index)
     {
         const auto                      label = fmt::format("Instance Buffer: {}", index);
@@ -364,26 +365,26 @@ void Textures::updateUniforms() const
 
     MTL::Buffer* instanceBuffer = m_instanceBuffer[currentFrameIndex].get();
 
-    auto* instanceData = static_cast<Matrix*>(instanceBuffer->contents());
+    auto* instanceData = static_cast<glm::mat4*>(instanceBuffer->contents());
     for (auto index = 0; std::cmp_less(index, s_bufferCount); ++index)
     {
-        auto position = Vector3(-5.0F + 5.0F * static_cast<float>(index), 0.0F, -8.0F);
+        auto position = glm::vec3(-5.0F + 5.0F * static_cast<float>(index), 0.0F, -8.0F);
         auto rotationX = m_rotationX;
         auto rotationY = m_rotationY;
         auto scaleFactor = 1.0F;
 
-        const Vector3 xAxis = Vector3::Right;
-        const Vector3 yAxis = Vector3::Up;
+        constexpr glm::vec3 xAxis = glm::vec3(1.0F, 0.0F, 0.0F);
+        constexpr glm::vec3 yAxis = glm::vec3(0.0F, 1.0F, 0.0F);
 
-        const Matrix         xRot = Matrix::CreateFromAxisAngle(xAxis, rotationX);
-        const Matrix         yRot = Matrix::CreateFromAxisAngle(yAxis, rotationY);
-        const Matrix         rotation = xRot * yRot;
-        const Matrix         translation = Matrix::CreateTranslation(position);
-        const Matrix         scale = Matrix::CreateScale(scaleFactor);
-        const Matrix         model = scale * rotation * translation;
+        const glm::mat4      xRot = glm::rotate(glm::mat4(1.0F), rotationX, xAxis);
+        const glm::mat4      yRot = glm::rotate(glm::mat4(1.0F), rotationY, yAxis);
+        const glm::mat4      rotation = xRot * yRot;
+        const glm::mat4      translation = glm::translate(glm::mat4(1.0F), position);
+        const glm::mat4      scale = glm::scale(glm::mat4(1.0F), glm::vec3(scaleFactor));
+        const glm::mat4      model = translation * rotation * scale;
         const CameraUniforms cameraUniforms = m_mainCamera->uniforms();
 
-        instanceData[index] = model * cameraUniforms.viewProjection;
+        instanceData[index] = cameraUniforms.viewProjection * model;
     }
 }
 
@@ -517,7 +518,8 @@ void Textures::createArgumentBuffers()
                 const auto texture = m_heapTextures[j];
                 buffer->textures[j] = texture->gpuResourceID();
 
-                buffer->transforms = reinterpret_cast<Matrix*>(m_instanceBuffer[i]->gpuAddress());
+                buffer->transforms
+                    = reinterpret_cast<glm::mat4*>(m_instanceBuffer[i]->gpuAddress());
             }
             buffer->textureIndex = 0;
         }

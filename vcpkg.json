@@ -3,24 +3,21 @@
   "builtin-baseline": "9e8416f15d93fa9347e3291bd8c128dd44200ba5",
   "dependencies": [
     {
-      "name": "directxmath",
-      "version>=": "2025-04-03"
+      "name": "cgltf",
+      "version>=": "1.14"
     },
     {
       "name": "fmt",
       "version>=": "11.0.2#1"
     },
     {
+      "name": "ktx",
+      "version>=": "4.3.2"
+    },
+    {
       "name": "sdl3",
       "version>=": "3.2.16"
     },
-    {
-      "name": "cgltf",
-      "version>=": "1.14"
-    },
-    {
-      "name": "ktx",
-      "version>=": "4.3.2"
-    }
+    "glm"
   ]
 }

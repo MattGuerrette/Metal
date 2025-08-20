@@ -12,18 +12,19 @@
 #include <Metal/Metal.hpp>
 #include <MetalKit/MetalKit.hpp>
 
+#include <glm/glm.hpp>
+
 #include <cgltf.h>
 
-#include "GraphicsMath.hpp"
 #include "StaticGeometry.hpp"
 
-XM_ALIGNED_STRUCT(16) Vertex
+struct alignas(16) Vertex
 {
-    Vector4 position;
-    Vector4 color;
-    Vector2 texcoord;
-    Vector4 joint;
-    Vector4 weight;
+    glm::vec4  position;
+    glm::vec4  color;
+    glm::vec2  texcoord;
+    glm::uvec4 joint;
+    glm::vec4  weight;
 };
 
 struct Material
@@ -60,7 +61,7 @@ struct Mesh
     explicit Mesh(MTL::Device* device, const cgltf_mesh* mesh);
     std::vector<Primitive> primitives;
 
-    BoundingBox boundingBox() const;
+    // BoundingBox boundingBox() const;
 };
 
 class GLTFAsset final
@@ -81,7 +82,7 @@ public:
     explicit GLTFAsset(MTL::Device* device, const std::string& name);
     explicit GLTFAsset(MTL::Device* device, const std::filesystem::path& filePath);
 
-    [[nodiscard]] std::vector<Matrix>      boneMatricesForAnimation(int32_t animation) const;
+    [[nodiscard]] std::vector<glm::mat4>   boneMatricesForAnimation(int32_t animation) const;
     [[nodiscard]] std::vector<std::string> animations() const;
 
     [[nodiscard]] const cgltf_animation* getAnimation(int32_t index) const;

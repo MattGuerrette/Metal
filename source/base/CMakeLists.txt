@@ -5,7 +5,6 @@ add_library(base STATIC
         Mouse.cpp
         GameTimer.cpp
         GameTimer.cpp
-        SimpleMath.cpp
         Example.cpp
         Example.hpp
         Gamepad.cpp
@@ -28,7 +27,7 @@ set_target_properties(base PROPERTIES
 
 target_compile_definitions(base PRIVATE -DIMGUI_IMPL_METAL_CPP)
 target_include_directories(base PUBLIC .)
-target_link_libraries(base PUBLIC fmt::fmt SDL3::SDL3 Microsoft::DirectXMath AppleFrameworksCpp
+target_link_libraries(base PUBLIC glm::glm-header-only fmt::fmt SDL3::SDL3 AppleFrameworksCpp
         "-framework Foundation"
         "-framework Metal"
         "-framework MetalKit"

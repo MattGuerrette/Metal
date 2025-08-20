@@ -9,22 +9,23 @@
 
 #include <Metal/Metal.hpp>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "Camera.hpp"
 #include "Example.hpp"
 
 #include <SDL3/SDL_main.h>
 
-using namespace DirectX;
-
-XM_ALIGNED_STRUCT(16) Vertex
+struct alignas(16) Vertex
 {
-    Vector4 position;
-    Vector4 color;
+    glm::vec4 position;
+    glm::vec4 color;
 };
 
-XM_ALIGNED_STRUCT(16) Uniforms
+struct alignas(16) Uniforms
 {
-    [[maybe_unused]] Matrix modelViewProjection;
+    [[maybe_unused]] glm::mat4 modelViewProjection;
 };
 constexpr size_t g_alignedUniformSize = sizeof(Uniforms) + 0xFF & -0x100;
 
@@ -67,15 +68,15 @@ HelloWorld::~HelloWorld() = default;
 
 bool HelloWorld::onLoad()
 {
-    const auto      width = windowWidth();
-    const auto      height = windowHeight();
-    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
-    constexpr float fov = XMConvertToRadians(75.0F);
+    const auto      width = static_cast<float>(windowWidth());
+    const auto      height = static_cast<float>(windowHeight());
+    constexpr float fov = glm::radians(75.0F);
     constexpr float near = 0.01F;
     constexpr float far = 1000.0F;
 
-    m_mainCamera = std::make_unique<Camera>(XMFLOAT3 { 0.0F, 0.0F, 0.0F },
-        XMFLOAT3 { 0.0F, 0.0F, -1.0F }, XMFLOAT3 { 0.0F, 1.0F, 0.0F }, fov, aspect, near, far);
+    m_mainCamera
+        = std::make_unique<Camera>(glm::vec3 { 0.0F, 0.0F, 0.0F }, glm::vec3 { 0.0F, 0.0F, -1.0F },
+            glm::vec3 { 0.0F, 1.0F, 0.0F }, fov, width, height, near, far);
 
     createBuffers();
 
@@ -112,11 +113,12 @@ void HelloWorld::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameT
 
 void HelloWorld::onResize(const uint32_t width, const uint32_t height)
 {
-    const float     aspect = static_cast<float>(width) / static_cast<float>(height);
-    constexpr float fov = XMConvertToRadians(75.0F);
+    const auto      _width = static_cast<float>(width);
+    const auto      _height = static_cast<float>(height);
+    constexpr float fov = glm::radians(75.0F);
     constexpr float near = 0.01F;
     constexpr float far = 1000.0F;
-    m_mainCamera->setProjection(fov, aspect, near, far);
+    m_mainCamera->setProjection(fov, _width, _height, near, far);
 }
 
 void HelloWorld::createPipelineState()
@@ -206,24 +208,22 @@ void HelloWorld::updateUniforms() const
 {
     const auto currentFrameIndex = frameIndex();
 
-    auto position = Vector3(0.0F, 0.0, -10.0F);
-    auto rotationX = 0.0F;
-    auto rotationY = m_rotationY;
-    auto scaleFactor = 3.0F;
+    constexpr auto position = glm::vec3(0.0F, 0.0, -10.0F);
+    constexpr auto scaleFactor = 3.0F;
+    const auto     rotationY = m_rotationY;
 
-    const Vector3 xAxis = Vector3::Right;
-    const Vector3 yAxis = Vector3::Up;
+    constexpr glm::vec3 yAxis = { 0.0F, 1.0F, 0.0F };
+    const glm::mat4     yRot = glm::rotate(glm::mat4(1.0F), rotationY, yAxis);
+    const glm::mat4     rotation = yRot;
 
-    const Matrix         xRot = Matrix::CreateFromAxisAngle(xAxis, rotationX);
-    const Matrix         yRot = Matrix::CreateFromAxisAngle(yAxis, rotationY);
-    const Matrix         rotation = xRot * yRot;
-    const Matrix         translation = Matrix::CreateTranslation(position);
-    const Matrix         scale = Matrix::CreateScale(scaleFactor);
-    const Matrix         model = scale * rotation * translation;
+    constexpr glm::mat4 translation = glm::translate(glm::mat4(1.0F), position);
+    const glm::mat4     scale = glm::scale(glm::mat4(1.0), glm::vec3(scaleFactor));
+    const glm::mat4     model = translation * rotation * scale;
+
     const CameraUniforms cameraUniforms = m_mainCamera->uniforms();
 
     Uniforms uniforms {};
-    uniforms.modelViewProjection = model * cameraUniforms.viewProjection;
+    uniforms.modelViewProjection = cameraUniforms.viewProjection * model;
 
     const size_t uniformBufferOffset = g_alignedUniformSize * currentFrameIndex;
 
