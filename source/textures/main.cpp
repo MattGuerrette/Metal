@@ -62,9 +62,13 @@ public:
 
     void onResize(uint32_t width, uint32_t height) override;
 
-    void onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
+    void onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
 
 private:
+    void createArgumentTable();
+
+    void createResidencySet();
+
     void createBuffers();
 
     void createPipelineState();
@@ -86,6 +90,8 @@ private:
     NS::SharedPtr<MTL::Buffer>                            m_vertexBuffer;
     NS::SharedPtr<MTL::Buffer>                            m_indexBuffer;
     std::array<NS::SharedPtr<MTL::Buffer>, s_bufferCount> m_instanceBuffer;
+    NS::SharedPtr<MTL4::ArgumentTable>                    m_argumentTable;
+    NS::SharedPtr<MTL::ResidencySet>                      m_residencySet;
     std::unique_ptr<Camera>                               m_mainCamera;
     NS::SharedPtr<MTL::Heap>                              m_textureHeap;
     std::array<NS::SharedPtr<MTL::Buffer>, s_bufferCount> m_argumentBuffer;
@@ -118,6 +124,10 @@ bool Textures::onLoad()
     m_textureLoader = NS::TransferPtr(MTK::TextureLoader::alloc()->init(device()));
 #endif
 
+    createArgumentTable();
+
+    createResidencySet();
+
     createBuffers();
 
     createPipelineState();
@@ -125,6 +135,12 @@ bool Textures::onLoad()
     createTextureHeap();
 
     createArgumentBuffers();
+
+    // populate residency set and bind to command queue
+    commandQueue()->addResidencySet(m_residencySet.get());
+    commandQueue()->addResidencySet(metalLayer()->residencySet());
+
+    m_residencySet->commit();
 
     return true;
 }
@@ -251,24 +267,54 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
     return texture;
 }
 
-void Textures::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& /*timer*/)
+void Textures::onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& /*timer*/)
 {
     updateUniforms();
 
     const auto currentFrameIndex = frameIndex();
 
-    commandEncoder->useHeap(m_textureHeap.get());
-    commandEncoder->useResource(m_instanceBuffer[currentFrameIndex].get(), MTL::ResourceUsageRead);
-    commandEncoder->setRenderPipelineState(m_pipelineState.get());
-    commandEncoder->setDepthStencilState(depthStencilState());
-    commandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
-    commandEncoder->setCullMode(MTL::CullModeNone);
-    commandEncoder->setFragmentBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 0);
-    commandEncoder->setVertexBuffer(m_vertexBuffer.get(), 0, 0);
-    commandEncoder->setVertexBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 1);
-    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
-        m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(), 0,
-        s_instanceCount);
+//    commandEncoder->useHeap(m_textureHeap.get());
+//    commandEncoder->useResource(m_instanceBuffer[currentFrameIndex].get(), MTL::ResourceUsageRead);
+//    commandEncoder->setRenderPipelineState(m_pipelineState.get());
+//    commandEncoder->setDepthStencilState(depthStencilState());
+//    commandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
+//    commandEncoder->setCullMode(MTL::CullModeNone);
+//    commandEncoder->setFragmentBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 0);
+//    commandEncoder->setVertexBuffer(m_vertexBuffer.get(), 0, 0);
+//    commandEncoder->setVertexBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 1);
+//    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
+//        m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(), 0,
+//        s_instanceCount);
+}
+
+void Textures::createResidencySet()
+{
+    NS::Error* error = nullptr;
+
+    MTL::ResidencySetDescriptor* residencySetDescriptor
+        = MTL::ResidencySetDescriptor::alloc()->init();
+    m_residencySet = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor, &error));
+    if (error != nullptr)
+    {
+        throw std::runtime_error(fmt::format(
+            "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
+    }
+}
+
+void Textures::createArgumentTable()
+{
+    NS::Error* error = nullptr;
+
+    MTL4::ArgumentTableDescriptor* argTableDescriptor
+        = MTL4::ArgumentTableDescriptor::alloc()->init();
+    argTableDescriptor->setMaxBufferBindCount(2);
+
+    m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor, &error));
+    if (error != nullptr)
+    {
+        throw std::runtime_error(fmt::format(
+            "Failed to create argument table: {}", error->localizedFailureReason()->utf8String()));
+    }
 }
 
 void Textures::createPipelineState()
@@ -434,9 +480,8 @@ void Textures::createTextureHeap()
     heapDescriptor->release();
 
     // Move texture memory into heap
-    MTL::CommandBuffer* commandBuffer = commandQueue()->commandBuffer();
-
-    MTL::BlitCommandEncoder* blitCommandEncoder = commandBuffer->blitCommandEncoder();
+    commandBuffer()->beginCommandBuffer(commandAllocator());
+    MTL4::ComputeCommandEncoder* blitCommandEncoder = commandBuffer()->computeCommandEncoder();
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
         const MTL::Texture*     texture = textures[i];
@@ -481,10 +526,13 @@ void Textures::createTextureHeap()
     }
 
     blitCommandEncoder->endEncoding();
-    commandBuffer->commit();
-    commandBuffer->waitUntilCompleted();
+    commandBuffer()->endCommandBuffer();
+    
+    MTL4::CommandBuffer* buffers[] = { commandBuffer() };
+    commandQueue()->commit(buffers, 1);
+    
     blitCommandEncoder->release();
-    commandBuffer->release();
+    //commandBuffer->release();
 
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {

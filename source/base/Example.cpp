@@ -71,7 +71,17 @@ Example::Example(const char* title, int32_t width, int32_t height)
     ImGui_ImplMetal_Init(m_device.get());
     ImGui_ImplSDL3_InitForMetal(m_window.get());
 
-    m_commandQueue = NS::TransferPtr(m_device->newCommandQueue());
+    m_commandQueue = NS::TransferPtr(m_device->newMTL4CommandQueue());
+    m_commandBuffer = NS::TransferPtr(m_device->newCommandBuffer());
+
+    for (uint32_t i = 0; i < s_bufferCount; i++)
+    {
+        m_commandAllocator[i] = NS::TransferPtr(m_device->newCommandAllocator());
+    }
+
+    m_sharedEvent = NS::TransferPtr(m_device->newSharedEvent());
+    m_sharedEvent->setSignaledValue(s_bufferCount - 2);
+    m_currentFrameIndex = s_bufferCount - 1;
 
     createFrameResources(windowWidth(), windowHeight());
 
@@ -87,8 +97,6 @@ Example::Example(const char* title, int32_t width, int32_t height)
     // Load shader Library
     // TODO: Showcase how to use Metal archives to erase compilation
     m_shaderLibrary = NS::TransferPtr(m_device->newDefaultLibrary());
-
-    m_frameSemaphore = dispatch_semaphore_create(s_bufferCount);
 
     m_keyboard = std::make_unique<Keyboard>();
     m_mouse = std::make_unique<Mouse>(m_window.get());
@@ -159,7 +167,7 @@ MTL::Device* Example::device() const
     return m_device.get();
 }
 
-MTL::CommandQueue* Example::commandQueue() const
+MTL4::CommandQueue* Example::commandQueue() const
 {
     return m_commandQueue.get();
 }
@@ -172,6 +180,21 @@ MTL::DepthStencilState* Example::depthStencilState() const
 MTL::Library* Example::shaderLibrary() const
 {
     return m_shaderLibrary.get();
+}
+
+CA::MetalLayer* Example::metalLayer() const
+{
+    return (CA::MetalLayer*)SDL_Metal_GetLayer(m_view.get());
+}
+
+MTL4::CommandBuffer* Example::commandBuffer() const
+{
+    return m_commandBuffer.get();
+}
+
+MTL4::CommandAllocator* Example::commandAllocator() const
+{
+    return m_commandAllocator[m_currentFrameIndex].get();
 }
 
 SDL_Window* Example::window() const
@@ -195,7 +218,7 @@ int32_t Example::windowHeight() const
 
 uint32_t Example::frameIndex() const
 {
-    return m_frameIndex;
+    return m_currentFrameIndex;
 }
 
 #ifdef SDL_PLATFORM_MACOS
@@ -204,6 +227,23 @@ NS::Menu* Example::createMenuBar()
     return nullptr;
 }
 #endif
+
+int Example::Update(void* userData)
+{
+
+    auto* self = static_cast<Example*>(userData);
+    SDL_assert(self != nullptr);
+
+    while (!SDL_TryWaitSemaphore(self->m_exitUpdateSemaphore))
+    {
+        self->m_timer.tick([self] { self->onUpdate(self->m_timer); });
+
+        self->m_keyboard->update();
+        self->m_mouse->update();
+    }
+
+    return 1;
+}
 
 int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 {
@@ -217,6 +257,9 @@ int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
     {
         return EXIT_FAILURE;
     }
+
+    // m_updateThread = SDL_CreateThread(Update, "Update Thread", this);
+    // m_exitUpdateSemaphore = SDL_CreateSemaphore(0);
 
     m_displayLink->addToRunLoop(NS::RunLoop::mainRunLoop(), NS::DefaultRunLoopMode);
 
@@ -288,6 +331,9 @@ int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         }
     }
 
+    // SDL_SignalSemaphore(m_exitUpdateSemaphore);
+    // SDL_WaitThread(m_updateThread, nullptr);
+
     return 0;
 }
 
@@ -317,99 +363,81 @@ void Example::metalDisplayLinkNeedsUpdate(
     m_keyboard->update();
     m_mouse->update();
 
-    m_frameIndex = (m_frameIndex + 1) % s_bufferCount;
+    CA::MetalDrawable* drawable = update->drawable();
+    if (!drawable)
+        return;
 
-    MTL::CommandBuffer* commandBuffer = m_commandQueue->commandBuffer();
+    uint32_t                subFrameIndex = m_currentFrameIndex % s_bufferCount;
+    MTL4::CommandAllocator* commandAllocator = m_commandAllocator[subFrameIndex].get();
+    uint64_t                previousWait = m_currentFrameIndex - s_bufferCount;
+    m_sharedEvent->waitUntilSignaledValue(previousWait, 10);
+    commandAllocator->reset();
 
-    dispatch_semaphore_wait(m_frameSemaphore, DISPATCH_TIME_FOREVER);
-    commandBuffer->addCompletedHandler(
-        [this](MTL::CommandBuffer* /*buffer*/) { dispatch_semaphore_signal(m_frameSemaphore); });
+    m_commandBuffer->beginCommandBuffer(commandAllocator);
 
-    if (const CA::MetalDrawable* drawable = update->drawable(); drawable != nullptr)
+    // Update depth stencil texture if necessary¬
+    if (drawable->texture()->width() != m_depthStencilTexture->width()
+        || drawable->texture()->height() != m_depthStencilTexture->height())
     {
-        // Update depth stencil texture if necessary¬
-        if (drawable->texture()->width() != m_depthStencilTexture->width()
-            || drawable->texture()->height() != m_depthStencilTexture->height())
-        {
-
-            const auto width = windowWidth();
-            const auto height = windowHeight();
-            createFrameResources(width, height);
-
-            // m_msaaTexture.reset();
-            //
-            // // Create a multisample texture
-            // MTL::TextureDescriptor* msaaTextureDescriptor
-            //     = MTL::TextureDescriptor::texture2DDescriptor(
-            //         MTL::PixelFormatBGRA8Unorm_sRGB, width, height, false);
-            // msaaTextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
-            // msaaTextureDescriptor->setSampleCount(s_multisampleCount); // Set sample count for
-            // MSAA msaaTextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
-            // msaaTextureDescriptor->setStorageMode(MTL::StorageModePrivate);
-            //
-            // m_msaaTexture = NS::TransferPtr(m_device->newTexture(msaaTextureDescriptor));
-            //
-            // m_depthStencilTexture.reset();
-            //
-            // MTL::TextureDescriptor* textureDescriptor =
-            // MTL::TextureDescriptor::texture2DDescriptor(
-            //
-            //     MTL::PixelFormatDepth32Float_Stencil8, width, height, false);
-            // textureDescriptor->setSampleCount(s_multisampleCount);
-            // textureDescriptor->setTextureType(MTL::TextureType2DMultisample);
-            // textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
-            // textureDescriptor->setResourceOptions(
-            //     MTL::ResourceOptionCPUCacheModeDefault | MTL::ResourceStorageModePrivate);
-            // textureDescriptor->setStorageMode(MTL::StorageModeMemoryless);
-            //
-            // m_depthStencilTexture = NS::TransferPtr(m_device->newTexture(textureDescriptor));
-        }
-
-        MTL::RenderPassDescriptor* passDescriptor
-            = MTL::RenderPassDescriptor::renderPassDescriptor();
-        passDescriptor->colorAttachments()->object(0)->setResolveTexture(drawable->texture());
-        passDescriptor->colorAttachments()->object(0)->setTexture(m_msaaTexture.get());
-        passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
-        passDescriptor->colorAttachments()->object(0)->setStoreAction(
-            MTL::StoreActionMultisampleResolve);
-        passDescriptor->colorAttachments()->object(0)->setClearColor(
-            MTL::ClearColor(.39, .58, .92, 1.0));
-        passDescriptor->depthAttachment()->setTexture(m_depthStencilTexture.get());
-        passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
-        passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
-        passDescriptor->depthAttachment()->setClearDepth(1.0);
-        passDescriptor->stencilAttachment()->setTexture(m_depthStencilTexture.get());
-        passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
-        passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
-        passDescriptor->stencilAttachment()->setClearStencil(0);
-
-        MTL::RenderCommandEncoder* commandEncoder
-            = commandBuffer->renderCommandEncoder(passDescriptor);
-
-        commandEncoder->pushDebugGroup(MTLSTR("SAMPLE RENDERING"));
-
-        onRender(commandEncoder, m_timer);
-
-        commandEncoder->popDebugGroup();
-
-        // ImGui rendering
-        ImGui_ImplMetal_NewFrame(passDescriptor);
-        ImGui_ImplSDL3_NewFrame();
-        ImGui::NewFrame();
-
-        onSetupUi(m_timer);
-
-        commandEncoder->pushDebugGroup(MTLSTR("IMGUI RENDERING"));
-
-        // Rendering
-        ImGui::Render();
-        ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), commandBuffer, commandEncoder);
-
-        commandEncoder->popDebugGroup();
-
-        commandEncoder->endEncoding();
-
-        commandBuffer->presentDrawable(drawable);
-        commandBuffer->commit();
+        const auto width = windowWidth();
+        const auto height = windowHeight();
+        createFrameResources(width, height);
     }
+
+    MTL4::RenderPassDescriptor* passDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
+    passDescriptor->colorAttachments()->object(0)->setResolveTexture(drawable->texture());
+    passDescriptor->colorAttachments()->object(0)->setTexture(m_msaaTexture.get());
+    passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
+    passDescriptor->colorAttachments()->object(0)->setStoreAction(
+        MTL::StoreActionMultisampleResolve);
+    passDescriptor->colorAttachments()->object(0)->setClearColor(
+        MTL::ClearColor(.39, .58, .92, 1.0));
+    passDescriptor->depthAttachment()->setTexture(m_depthStencilTexture.get());
+    passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
+    passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
+    passDescriptor->depthAttachment()->setClearDepth(1.0);
+    passDescriptor->stencilAttachment()->setTexture(m_depthStencilTexture.get());
+    passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
+    passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
+    passDescriptor->stencilAttachment()->setClearStencil(0);
+
+    MTL4::RenderCommandEncoder* commandEncoder
+        = m_commandBuffer->renderCommandEncoder(passDescriptor);
+
+    commandEncoder->pushDebugGroup(MTLSTR("SAMPLE RENDERING"));
+
+    onRender(commandEncoder, m_timer);
+
+    commandEncoder->popDebugGroup();
+
+    // TODO: Re-enable with Metal 4 support in imgui
+    // ImGui rendering
+    //    ImGui_ImplMetal_NewFrame(passDescriptor);
+    //    ImGui_ImplSDL3_NewFrame();
+    //    ImGui::NewFrame();
+    //
+    //    onSetupUi(m_timer);
+    //
+    //    commandEncoder->pushDebugGroup(MTLSTR("IMGUI RENDERING"));
+    //
+    //    // Rendering
+    //    ImGui::Render();
+    //    ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), commandBuffer, commandEncoder);
+    //
+    //    commandEncoder->popDebugGroup();
+
+    commandEncoder->endEncoding();
+    m_commandBuffer->endCommandBuffer();
+
+    m_commandQueue->wait(drawable);
+    MTL4::CommandBuffer* buffers[] = { m_commandBuffer.get() };
+    m_commandQueue->commit(buffers, 1);
+
+    uint64_t futureValueToWaitFor = m_currentFrameIndex;
+    m_commandQueue->signalEvent(m_sharedEvent.get(), futureValueToWaitFor);
+    m_currentFrameIndex++;
+    m_currentFrameIndex = m_currentFrameIndex % 1;
+
+    m_commandQueue->signalDrawable(drawable);
+    static_cast<MTL::Drawable*>(drawable)->present();
 }

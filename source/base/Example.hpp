@@ -76,7 +76,7 @@ protected:
 
     virtual void onResize(uint32_t width, uint32_t height) = 0;
 
-    virtual void onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) = 0;
+    virtual void onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& timer) = 0;
 
     [[nodiscard]] SDL_Window* window() const;
 
@@ -92,17 +92,27 @@ protected:
 
     [[nodiscard]] MTL::Device* device() const;
 
-    [[nodiscard]] MTL::CommandQueue* commandQueue() const;
+    [[nodiscard]] MTL4::CommandQueue* commandQueue() const;
 
     [[nodiscard]] MTL::DepthStencilState* depthStencilState() const;
 
     [[nodiscard]] MTL::Library* shaderLibrary() const;
 
+    [[nodiscard]] MTL4::CommandBuffer* commandBuffer() const;
+    
+    [[nodiscard]] MTL4::CommandAllocator* commandAllocator() const;
+
+    [[nodiscard]] CA::MetalLayer* metalLayer() const;
+
 #ifdef SDL_PLATFORM_MACOS
     [[nodiscard]] virtual NS::Menu* createMenuBar();
 #endif
 
+    static int Update(void* userData);
+
 private:
+    SDL_Semaphore* m_exitUpdateSemaphore;
+    SDL_Thread*    m_updateThread;
     SDL::WindowPtr m_window;
     SDL::MetalView m_view;
     uint32_t       m_defaultWidth;
@@ -119,7 +129,9 @@ private:
 #pragma region Metal Resources
     NS::SharedPtr<CA::MetalDisplayLink>   m_displayLink;
     NS::SharedPtr<MTL::Device>            m_device;
-    NS::SharedPtr<MTL::CommandQueue>      m_commandQueue;
+    NS::SharedPtr<MTL4::CommandQueue>     m_commandQueue;
+    NS::SharedPtr<MTL4::CommandBuffer>    m_commandBuffer;
+    NS::SharedPtr<MTL4::CommandAllocator> m_commandAllocator[s_bufferCount];
     NS::SharedPtr<MTL::Texture>           m_msaaTexture;
     NS::SharedPtr<MTL::Texture>           m_depthStencilTexture;
     NS::SharedPtr<MTL::DepthStencilState> m_depthStencilState;
@@ -127,8 +139,8 @@ private:
 #pragma endregion
 
 #pragma region Sync Primitives
-    uint32_t             m_frameIndex = 0;
-    dispatch_semaphore_t m_frameSemaphore;
+    uint32_t                        m_currentFrameIndex = 0;
+    NS::SharedPtr<MTL::SharedEvent> m_sharedEvent;
 #pragma endregion
 
     void createFrameResources(int32_t width, int32_t height);
