@@ -108,7 +108,7 @@ void HelloWorld::onRender(MTL4::RenderCommandEncoder* commandEncoder, const Game
 
     const auto currentFrameIndex = frameIndex();
     const auto uniformBufferOffset = g_alignedUniformSize * currentFrameIndex;
-
+    
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
     commandEncoder->setDepthStencilState(depthStencilState());
     commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
@@ -148,6 +148,12 @@ void HelloWorld::createResidencySet()
     {
         throw std::runtime_error(fmt::format(
             "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
+    }
+    m_residencySet->addAllocation(m_vertexBuffer.get());
+    m_residencySet->addAllocation(m_indexBuffer.get());
+    for (uint32_t i = 0; i < s_bufferCount; i++)
+    {
+        m_residencySet->addAllocation(m_uniformBuffer[i].get());
     }
     
     commandQueue()->addResidencySet(m_residencySet.get());

@@ -99,7 +99,7 @@ protected:
     [[nodiscard]] MTL::Library* shaderLibrary() const;
 
     [[nodiscard]] MTL4::CommandBuffer* commandBuffer() const;
-    
+
     [[nodiscard]] MTL4::CommandAllocator* commandAllocator() const;
 
     [[nodiscard]] CA::MetalLayer* metalLayer() const;
@@ -108,11 +108,7 @@ protected:
     [[nodiscard]] virtual NS::Menu* createMenuBar();
 #endif
 
-    static int Update(void* userData);
-
 private:
-    SDL_Semaphore* m_exitUpdateSemaphore;
-    SDL_Thread*    m_updateThread;
     SDL::WindowPtr m_window;
     SDL::MetalView m_view;
     uint32_t       m_defaultWidth;
@@ -140,6 +136,7 @@ private:
 
 #pragma region Sync Primitives
     uint32_t                        m_currentFrameIndex = 0;
+    uint32_t                        m_frameNumber = 0;
     NS::SharedPtr<MTL::SharedEvent> m_sharedEvent;
 #pragma endregion
 

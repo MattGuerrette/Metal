@@ -228,23 +228,6 @@ NS::Menu* Example::createMenuBar()
 }
 #endif
 
-int Example::Update(void* userData)
-{
-
-    auto* self = static_cast<Example*>(userData);
-    SDL_assert(self != nullptr);
-
-    while (!SDL_TryWaitSemaphore(self->m_exitUpdateSemaphore))
-    {
-        self->m_timer.tick([self] { self->onUpdate(self->m_timer); });
-
-        self->m_keyboard->update();
-        self->m_mouse->update();
-    }
-
-    return 1;
-}
-
 int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 {
 #ifdef SDL_PLATFORM_MACOS
@@ -257,9 +240,6 @@ int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
     {
         return EXIT_FAILURE;
     }
-
-    // m_updateThread = SDL_CreateThread(Update, "Update Thread", this);
-    // m_exitUpdateSemaphore = SDL_CreateSemaphore(0);
 
     m_displayLink->addToRunLoop(NS::RunLoop::mainRunLoop(), NS::DefaultRunLoopMode);
 
@@ -331,9 +311,6 @@ int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         }
     }
 
-    // SDL_SignalSemaphore(m_exitUpdateSemaphore);
-    // SDL_WaitThread(m_updateThread, nullptr);
-
     return 0;
 }
 
@@ -367,13 +344,28 @@ void Example::metalDisplayLinkNeedsUpdate(
     if (!drawable)
         return;
 
-    uint32_t                subFrameIndex = m_currentFrameIndex % s_bufferCount;
-    MTL4::CommandAllocator* commandAllocator = m_commandAllocator[subFrameIndex].get();
-    uint64_t                previousWait = m_currentFrameIndex - s_bufferCount;
-    m_sharedEvent->waitUntilSignaledValue(previousWait, 10);
-    commandAllocator->reset();
+    if (m_frameNumber >= s_bufferCount)
+    {
+        // Wait for the GPU to finish rendering the frame that's
+        // `kMaxFramesInFlight` before this one, and then proceed to the next step.
+        uint64_t previousValueToWaitFor = m_frameNumber - s_bufferCount;
+        m_sharedEvent->waitUntilSignaledValue(previousValueToWaitFor, 10);
+    }
 
-    m_commandBuffer->beginCommandBuffer(commandAllocator);
+    // Get the next allocator in the rotation.
+    m_currentFrameIndex = m_frameNumber % s_bufferCount;
+    MTL4::CommandAllocator* frameAllocator = m_commandAllocator[m_currentFrameIndex].get();
+
+    // Prepare to use or reuse the allocator by resetting it.
+    frameAllocator->reset();
+
+    //    uint32_t                subFrameIndex = m_currentFrameIndex % s_bufferCount;
+    //    MTL4::CommandAllocator* commandAllocator = m_commandAllocator[subFrameIndex].get();
+    //    uint64_t                previousWait = m_currentFrameIndex - s_bufferCount;
+    //    m_sharedEvent->waitUntilSignaledValue(previousWait, 10);
+    //    commandAllocator->reset();
+
+    m_commandBuffer->beginCommandBuffer(frameAllocator);
 
     // Update depth stencil texture if necessary¬
     if (drawable->texture()->width() != m_depthStencilTexture->width()
@@ -431,13 +423,23 @@ void Example::metalDisplayLinkNeedsUpdate(
 
     m_commandQueue->wait(drawable);
     MTL4::CommandBuffer* buffers[] = { m_commandBuffer.get() };
+
     m_commandQueue->commit(buffers, 1);
-
-    uint64_t futureValueToWaitFor = m_currentFrameIndex;
-    m_commandQueue->signalEvent(m_sharedEvent.get(), futureValueToWaitFor);
-    m_currentFrameIndex++;
-    m_currentFrameIndex = m_currentFrameIndex % 1;
-
     m_commandQueue->signalDrawable(drawable);
     static_cast<MTL::Drawable*>(drawable)->present();
+
+    // Signal when the GPU finishes rendering this frame with a shared event.
+    uint64_t futureValueToWaitFor = m_frameNumber;
+    m_commandQueue->signalEvent(m_sharedEvent.get(), futureValueToWaitFor);
+
+    //    MTL4::CommandBuffer* buffers[] = { m_commandBuffer.get() };
+    //    m_commandQueue->commit(buffers, 1);
+    //
+    //    uint64_t futureValueToWaitFor = m_currentFrameIndex;
+    //    m_commandQueue->signalEvent(m_sharedEvent.get(), futureValueToWaitFor);
+    //    m_currentFrameIndex++;
+    //    m_currentFrameIndex = m_currentFrameIndex % 1;
+    //
+    //    m_commandQueue->signalDrawable(drawable);
+    //    static_cast<MTL::Drawable*>(drawable)->present();
 }
