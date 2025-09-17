@@ -80,8 +80,8 @@ Example::Example(const char* title, int32_t width, int32_t height)
     }
 
     m_sharedEvent = NS::TransferPtr(m_device->newSharedEvent());
-    m_sharedEvent->setSignaledValue(s_bufferCount - 2);
-    m_currentFrameIndex = s_bufferCount - 1;
+    m_sharedEvent->setSignaledValue(m_frameNumber);
+    m_currentFrameIndex = 0;
 
     createFrameResources(windowWidth(), windowHeight());
 

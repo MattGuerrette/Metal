@@ -92,6 +92,7 @@ private:
     std::array<NS::SharedPtr<MTL::Buffer>, s_bufferCount> m_instanceBuffer;
     NS::SharedPtr<MTL4::ArgumentTable>                    m_argumentTable;
     NS::SharedPtr<MTL::ResidencySet>                      m_residencySet;
+    NS::SharedPtr<MTL::SharedEvent>                       m_computeEvent;
     std::unique_ptr<Camera>                               m_mainCamera;
     NS::SharedPtr<MTL::Heap>                              m_textureHeap;
     std::array<NS::SharedPtr<MTL::Buffer>, s_bufferCount> m_argumentBuffer;
@@ -131,12 +132,22 @@ bool Textures::onLoad()
     createBuffers();
 
     createPipelineState();
+    
+    m_computeEvent = NS::TransferPtr(device()->newSharedEvent());
+    m_computeEvent->setSignaledValue(0);
 
     createTextureHeap();
 
     createArgumentBuffers();
 
     // populate residency set and bind to command queue
+    m_residencySet->addAllocation(m_vertexBuffer.get());
+    m_residencySet->addAllocation(m_indexBuffer.get());
+    for (uint32_t i = 0; i < s_bufferCount; i++)
+    {
+        m_residencySet->addAllocation(m_instanceBuffer[i].get());
+    }
+
     commandQueue()->addResidencySet(m_residencySet.get());
     commandQueue()->addResidencySet(metalLayer()->residencySet());
 
@@ -272,19 +283,34 @@ void Textures::onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTi
     updateUniforms();
 
     const auto currentFrameIndex = frameIndex();
+    
+    commandEncoder->setRenderPipelineState(m_pipelineState.get());
+    commandEncoder->setDepthStencilState(depthStencilState());
+    commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+    commandEncoder->setCullMode(MTL::CullModeNone);
+    commandEncoder->setArgumentTable(m_argumentTable.get(), MTL::RenderStageVertex);
+    
+    m_argumentTable->setAddress(m_vertexBuffer->gpuAddress(), 0);
+    m_argumentTable->setAddress(m_argumentBuffer[currentFrameIndex]->gpuAddress(), 1);
+    
+    commandEncoder->setArgumentTable(m_argumentTable.get(), MTL::RenderStageFragment);
+    
+    m_argumentTable->setAddress(m_argumentBuffer[currentFrameIndex]->gpuAddress(), 2);
+    
+    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer->gpuAddress(), m_indexBuffer->length(), s_instanceCount);
 
-//    commandEncoder->useHeap(m_textureHeap.get());
-//    commandEncoder->useResource(m_instanceBuffer[currentFrameIndex].get(), MTL::ResourceUsageRead);
-//    commandEncoder->setRenderPipelineState(m_pipelineState.get());
-//    commandEncoder->setDepthStencilState(depthStencilState());
-//    commandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
-//    commandEncoder->setCullMode(MTL::CullModeNone);
-//    commandEncoder->setFragmentBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 0);
-//    commandEncoder->setVertexBuffer(m_vertexBuffer.get(), 0, 0);
-//    commandEncoder->setVertexBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 1);
-//    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
-//        m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(), 0,
-//        s_instanceCount);
+//        commandEncoder->useHeap(m_textureHeap.get());
+//        commandEncoder->useResource(m_instanceBuffer[currentFrameIndex].get(),
+//        MTL::ResourceUsageRead); commandEncoder->setRenderPipelineState(m_pipelineState.get());
+//        commandEncoder->setDepthStencilState(depthStencilState());
+//        commandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
+//        commandEncoder->setCullMode(MTL::CullModeNone);
+//        commandEncoder->setFragmentBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 0);
+//        commandEncoder->setVertexBuffer(m_vertexBuffer.get(), 0, 0);
+//        commandEncoder->setVertexBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 1);
+//        commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
+//            m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(),
+//            0, s_instanceCount);
 }
 
 void Textures::createResidencySet()
@@ -307,7 +333,7 @@ void Textures::createArgumentTable()
 
     MTL4::ArgumentTableDescriptor* argTableDescriptor
         = MTL4::ArgumentTableDescriptor::alloc()->init();
-    argTableDescriptor->setMaxBufferBindCount(2);
+    argTableDescriptor->setMaxBufferBindCount(3);
 
     m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor, &error));
     if (error != nullptr)
@@ -480,8 +506,12 @@ void Textures::createTextureHeap()
     heapDescriptor->release();
 
     // Move texture memory into heap
-    commandBuffer()->beginCommandBuffer(commandAllocator());
-    MTL4::ComputeCommandEncoder* blitCommandEncoder = commandBuffer()->computeCommandEncoder();
+    //commandBuffer()->beginCommandBuffer(commandAllocator());
+    //MTL4::ComputeCommandEncoder* blitCommandEncoder = commandBuffer()->computeCommandEncoder();
+
+    NS::SharedPtr<MTL::CommandQueue> _commandQueue = NS::TransferPtr(device()->newCommandQueue());
+    NS::SharedPtr<MTL::CommandBuffer> _commandBuffer = NS::TransferPtr(_commandQueue->commandBuffer());
+    MTL::BlitCommandEncoder* blitCommandEncoder = _commandBuffer->blitCommandEncoder();
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
         const MTL::Texture*     texture = textures[i];
@@ -495,7 +525,7 @@ void Textures::createTextureHeap()
         textureDescriptor->setSampleCount(texture->sampleCount());
         textureDescriptor->setStorageMode(m_textureHeap->storageMode());
 
-        const NS::SharedPtr<MTL::Texture> heapTexture
+        NS::SharedPtr<MTL::Texture> heapTexture
             = NS::TransferPtr(m_textureHeap->newTexture(textureDescriptor));
         textureDescriptor->release();
 
@@ -526,18 +556,26 @@ void Textures::createTextureHeap()
     }
 
     blitCommandEncoder->endEncoding();
-    commandBuffer()->endCommandBuffer();
+    _commandBuffer->commit();
+    _commandBuffer->waitUntilCompleted();
+    //commandBuffer()->endCommandBuffer();
     
-    MTL4::CommandBuffer* buffers[] = { commandBuffer() };
-    commandQueue()->commit(buffers, 1);
-    
+//
+//    MTL4::CommandBuffer* buffers[] = { commandBuffer() };
+//    commandQueue()->commit(buffers, 1);
+//    commandQueue()->signalEvent(m_computeEvent.get(), 1);
+//    
+//    m_computeEvent->waitUntilSignaledValue(1, 10);
+
     blitCommandEncoder->release();
-    //commandBuffer->release();
+    // commandBuffer->release();
+    m_residencySet->addAllocation(m_textureHeap.get());
 
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
         textures[i]->release();
         textures[i] = nullptr;
+        
     }
     delete[] textures;
 }
@@ -568,13 +606,10 @@ void Textures::createArgumentBuffers()
                 buffer->transforms = reinterpret_cast<Matrix*>(m_instanceBuffer[i]->gpuAddress());
             }
             buffer->textureIndex = 0;
+            
+            m_residencySet->addAllocation(m_argumentBuffer[i].get());
+            m_argumentTable->setAddress(m_argumentBuffer[i]->gpuAddress(), 0);
         }
-    }
-    else
-    {
-        // TODO: Add support for Tier1 argument buffers?
-        // Or maybe just wait for Apple to phase out
-        // support for Tier1 hardware.
     }
 }
 

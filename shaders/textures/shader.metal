@@ -31,7 +31,7 @@ vertex Vertex texture_vertex(
     return vertexOut;
 }
 
-fragment half4 texture_fragment(Vertex vertexIn [[stage_in]], const device ArgumentBuffer& argBuffer[[buffer(0)]])
+fragment half4 texture_fragment(Vertex vertexIn [[stage_in]], const device ArgumentBuffer& argBuffer[[buffer(2)]])
 {
     constexpr sampler colorSampler(mip_filter::linear,
                                        mag_filter::linear,
@@ -42,13 +42,3 @@ fragment half4 texture_fragment(Vertex vertexIn [[stage_in]], const device Argum
     return half4(colorSample);
 }
 
-/*fragment half4 texture_fragment(Vertex vertexIn [[stage_in]], texture2d<half> colorMap [[texture(0)]])
-{
-    constexpr sampler colorSampler(mip_filter::linear,
-                                       mag_filter::linear,
-                                       min_filter::linear);
-
-    half4 colorSample   = colorMap.sample(colorSampler, vertexIn.uv.xy);
-
-    return half4(colorSample);
-}*/
