@@ -367,7 +367,11 @@ void Example::metalDisplayLinkNeedsUpdate(
 
     m_commandBuffer->beginCommandBuffer(frameAllocator);
 
-    // Update depth stencil texture if necessary¬
+    // TODO: This needs to be re-done with improved synchonization
+    // Updating the frame buffer resources in the middle of rendering is not
+    // good and should instead by done after all work as completed and before
+    // any new work is scheduled.
+    // Update depth stencil texture if necessary
     if (drawable->texture()->width() != m_depthStencilTexture->width()
         || drawable->texture()->height() != m_depthStencilTexture->height())
     {

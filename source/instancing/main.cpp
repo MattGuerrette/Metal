@@ -148,6 +148,17 @@ void Instancing::createResidencySet()
         throw std::runtime_error(fmt::format(
             "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
     }
+    
+    m_residencySet->addAllocation(m_vertexBuffer.get());
+    m_residencySet->addAllocation(m_indexBuffer.get());
+    for (uint32_t i = 0; i < s_bufferCount; i++)
+    {
+        m_residencySet->addAllocation(m_instanceBuffer[i].get());
+    }
+    
+    commandQueue()->addResidencySet(m_residencySet.get());
+    commandQueue()->addResidencySet(metalLayer()->residencySet());
+    m_residencySet->commit();
 }
 
 void Instancing::createArgumentTable()
