@@ -38,7 +38,6 @@ static constexpr size_t g_textureCount = 5;
 XM_ALIGNED_STRUCT(16) FragmentArgumentBuffer
 {
     [[maybe_unused]] std::array<MTL::ResourceID, g_textureCount> textures;
-    [[maybe_unused]] uint32_t                                    textureIndex;
     [[maybe_unused]] Matrix*                                     transforms;
 };
 
@@ -62,9 +61,13 @@ public:
 
     void onResize(uint32_t width, uint32_t height) override;
 
-    void onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
+    void onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
 
 private:
+    void createArgumentTable();
+
+    void createResidencySet();
+
     void createBuffers();
 
     void createPipelineState();
@@ -75,24 +78,21 @@ private:
 
     void updateUniforms() const;
 
-#ifdef USE_KTX_LIBRARY
     [[nodiscard]] MTL::Texture* newTextureFromFileKTX(const std::string& fileName) const;
-#else
-    MTL::Texture* newTextureFromFileMTK(MTK::TextureLoader* loader, const std::string& fileName);
-    NS::SharedPtr<MTK::TextureLoader> m_textureLoader;
-#endif
 
     NS::SharedPtr<MTL::RenderPipelineState>               m_pipelineState;
     NS::SharedPtr<MTL::Buffer>                            m_vertexBuffer;
     NS::SharedPtr<MTL::Buffer>                            m_indexBuffer;
     std::array<NS::SharedPtr<MTL::Buffer>, s_bufferCount> m_instanceBuffer;
+    NS::SharedPtr<MTL4::ArgumentTable>                    m_argumentTable;
+    NS::SharedPtr<MTL::ResidencySet>                      m_residencySet;
+    NS::SharedPtr<MTL::SharedEvent>                       m_computeEvent;
     std::unique_ptr<Camera>                               m_mainCamera;
     NS::SharedPtr<MTL::Heap>                              m_textureHeap;
     std::array<NS::SharedPtr<MTL::Buffer>, s_bufferCount> m_argumentBuffer;
     std::vector<NS::SharedPtr<MTL::Texture>>              m_heapTextures;
     float                                                 m_rotationX = 0.0F;
     float                                                 m_rotationY = 0.0F;
-    int                                                   m_selectedTexture = 0;
 };
 
 Textures::Textures()
@@ -114,43 +114,60 @@ bool Textures::onLoad()
     m_mainCamera = std::make_unique<Camera>(
         Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far);
 
-#ifndef USE_KTX_LIBRARY
-    m_textureLoader = NS::TransferPtr(MTK::TextureLoader::alloc()->init(device()));
-#endif
+    createArgumentTable();
+
+    createResidencySet();
 
     createBuffers();
 
     createPipelineState();
 
+    m_computeEvent = NS::TransferPtr(device()->newSharedEvent());
+    m_computeEvent->setSignaledValue(0);
+
     createTextureHeap();
 
     createArgumentBuffers();
+
+    // populate residency set and bind to command queue
+    m_residencySet->addAllocation(m_vertexBuffer.get());
+    m_residencySet->addAllocation(m_indexBuffer.get());
+    for (uint32_t i = 0; i < s_bufferCount; i++)
+    {
+        m_residencySet->addAllocation(m_instanceBuffer[i].get());
+    }
+
+    commandQueue()->addResidencySet(m_residencySet.get());
+    commandQueue()->addResidencySet(metalLayer()->residencySet());
+
+    m_residencySet->commit();
 
     return true;
 }
 
 void Textures::onSetupUi(const GameTimer& timer)
 {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
-    ImGui::SetNextWindowPos(ImVec2(10, 20));
-    ImGui::SetNextWindowSize(ImVec2(250, 0), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Metal Example", nullptr,
-        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
-    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(window()), timer.framesPerSecond());
-    if (ImGui::Combo(" ", &m_selectedTexture, g_comboItems.data(), g_comboItems.size()))
-    {
-        /// Update argument buffer index
-        for (const auto& buffer : m_argumentBuffer)
-        {
-            auto* contents = static_cast<FragmentArgumentBuffer*>(buffer->contents());
-            contents->textureIndex = m_selectedTexture;
-        }
-    }
-#if defined(SDL_PLATFORM_MACOS)
-    ImGui::Text("Press Esc to quit");
-#endif
-    ImGui::End();
-    ImGui::PopStyleVar();
+    // TODO: Re-enable once Metal 4 support is added to ImGUI
+    //    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
+    //    ImGui::SetNextWindowPos(ImVec2(10, 20));
+    //    ImGui::SetNextWindowSize(ImVec2(250, 0), ImGuiCond_FirstUseEver);
+    //    ImGui::Begin("Metal Example", nullptr,
+    //        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
+    //    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(window()), timer.framesPerSecond());
+    //    if (ImGui::Combo(" ", &m_selectedTexture, g_comboItems.data(), g_comboItems.size()))
+    //    {
+    //        /// Update argument buffer index
+    //        for (const auto& buffer : m_argumentBuffer)
+    //        {
+    //            auto* contents = static_cast<FragmentArgumentBuffer*>(buffer->contents());
+    //            contents->textureIndex = m_selectedTexture;
+    //        }
+    //    }
+    // #if defined(SDL_PLATFORM_MACOS)
+    //    ImGui::Text("Press Esc to quit");
+    // #endif
+    //    ImGui::End();
+    //    ImGui::PopStyleVar();
 }
 
 void Textures::onUpdate(const GameTimer& timer)
@@ -161,12 +178,6 @@ void Textures::onUpdate(const GameTimer& timer)
     {
         m_rotationY += static_cast<float>(mouse().relativeX()) * elapsed;
     }
-
-    // TODO: Re-add back gamepad support
-    // if (m_gamepad)
-    // {
-    //     m_rotationY += m_gamepad->leftThumbstickHorizontal() * elapsed;
-    // }
 }
 
 void Textures::onResize(const uint32_t width, const uint32_t height)
@@ -209,7 +220,8 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
             std::floor(std::log2(std::fmax(baseWidth, baseHeight))) + 1);
         const NS::UInteger storedMipLevelCount = genMipmaps ? maxMipLevelCount : levelCount;
 
-        MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+        NS::SharedPtr<MTL::TextureDescriptor> textureDescriptor
+            = NS::TransferPtr(MTL::TextureDescriptor::alloc()->init());
         textureDescriptor->setTextureType(type);
         textureDescriptor->setPixelFormat(pixelFormat);
         textureDescriptor->setWidth(baseWidth);
@@ -220,7 +232,7 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
         textureDescriptor->setArrayLength(1);
         textureDescriptor->setMipmapLevelCount(storedMipLevelCount);
 
-        texture = device()->newTexture(textureDescriptor);
+        texture = device()->newTexture(textureDescriptor.get());
 
         auto* ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
         for (ktx_uint32_t level = 0; std::cmp_less(level, ktx2Texture->numLevels); ++level)
@@ -251,29 +263,65 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
     return texture;
 }
 
-void Textures::onRender(MTL::RenderCommandEncoder* commandEncoder, const GameTimer& /*timer*/)
+void Textures::onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& /*timer*/)
 {
     updateUniforms();
 
     const auto currentFrameIndex = frameIndex();
 
-    commandEncoder->useHeap(m_textureHeap.get());
-    commandEncoder->useResource(m_instanceBuffer[currentFrameIndex].get(), MTL::ResourceUsageRead);
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
     commandEncoder->setDepthStencilState(depthStencilState());
-    commandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
+    commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
     commandEncoder->setCullMode(MTL::CullModeNone);
-    commandEncoder->setFragmentBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 0);
-    commandEncoder->setVertexBuffer(m_vertexBuffer.get(), 0, 0);
-    commandEncoder->setVertexBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 1);
+    commandEncoder->setArgumentTable(m_argumentTable.get(), MTL::RenderStageVertex);
+
+    m_argumentTable->setAddress(m_vertexBuffer->gpuAddress(), 0);
+    m_argumentTable->setAddress(m_argumentBuffer[currentFrameIndex]->gpuAddress(), 1);
+
+    commandEncoder->setArgumentTable(m_argumentTable.get(), MTL::RenderStageFragment);
+
+    m_argumentTable->setAddress(m_argumentBuffer[currentFrameIndex]->gpuAddress(), 2);
+
     commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
-        m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(), 0,
-        s_instanceCount);
+        m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
+        m_indexBuffer->gpuAddress(), m_indexBuffer->length(), s_instanceCount);
+}
+
+void Textures::createResidencySet()
+{
+    NS::Error* error = nullptr;
+
+    NS::SharedPtr<MTL::ResidencySetDescriptor> residencySetDescriptor
+        = NS::TransferPtr(MTL::ResidencySetDescriptor::alloc()->init());
+    m_residencySet
+        = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor.get(), &error));
+    if (error != nullptr)
+    {
+        throw std::runtime_error(fmt::format(
+            "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
+    }
+}
+
+void Textures::createArgumentTable()
+{
+    NS::Error* error = nullptr;
+
+    NS::SharedPtr<MTL4::ArgumentTableDescriptor> argTableDescriptor
+        = NS::TransferPtr(MTL4::ArgumentTableDescriptor::alloc()->init());
+    argTableDescriptor->setMaxBufferBindCount(3);
+
+    m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor.get(), &error));
+    if (error != nullptr)
+    {
+        throw std::runtime_error(fmt::format(
+            "Failed to create argument table: {}", error->localizedFailureReason()->utf8String()));
+    }
 }
 
 void Textures::createPipelineState()
 {
-    MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
+    NS::SharedPtr<MTL::VertexDescriptor> vertexDescriptor
+        = NS::TransferPtr(MTL::VertexDescriptor::alloc()->init());
 
     // Position
     vertexDescriptor->attributes()->object(0)->setFormat(MTL::VertexFormatFloat4);
@@ -288,8 +336,8 @@ void Textures::createPipelineState()
     vertexDescriptor->layouts()->object(0)->setStepFunction(MTL::VertexStepFunctionPerVertex);
     vertexDescriptor->layouts()->object(0)->setStride(sizeof(Vertex));
 
-    MTL::RenderPipelineDescriptor* pipelineDescriptor
-        = MTL::RenderPipelineDescriptor::alloc()->init();
+    NS::SharedPtr<MTL::RenderPipelineDescriptor> pipelineDescriptor
+        = NS::TransferPtr(MTL::RenderPipelineDescriptor::alloc()->init());
     pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
     pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
     pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
@@ -309,19 +357,17 @@ void Textures::createPipelineState()
         NS::String::string("texture_vertex", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setFragmentFunction(shaderLibrary()->newFunction(
         NS::String::string("texture_fragment", NS::ASCIIStringEncoding)));
-    pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
+    pipelineDescriptor->setVertexDescriptor(vertexDescriptor.get());
     pipelineDescriptor->setSampleCount(s_multisampleCount);
 
     NS::Error* error = nullptr;
-    m_pipelineState = NS::TransferPtr(device()->newRenderPipelineState(pipelineDescriptor, &error));
+    m_pipelineState
+        = NS::TransferPtr(device()->newRenderPipelineState(pipelineDescriptor.get(), &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
             "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
-
-    vertexDescriptor->release();
-    pipelineDescriptor->release();
 }
 
 void Textures::createBuffers()
@@ -389,13 +435,14 @@ void Textures::updateUniforms() const
 
 void Textures::createTextureHeap()
 {
-    auto** textures = new MTL::Texture*[g_textureCount];
+    std::vector<NS::SharedPtr<MTL::Texture>> textures;
+    textures.resize(g_textureCount);
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
         const auto fileName = fmt::format("00{}_basecolor.ktx", i + 1);
 
         // Load KTX textures using KTX lib directly
-        textures[i] = newTextureFromFileKTX(fileName);
+        textures[i] = NS::TransferPtr(newTextureFromFileKTX(fileName));
     }
 
     MTL::HeapDescriptor* heapDescriptor = MTL::HeapDescriptor::alloc()->init();
@@ -407,7 +454,7 @@ void Textures::createTextureHeap()
     NS::UInteger heapSize = 0;
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
-        const MTL::Texture* texture = textures[i];
+        const MTL::Texture* texture = textures[i].get();
         if (texture == nullptr)
         {
             continue;
@@ -433,13 +480,13 @@ void Textures::createTextureHeap()
     m_textureHeap = NS::TransferPtr(device()->newHeap(heapDescriptor));
     heapDescriptor->release();
 
-    // Move texture memory into heap
-    MTL::CommandBuffer* commandBuffer = commandQueue()->commandBuffer();
-
-    MTL::BlitCommandEncoder* blitCommandEncoder = commandBuffer->blitCommandEncoder();
+    NS::SharedPtr<MTL::CommandQueue>  _commandQueue = NS::TransferPtr(device()->newCommandQueue());
+    NS::SharedPtr<MTL::CommandBuffer> _commandBuffer
+        = NS::TransferPtr(_commandQueue->commandBuffer());
+    MTL::BlitCommandEncoder* blitCommandEncoder = _commandBuffer->blitCommandEncoder();
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
-        const MTL::Texture*     texture = textures[i];
+        const MTL::Texture*     texture = textures[i].get();
         MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
         textureDescriptor->setTextureType(texture->textureType());
         textureDescriptor->setPixelFormat(texture->pixelFormat());
@@ -450,7 +497,7 @@ void Textures::createTextureHeap()
         textureDescriptor->setSampleCount(texture->sampleCount());
         textureDescriptor->setStorageMode(m_textureHeap->storageMode());
 
-        const NS::SharedPtr<MTL::Texture> heapTexture
+        NS::SharedPtr<MTL::Texture> heapTexture
             = NS::TransferPtr(m_textureHeap->newTexture(textureDescriptor));
         textureDescriptor->release();
 
@@ -481,17 +528,11 @@ void Textures::createTextureHeap()
     }
 
     blitCommandEncoder->endEncoding();
-    commandBuffer->commit();
-    commandBuffer->waitUntilCompleted();
-    blitCommandEncoder->release();
-    commandBuffer->release();
+    _commandBuffer->commit();
+    _commandBuffer->waitUntilCompleted();
 
-    for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
-    {
-        textures[i]->release();
-        textures[i] = nullptr;
-    }
-    delete[] textures;
+    blitCommandEncoder->release();
+    m_residencySet->addAllocation(m_textureHeap.get());
 }
 
 void Textures::createArgumentBuffers()
@@ -519,14 +560,10 @@ void Textures::createArgumentBuffers()
 
                 buffer->transforms = reinterpret_cast<Matrix*>(m_instanceBuffer[i]->gpuAddress());
             }
-            buffer->textureIndex = 0;
+
+            m_residencySet->addAllocation(m_argumentBuffer[i].get());
+            m_argumentTable->setAddress(m_argumentBuffer[i]->gpuAddress(), 0);
         }
-    }
-    else
-    {
-        // TODO: Add support for Tier1 argument buffers?
-        // Or maybe just wait for Apple to phase out
-        // support for Tier1 hardware.
     }
 }
 
