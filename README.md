@@ -2,6 +2,8 @@
 
 # Metal C++ examples
 
+>  **Metal 4 support is required**
+
 A collection of open source C++ examples for [Metal](https://developer.apple.com/metal)
 
 ### metal-cpp
@@ -18,9 +20,9 @@ These samples are developed using **C++20** and target the following platforms a
 
 | Platform | OS Version | |
 |----------|------------|-- |
-| macOS    | 14.0+      | |
-| iOS      | 17.0+      | |
-| tvOS     | 17.0+      |Needs vcpkg support [#12](https://github.com/MattGuerrette/Metal/issues/12) |
+| macOS    | 26.0+      | |
+| iOS      | 26.0+      | |
+| tvOS     | 26.0+      |Needs vcpkg support [#12](https://github.com/MattGuerrette/Metal/issues/12) |
 
 ## Building
 

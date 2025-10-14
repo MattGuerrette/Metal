@@ -379,7 +379,7 @@ void Example::metalDisplayLinkNeedsUpdate(
         createFrameResources(width, height);
     }
 
-    MTL4::RenderPassDescriptor* passDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
+    NS::SharedPtr<MTL4::RenderPassDescriptor> passDescriptor = NS::TransferPtr(MTL4::RenderPassDescriptor::alloc()->init());
     passDescriptor->colorAttachments()->object(0)->setResolveTexture(drawable->texture());
     passDescriptor->colorAttachments()->object(0)->setTexture(m_msaaTexture.get());
     passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
@@ -397,7 +397,7 @@ void Example::metalDisplayLinkNeedsUpdate(
     passDescriptor->stencilAttachment()->setClearStencil(0);
 
     MTL4::RenderCommandEncoder* commandEncoder
-        = m_commandBuffer->renderCommandEncoder(passDescriptor);
+        = m_commandBuffer->renderCommandEncoder(passDescriptor.get());
 
     commandEncoder->pushDebugGroup(MTLSTR("SAMPLE RENDERING"));
 

@@ -78,12 +78,7 @@ private:
 
     void updateUniforms() const;
 
-#ifdef USE_KTX_LIBRARY
     [[nodiscard]] MTL::Texture* newTextureFromFileKTX(const std::string& fileName) const;
-#else
-    MTL::Texture* newTextureFromFileMTK(MTK::TextureLoader* loader, const std::string& fileName);
-    NS::SharedPtr<MTK::TextureLoader> m_textureLoader;
-#endif
 
     NS::SharedPtr<MTL::RenderPipelineState>               m_pipelineState;
     NS::SharedPtr<MTL::Buffer>                            m_vertexBuffer;
@@ -118,10 +113,6 @@ bool Textures::onLoad()
 
     m_mainCamera = std::make_unique<Camera>(
         Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, near, far);
-
-#ifndef USE_KTX_LIBRARY
-    m_textureLoader = NS::TransferPtr(MTK::TextureLoader::alloc()->init(device()));
-#endif
 
     createArgumentTable();
 
@@ -229,7 +220,8 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
             std::floor(std::log2(std::fmax(baseWidth, baseHeight))) + 1);
         const NS::UInteger storedMipLevelCount = genMipmaps ? maxMipLevelCount : levelCount;
 
-        MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+        NS::SharedPtr<MTL::TextureDescriptor> textureDescriptor
+            = NS::TransferPtr(MTL::TextureDescriptor::alloc()->init());
         textureDescriptor->setTextureType(type);
         textureDescriptor->setPixelFormat(pixelFormat);
         textureDescriptor->setWidth(baseWidth);
@@ -240,7 +232,7 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
         textureDescriptor->setArrayLength(1);
         textureDescriptor->setMipmapLevelCount(storedMipLevelCount);
 
-        texture = device()->newTexture(textureDescriptor);
+        texture = device()->newTexture(textureDescriptor.get());
 
         auto* ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
         for (ktx_uint32_t level = 0; std::cmp_less(level, ktx2Texture->numLevels); ++level)
@@ -299,9 +291,10 @@ void Textures::createResidencySet()
 {
     NS::Error* error = nullptr;
 
-    MTL::ResidencySetDescriptor* residencySetDescriptor
-        = MTL::ResidencySetDescriptor::alloc()->init();
-    m_residencySet = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor, &error));
+    NS::SharedPtr<MTL::ResidencySetDescriptor> residencySetDescriptor
+        = NS::TransferPtr(MTL::ResidencySetDescriptor::alloc()->init());
+    m_residencySet
+        = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor.get(), &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
@@ -313,11 +306,11 @@ void Textures::createArgumentTable()
 {
     NS::Error* error = nullptr;
 
-    MTL4::ArgumentTableDescriptor* argTableDescriptor
-        = MTL4::ArgumentTableDescriptor::alloc()->init();
+    NS::SharedPtr<MTL4::ArgumentTableDescriptor> argTableDescriptor
+        = NS::TransferPtr(MTL4::ArgumentTableDescriptor::alloc()->init());
     argTableDescriptor->setMaxBufferBindCount(3);
 
-    m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor, &error));
+    m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor.get(), &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
@@ -327,7 +320,8 @@ void Textures::createArgumentTable()
 
 void Textures::createPipelineState()
 {
-    MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
+    NS::SharedPtr<MTL::VertexDescriptor> vertexDescriptor
+        = NS::TransferPtr(MTL::VertexDescriptor::alloc()->init());
 
     // Position
     vertexDescriptor->attributes()->object(0)->setFormat(MTL::VertexFormatFloat4);
@@ -342,8 +336,8 @@ void Textures::createPipelineState()
     vertexDescriptor->layouts()->object(0)->setStepFunction(MTL::VertexStepFunctionPerVertex);
     vertexDescriptor->layouts()->object(0)->setStride(sizeof(Vertex));
 
-    MTL::RenderPipelineDescriptor* pipelineDescriptor
-        = MTL::RenderPipelineDescriptor::alloc()->init();
+    NS::SharedPtr<MTL::RenderPipelineDescriptor> pipelineDescriptor
+        = NS::TransferPtr(MTL::RenderPipelineDescriptor::alloc()->init());
     pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
     pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
     pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
@@ -363,19 +357,17 @@ void Textures::createPipelineState()
         NS::String::string("texture_vertex", NS::ASCIIStringEncoding)));
     pipelineDescriptor->setFragmentFunction(shaderLibrary()->newFunction(
         NS::String::string("texture_fragment", NS::ASCIIStringEncoding)));
-    pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
+    pipelineDescriptor->setVertexDescriptor(vertexDescriptor.get());
     pipelineDescriptor->setSampleCount(s_multisampleCount);
 
     NS::Error* error = nullptr;
-    m_pipelineState = NS::TransferPtr(device()->newRenderPipelineState(pipelineDescriptor, &error));
+    m_pipelineState
+        = NS::TransferPtr(device()->newRenderPipelineState(pipelineDescriptor.get(), &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
             "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
-
-    vertexDescriptor->release();
-    pipelineDescriptor->release();
 }
 
 void Textures::createBuffers()
@@ -443,13 +435,14 @@ void Textures::updateUniforms() const
 
 void Textures::createTextureHeap()
 {
-    auto** textures = new MTL::Texture*[g_textureCount];
+    std::vector<NS::SharedPtr<MTL::Texture>> textures;
+    textures.resize(g_textureCount);
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
         const auto fileName = fmt::format("00{}_basecolor.ktx", i + 1);
 
         // Load KTX textures using KTX lib directly
-        textures[i] = newTextureFromFileKTX(fileName);
+        textures[i] = NS::TransferPtr(newTextureFromFileKTX(fileName));
     }
 
     MTL::HeapDescriptor* heapDescriptor = MTL::HeapDescriptor::alloc()->init();
@@ -461,7 +454,7 @@ void Textures::createTextureHeap()
     NS::UInteger heapSize = 0;
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
-        const MTL::Texture* texture = textures[i];
+        const MTL::Texture* texture = textures[i].get();
         if (texture == nullptr)
         {
             continue;
@@ -493,7 +486,7 @@ void Textures::createTextureHeap()
     MTL::BlitCommandEncoder* blitCommandEncoder = _commandBuffer->blitCommandEncoder();
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
-        const MTL::Texture*     texture = textures[i];
+        const MTL::Texture*     texture = textures[i].get();
         MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
         textureDescriptor->setTextureType(texture->textureType());
         textureDescriptor->setPixelFormat(texture->pixelFormat());
@@ -540,13 +533,6 @@ void Textures::createTextureHeap()
 
     blitCommandEncoder->release();
     m_residencySet->addAllocation(m_textureHeap.get());
-
-    for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
-    {
-        textures[i]->release();
-        textures[i] = nullptr;
-    }
-    delete[] textures;
 }
 
 void Textures::createArgumentBuffers()

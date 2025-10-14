@@ -142,9 +142,10 @@ void Instancing::createResidencySet()
 {
     NS::Error* error = nullptr;
 
-    MTL::ResidencySetDescriptor* residencySetDescriptor
-        = MTL::ResidencySetDescriptor::alloc()->init();
-    m_residencySet = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor, &error));
+    NS::SharedPtr<MTL::ResidencySetDescriptor> residencySetDescriptor
+        = NS::TransferPtr(MTL::ResidencySetDescriptor::alloc()->init());
+    m_residencySet
+        = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor.get(), &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
@@ -167,11 +168,11 @@ void Instancing::createArgumentTable()
 {
     NS::Error* error = nullptr;
 
-    MTL4::ArgumentTableDescriptor* argTableDescriptor
-        = MTL4::ArgumentTableDescriptor::alloc()->init();
+    NS::SharedPtr<MTL4::ArgumentTableDescriptor> argTableDescriptor
+        = NS::TransferPtr(MTL4::ArgumentTableDescriptor::alloc()->init());
     argTableDescriptor->setMaxBufferBindCount(2);
 
-    m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor, &error));
+    m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor.get(), &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
@@ -181,7 +182,8 @@ void Instancing::createArgumentTable()
 
 void Instancing::createPipelineState()
 {
-    MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
+    NS::SharedPtr<MTL::VertexDescriptor> vertexDescriptor
+        = NS::TransferPtr(MTL::VertexDescriptor::alloc()->init());
 
     // Position
     vertexDescriptor->attributes()->object(0)->setFormat(MTL::VertexFormatFloat4);
@@ -196,46 +198,46 @@ void Instancing::createPipelineState()
     vertexDescriptor->layouts()->object(0)->setStepFunction(MTL::VertexStepFunctionPerVertex);
     vertexDescriptor->layouts()->object(0)->setStride(sizeof(Vertex));
 
-    MTL4::RenderPipelineDescriptor* pipelineDescriptor
-        = MTL4::RenderPipelineDescriptor::alloc()->init();
+    NS::SharedPtr<MTL4::RenderPipelineDescriptor> pipelineDescriptor
+        = NS::TransferPtr(MTL4::RenderPipelineDescriptor::alloc()->init());
 
-    MTL4::LibraryFunctionDescriptor* vertexFunction
-        = MTL4::LibraryFunctionDescriptor::alloc()->init();
+    NS::SharedPtr<MTL4::LibraryFunctionDescriptor> vertexFunction
+        = NS::TransferPtr(MTL4::LibraryFunctionDescriptor::alloc()->init());
     vertexFunction->setLibrary(shaderLibrary());
     vertexFunction->setName(MTLSTR("instancing_vertex"));
-    pipelineDescriptor->setVertexFunctionDescriptor(vertexFunction);
+    pipelineDescriptor->setVertexFunctionDescriptor(vertexFunction.get());
 
-    MTL4::LibraryFunctionDescriptor* fragmentFunction
-        = MTL4::LibraryFunctionDescriptor::alloc()->init();
+    NS::SharedPtr<MTL4::LibraryFunctionDescriptor> fragmentFunction
+        = NS::TransferPtr(MTL4::LibraryFunctionDescriptor::alloc()->init());
     fragmentFunction->setLibrary(shaderLibrary());
     fragmentFunction->setName(MTLSTR("instancing_fragment"));
-    pipelineDescriptor->setFragmentFunctionDescriptor(fragmentFunction);
+    pipelineDescriptor->setFragmentFunctionDescriptor(fragmentFunction.get());
 
-    pipelineDescriptor->setVertexDescriptor(vertexDescriptor);
+    pipelineDescriptor->setVertexDescriptor(vertexDescriptor.get());
     pipelineDescriptor->setRasterSampleCount(4);
     pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
 
-    MTL4::CompilerTaskOptions* compilerTaskOptions = MTL4::CompilerTaskOptions::alloc()->init();
+    NS::SharedPtr<MTL4::CompilerTaskOptions> compilerTaskOptions
+        = NS::TransferPtr(MTL4::CompilerTaskOptions::alloc()->init());
 
-    NS::Error*                error = nullptr;
-    MTL4::CompilerDescriptor* compilerDescriptor = MTL4::CompilerDescriptor::alloc()->init();
-    MTL4::Compiler*           compiler = device()->newCompiler(compilerDescriptor, &error);
+    NS::Error*                              error = nullptr;
+    NS::SharedPtr<MTL4::CompilerDescriptor> compilerDescriptor
+        = NS::TransferPtr(MTL4::CompilerDescriptor::alloc()->init());
+    NS::SharedPtr<MTL4::Compiler> compiler
+        = NS::TransferPtr(device()->newCompiler(compilerDescriptor.get(), &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
             "Failed to create shader compiler: {}", error->localizedFailureReason()->utf8String()));
     }
 
-    m_pipelineState = NS::TransferPtr(
-        compiler->newRenderPipelineState(pipelineDescriptor, compilerTaskOptions, &error));
+    m_pipelineState = NS::TransferPtr(compiler->newRenderPipelineState(
+        pipelineDescriptor.get(), compilerTaskOptions.get(), &error));
     if (error != nullptr)
     {
         throw std::runtime_error(fmt::format(
             "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
-
-    vertexDescriptor->release();
-    pipelineDescriptor->release();
 }
 
 void Instancing::createBuffers()
