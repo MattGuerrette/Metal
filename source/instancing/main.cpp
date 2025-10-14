@@ -130,10 +130,12 @@ void Instancing::onRender(MTL4::RenderCommandEncoder* commandEncoder, const Game
     commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
     commandEncoder->setCullMode(MTL::CullModeNone);
     commandEncoder->setArgumentTable(m_argumentTable.get(), MTL::RenderStageVertex);
-    
+
     m_argumentTable->setAddress(m_vertexBuffer->gpuAddress(), 0);
-    
-    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer->gpuAddress(), m_indexBuffer->length(), s_instanceCount);
+
+    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
+        m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
+        m_indexBuffer->gpuAddress(), m_indexBuffer->length(), s_instanceCount);
 }
 
 void Instancing::createResidencySet()
@@ -148,14 +150,14 @@ void Instancing::createResidencySet()
         throw std::runtime_error(fmt::format(
             "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
     }
-    
+
     m_residencySet->addAllocation(m_vertexBuffer.get());
     m_residencySet->addAllocation(m_indexBuffer.get());
     for (uint32_t i = 0; i < s_bufferCount; i++)
     {
         m_residencySet->addAllocation(m_instanceBuffer[i].get());
     }
-    
+
     commandQueue()->addResidencySet(m_residencySet.get());
     commandQueue()->addResidencySet(metalLayer()->residencySet());
     m_residencySet->commit();
@@ -214,33 +216,6 @@ void Instancing::createPipelineState()
     pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
 
     MTL4::CompilerTaskOptions* compilerTaskOptions = MTL4::CompilerTaskOptions::alloc()->init();
-    // TODO: support binary archives
-    // if (archive != null)
-    // {
-    //      compilerTaskOptions->setLookupArchives(archive);
-    // }
-
-    //    pipelineDescriptor->set
-    //    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
-    //        MTL::BlendFactorSourceAlpha);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setDestinationRGBBlendFactor(
-    //        MTL::BlendFactorOneMinusSourceAlpha);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setRgbBlendOperation(MTL::BlendOperationAdd);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setSourceAlphaBlendFactor(
-    //        MTL::BlendFactorSourceAlpha);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setDestinationAlphaBlendFactor(
-    //        MTL::BlendFactorOneMinusSourceAlpha);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setAlphaBlendOperation(
-    //        MTL::BlendOperationAdd);
-    //    pipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
-    //    pipelineDescriptor->setStencilAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
-    //    pipelineDescriptor->setVertexFunction(shaderLibrary()->newFunction(
-    //        NS::String::string("triangle_vertex", NS::ASCIIStringEncoding)));
-    //    pipelineDescriptor->setFragmentFunction(shaderLibrary()->newFunction(
-    //        NS::String::string("triangle_fragment", NS::ASCIIStringEncoding)));
-    //    pipelineDescriptor->setSampleCount(s_multisampleCount);
 
     NS::Error*                error = nullptr;
     MTL4::CompilerDescriptor* compilerDescriptor = MTL4::CompilerDescriptor::alloc()->init();
@@ -328,7 +303,7 @@ void Instancing::updateUniforms() const
 
         instanceData[index].transform = model * cameraUniforms.viewProjection;
     }
-    
+
     m_argumentTable->setAddress(m_instanceBuffer[currentFrameIndex]->gpuAddress(), 1);
 }
 

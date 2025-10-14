@@ -108,24 +108,19 @@ void HelloWorld::onRender(MTL4::RenderCommandEncoder* commandEncoder, const Game
 
     const auto currentFrameIndex = frameIndex();
     const auto uniformBufferOffset = g_alignedUniformSize * currentFrameIndex;
-    
+
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
     commandEncoder->setDepthStencilState(depthStencilState());
     commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
     commandEncoder->setCullMode(MTL::CullModeNone);
 
     commandEncoder->setArgumentTable(m_argumentTable.get(), MTL::RenderStageVertex);
-    
+
     m_argumentTable->setAddress(m_vertexBuffer->gpuAddress(), 0);
-    
-    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer->gpuAddress(), m_indexBuffer->length());
-    
-//    commandEncoder->setVertexBuffer(m_vertexBuffer.get(), 0, 0);
-//    commandEncoder->setVertexBuffer(
-//        m_uniformBuffer[currentFrameIndex].get(), uniformBufferOffset, 1);
-//
-//    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
-//        m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(), 0);
+
+    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
+        m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
+        m_indexBuffer->gpuAddress(), m_indexBuffer->length());
 }
 
 void HelloWorld::onResize(const uint32_t width, const uint32_t height)
@@ -155,7 +150,7 @@ void HelloWorld::createResidencySet()
     {
         m_residencySet->addAllocation(m_uniformBuffer[i].get());
     }
-    
+
     commandQueue()->addResidencySet(m_residencySet.get());
     commandQueue()->addResidencySet(metalLayer()->residencySet());
     m_residencySet->commit();
@@ -214,33 +209,6 @@ void HelloWorld::createPipelineState()
     pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
 
     MTL4::CompilerTaskOptions* compilerTaskOptions = MTL4::CompilerTaskOptions::alloc()->init();
-    // TODO: support binary archives
-    // if (archive != null)
-    // {
-    //      compilerTaskOptions->setLookupArchives(archive);
-    // }
-
-    //    pipelineDescriptor->set
-    //    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(s_defaultPixelFormat);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(true);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(
-    //        MTL::BlendFactorSourceAlpha);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setDestinationRGBBlendFactor(
-    //        MTL::BlendFactorOneMinusSourceAlpha);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setRgbBlendOperation(MTL::BlendOperationAdd);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setSourceAlphaBlendFactor(
-    //        MTL::BlendFactorSourceAlpha);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setDestinationAlphaBlendFactor(
-    //        MTL::BlendFactorOneMinusSourceAlpha);
-    //    pipelineDescriptor->colorAttachments()->object(0)->setAlphaBlendOperation(
-    //        MTL::BlendOperationAdd);
-    //    pipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
-    //    pipelineDescriptor->setStencilAttachmentPixelFormat(MTL::PixelFormatDepth32Float_Stencil8);
-    //    pipelineDescriptor->setVertexFunction(shaderLibrary()->newFunction(
-    //        NS::String::string("triangle_vertex", NS::ASCIIStringEncoding)));
-    //    pipelineDescriptor->setFragmentFunction(shaderLibrary()->newFunction(
-    //        NS::String::string("triangle_fragment", NS::ASCIIStringEncoding)));
-    //    pipelineDescriptor->setSampleCount(s_multisampleCount);
 
     NS::Error*                error = nullptr;
     MTL4::CompilerDescriptor* compilerDescriptor = MTL4::CompilerDescriptor::alloc()->init();
@@ -291,7 +259,6 @@ void HelloWorld::createBuffers()
             g_alignedUniformSize * s_bufferCount, MTL::ResourceOptionCPUCacheModeDefault));
         m_uniformBuffer[index]->setLabel(nsLabel.get());
     }
-    
 }
 
 void HelloWorld::updateUniforms() const
@@ -321,7 +288,7 @@ void HelloWorld::updateUniforms() const
 
     auto* buffer = static_cast<char*>(this->m_uniformBuffer[currentFrameIndex]->contents());
     memcpy(buffer + uniformBufferOffset, &uniforms, sizeof(uniforms));
-    
+
     m_argumentTable->setAddress(m_uniformBuffer[currentFrameIndex]->gpuAddress(), 1);
 }
 

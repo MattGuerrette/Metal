@@ -78,6 +78,8 @@ protected:
 
     virtual void onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& timer) = 0;
 
+    [[nodiscard]] bool hasMetal4Support() const;
+
     [[nodiscard]] SDL_Window* window() const;
 
     [[nodiscard]] int32_t windowWidth() const;

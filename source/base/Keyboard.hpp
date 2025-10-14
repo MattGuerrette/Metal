@@ -17,12 +17,12 @@ public:
     /// @brief Checks if specified key was clicked this frame.
     /// @param [in] key The clicked key.
     /// @return True if key was clicked, false otherwise.
-    bool isKeyClicked(SDL_Scancode key);
+    bool isKeyClicked(SDL_Scancode key) const;
 
     /// @brief Checks if specified key is pressed this frame.
     /// @param [in] key The pressed key.
     /// @return True if pressed, false otherwise.
-    bool isKeyPressed(SDL_Scancode key);
+    bool isKeyPressed(SDL_Scancode key) const;
 
     /// @brief Registers key event.
     /// @param [in] event The key event.

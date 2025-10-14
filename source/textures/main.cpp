@@ -38,7 +38,6 @@ static constexpr size_t g_textureCount = 5;
 XM_ALIGNED_STRUCT(16) FragmentArgumentBuffer
 {
     [[maybe_unused]] std::array<MTL::ResourceID, g_textureCount> textures;
-    [[maybe_unused]] uint32_t                                    textureIndex;
     [[maybe_unused]] Matrix*                                     transforms;
 };
 
@@ -99,7 +98,6 @@ private:
     std::vector<NS::SharedPtr<MTL::Texture>>              m_heapTextures;
     float                                                 m_rotationX = 0.0F;
     float                                                 m_rotationY = 0.0F;
-    int                                                   m_selectedTexture = 0;
 };
 
 Textures::Textures()
@@ -132,7 +130,7 @@ bool Textures::onLoad()
     createBuffers();
 
     createPipelineState();
-    
+
     m_computeEvent = NS::TransferPtr(device()->newSharedEvent());
     m_computeEvent->setSignaledValue(0);
 
@@ -158,26 +156,27 @@ bool Textures::onLoad()
 
 void Textures::onSetupUi(const GameTimer& timer)
 {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
-    ImGui::SetNextWindowPos(ImVec2(10, 20));
-    ImGui::SetNextWindowSize(ImVec2(250, 0), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Metal Example", nullptr,
-        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
-    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(window()), timer.framesPerSecond());
-    if (ImGui::Combo(" ", &m_selectedTexture, g_comboItems.data(), g_comboItems.size()))
-    {
-        /// Update argument buffer index
-        for (const auto& buffer : m_argumentBuffer)
-        {
-            auto* contents = static_cast<FragmentArgumentBuffer*>(buffer->contents());
-            contents->textureIndex = m_selectedTexture;
-        }
-    }
-#if defined(SDL_PLATFORM_MACOS)
-    ImGui::Text("Press Esc to quit");
-#endif
-    ImGui::End();
-    ImGui::PopStyleVar();
+    // TODO: Re-enable once Metal 4 support is added to ImGUI
+    //    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
+    //    ImGui::SetNextWindowPos(ImVec2(10, 20));
+    //    ImGui::SetNextWindowSize(ImVec2(250, 0), ImGuiCond_FirstUseEver);
+    //    ImGui::Begin("Metal Example", nullptr,
+    //        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
+    //    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(window()), timer.framesPerSecond());
+    //    if (ImGui::Combo(" ", &m_selectedTexture, g_comboItems.data(), g_comboItems.size()))
+    //    {
+    //        /// Update argument buffer index
+    //        for (const auto& buffer : m_argumentBuffer)
+    //        {
+    //            auto* contents = static_cast<FragmentArgumentBuffer*>(buffer->contents());
+    //            contents->textureIndex = m_selectedTexture;
+    //        }
+    //    }
+    // #if defined(SDL_PLATFORM_MACOS)
+    //    ImGui::Text("Press Esc to quit");
+    // #endif
+    //    ImGui::End();
+    //    ImGui::PopStyleVar();
 }
 
 void Textures::onUpdate(const GameTimer& timer)
@@ -188,12 +187,6 @@ void Textures::onUpdate(const GameTimer& timer)
     {
         m_rotationY += static_cast<float>(mouse().relativeX()) * elapsed;
     }
-
-    // TODO: Re-add back gamepad support
-    // if (m_gamepad)
-    // {
-    //     m_rotationY += m_gamepad->leftThumbstickHorizontal() * elapsed;
-    // }
 }
 
 void Textures::onResize(const uint32_t width, const uint32_t height)
@@ -283,34 +276,23 @@ void Textures::onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTi
     updateUniforms();
 
     const auto currentFrameIndex = frameIndex();
-    
+
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
     commandEncoder->setDepthStencilState(depthStencilState());
     commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
     commandEncoder->setCullMode(MTL::CullModeNone);
     commandEncoder->setArgumentTable(m_argumentTable.get(), MTL::RenderStageVertex);
-    
+
     m_argumentTable->setAddress(m_vertexBuffer->gpuAddress(), 0);
     m_argumentTable->setAddress(m_argumentBuffer[currentFrameIndex]->gpuAddress(), 1);
-    
-    commandEncoder->setArgumentTable(m_argumentTable.get(), MTL::RenderStageFragment);
-    
-    m_argumentTable->setAddress(m_argumentBuffer[currentFrameIndex]->gpuAddress(), 2);
-    
-    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer->gpuAddress(), m_indexBuffer->length(), s_instanceCount);
 
-//        commandEncoder->useHeap(m_textureHeap.get());
-//        commandEncoder->useResource(m_instanceBuffer[currentFrameIndex].get(),
-//        MTL::ResourceUsageRead); commandEncoder->setRenderPipelineState(m_pipelineState.get());
-//        commandEncoder->setDepthStencilState(depthStencilState());
-//        commandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
-//        commandEncoder->setCullMode(MTL::CullModeNone);
-//        commandEncoder->setFragmentBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 0);
-//        commandEncoder->setVertexBuffer(m_vertexBuffer.get(), 0, 0);
-//        commandEncoder->setVertexBuffer(m_argumentBuffer[currentFrameIndex].get(), 0, 1);
-//        commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
-//            m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16, m_indexBuffer.get(),
-//            0, s_instanceCount);
+    commandEncoder->setArgumentTable(m_argumentTable.get(), MTL::RenderStageFragment);
+
+    m_argumentTable->setAddress(m_argumentBuffer[currentFrameIndex]->gpuAddress(), 2);
+
+    commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
+        m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
+        m_indexBuffer->gpuAddress(), m_indexBuffer->length(), s_instanceCount);
 }
 
 void Textures::createResidencySet()
@@ -505,12 +487,9 @@ void Textures::createTextureHeap()
     m_textureHeap = NS::TransferPtr(device()->newHeap(heapDescriptor));
     heapDescriptor->release();
 
-    // Move texture memory into heap
-    //commandBuffer()->beginCommandBuffer(commandAllocator());
-    //MTL4::ComputeCommandEncoder* blitCommandEncoder = commandBuffer()->computeCommandEncoder();
-
-    NS::SharedPtr<MTL::CommandQueue> _commandQueue = NS::TransferPtr(device()->newCommandQueue());
-    NS::SharedPtr<MTL::CommandBuffer> _commandBuffer = NS::TransferPtr(_commandQueue->commandBuffer());
+    NS::SharedPtr<MTL::CommandQueue>  _commandQueue = NS::TransferPtr(device()->newCommandQueue());
+    NS::SharedPtr<MTL::CommandBuffer> _commandBuffer
+        = NS::TransferPtr(_commandQueue->commandBuffer());
     MTL::BlitCommandEncoder* blitCommandEncoder = _commandBuffer->blitCommandEncoder();
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
@@ -558,24 +537,14 @@ void Textures::createTextureHeap()
     blitCommandEncoder->endEncoding();
     _commandBuffer->commit();
     _commandBuffer->waitUntilCompleted();
-    //commandBuffer()->endCommandBuffer();
-    
-//
-//    MTL4::CommandBuffer* buffers[] = { commandBuffer() };
-//    commandQueue()->commit(buffers, 1);
-//    commandQueue()->signalEvent(m_computeEvent.get(), 1);
-//    
-//    m_computeEvent->waitUntilSignaledValue(1, 10);
 
     blitCommandEncoder->release();
-    // commandBuffer->release();
     m_residencySet->addAllocation(m_textureHeap.get());
 
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
         textures[i]->release();
         textures[i] = nullptr;
-        
     }
     delete[] textures;
 }
@@ -605,8 +574,7 @@ void Textures::createArgumentBuffers()
 
                 buffer->transforms = reinterpret_cast<Matrix*>(m_instanceBuffer[i]->gpuAddress());
             }
-            buffer->textureIndex = 0;
-            
+
             m_residencySet->addAllocation(m_argumentBuffer[i].get());
             m_argumentTable->setAddress(m_argumentBuffer[i]->gpuAddress(), 0);
         }

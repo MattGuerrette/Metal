@@ -162,6 +162,11 @@ const Mouse& Example::mouse() const
     return *m_mouse;
 }
 
+bool Example::hasMetal4Support() const
+{
+    return m_device->supportsFamily(MTL::GPUFamilyMetal4);
+}
+
 MTL::Device* Example::device() const
 {
     return m_device.get();
@@ -359,12 +364,6 @@ void Example::metalDisplayLinkNeedsUpdate(
     // Prepare to use or reuse the allocator by resetting it.
     frameAllocator->reset();
 
-    //    uint32_t                subFrameIndex = m_currentFrameIndex % s_bufferCount;
-    //    MTL4::CommandAllocator* commandAllocator = m_commandAllocator[subFrameIndex].get();
-    //    uint64_t                previousWait = m_currentFrameIndex - s_bufferCount;
-    //    m_sharedEvent->waitUntilSignaledValue(previousWait, 10);
-    //    commandAllocator->reset();
-
     m_commandBuffer->beginCommandBuffer(frameAllocator);
 
     // TODO: This needs to be re-done with improved synchonization
@@ -435,15 +434,4 @@ void Example::metalDisplayLinkNeedsUpdate(
     // Signal when the GPU finishes rendering this frame with a shared event.
     uint64_t futureValueToWaitFor = m_frameNumber;
     m_commandQueue->signalEvent(m_sharedEvent.get(), futureValueToWaitFor);
-
-    //    MTL4::CommandBuffer* buffers[] = { m_commandBuffer.get() };
-    //    m_commandQueue->commit(buffers, 1);
-    //
-    //    uint64_t futureValueToWaitFor = m_currentFrameIndex;
-    //    m_commandQueue->signalEvent(m_sharedEvent.get(), futureValueToWaitFor);
-    //    m_currentFrameIndex++;
-    //    m_currentFrameIndex = m_currentFrameIndex % 1;
-    //
-    //    m_commandQueue->signalDrawable(drawable);
-    //    static_cast<MTL::Drawable*>(drawable)->present();
 }
