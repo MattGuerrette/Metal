@@ -76,9 +76,9 @@ protected:
 
     virtual void onResize(uint32_t width, uint32_t height) = 0;
 
-    virtual void onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& timer) = 0;
-
-    [[nodiscard]] bool hasMetal4Support() const;
+    virtual void onRender(
+        CA::MetalDrawable* drawable, MTL4::CommandBuffer* commandBuffer, const GameTimer& timer)
+        = 0;
 
     [[nodiscard]] SDL_Window* window() const;
 
@@ -104,7 +104,14 @@ protected:
 
     [[nodiscard]] MTL4::CommandAllocator* commandAllocator() const;
 
+    [[nodiscard]] MTL::Texture* msaaTexture() const;
+
+    [[nodiscard]] MTL::Texture* depthStencilTexture() const;
+
     [[nodiscard]] CA::MetalLayer* metalLayer() const;
+
+    [[nodisacrd]] MTL4::RenderPassDescriptor* defaultRenderPassDescriptor(
+        CA::MetalDrawable* drawable) const;
 
 #ifdef SDL_PLATFORM_MACOS
     [[nodiscard]] virtual NS::Menu* createMenuBar();

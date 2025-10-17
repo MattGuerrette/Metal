@@ -61,7 +61,9 @@ public:
 
     void onResize(uint32_t width, uint32_t height) override;
 
-    void onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
+    void onRender(CA::MetalDrawable* drawable,
+        MTL4::CommandBuffer*         commandBuffer,
+        const GameTimer&             timer) override;
 
 private:
     void createArgumentTable();
@@ -178,6 +180,8 @@ void Textures::onUpdate(const GameTimer& timer)
     {
         m_rotationY += static_cast<float>(mouse().relativeX()) * elapsed;
     }
+
+    updateUniforms();
 }
 
 void Textures::onResize(const uint32_t width, const uint32_t height)
@@ -263,11 +267,20 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
     return texture;
 }
 
-void Textures::onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& /*timer*/)
+void Textures::onRender(CA::MetalDrawable* drawable,
+    MTL4::CommandBuffer*                   commandBuffer,
+    [[maybe_unused]] const GameTimer&      timer)
 {
-    updateUniforms();
 
     const auto currentFrameIndex = frameIndex();
+
+    NS::SharedPtr<MTL4::RenderPassDescriptor> renderPassDescriptor
+        = NS::TransferPtr(defaultRenderPassDescriptor(drawable));
+
+    MTL4::RenderCommandEncoder* commandEncoder
+        = commandBuffer->renderCommandEncoder(renderPassDescriptor.get());
+
+    commandEncoder->pushDebugGroup(MTLSTR("Texture Rendering"));
 
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
     commandEncoder->setDepthStencilState(depthStencilState());
@@ -285,6 +298,9 @@ void Textures::onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTi
     commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
         m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
         m_indexBuffer->gpuAddress(), m_indexBuffer->length(), s_instanceCount);
+
+    commandEncoder->popDebugGroup();
+    commandEncoder->endEncoding();
 }
 
 void Textures::createResidencySet()

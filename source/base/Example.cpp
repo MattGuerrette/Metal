@@ -16,6 +16,7 @@
 #include "imgui_impl_sdl3.h"
 
 #include "File.hpp"
+#include "GraphicsMath.hpp"
 
 Example::Example(const char* title, int32_t width, int32_t height)
 {
@@ -162,11 +163,6 @@ const Mouse& Example::mouse() const
     return *m_mouse;
 }
 
-bool Example::hasMetal4Support() const
-{
-    return m_device->supportsFamily(MTL::GPUFamilyMetal4);
-}
-
 MTL::Device* Example::device() const
 {
     return m_device.get();
@@ -192,6 +188,29 @@ CA::MetalLayer* Example::metalLayer() const
     return (CA::MetalLayer*)SDL_Metal_GetLayer(m_view.get());
 }
 
+MTL4::RenderPassDescriptor* Example::defaultRenderPassDescriptor(CA::MetalDrawable* drawable) const
+{
+    MTL4::RenderPassDescriptor* passDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
+    passDescriptor->colorAttachments()->object(0)->setResolveTexture(drawable->texture());
+    passDescriptor->colorAttachments()->object(0)->setTexture(msaaTexture());
+    passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
+    passDescriptor->colorAttachments()->object(0)->setStoreAction(
+        MTL::StoreActionMultisampleResolve);
+    passDescriptor->colorAttachments()->object(0)->setClearColor(
+        MTL::ClearColor(DirectX::Colors::CornflowerBlue.f[0], DirectX::Colors::CornflowerBlue.f[1],
+            DirectX::Colors::CornflowerBlue.f[2], 1.0));
+    passDescriptor->depthAttachment()->setTexture(depthStencilTexture());
+    passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
+    passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
+    passDescriptor->depthAttachment()->setClearDepth(1.0);
+    passDescriptor->stencilAttachment()->setTexture(depthStencilTexture());
+    passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
+    passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
+    passDescriptor->stencilAttachment()->setClearStencil(0);
+
+    return passDescriptor;
+}
+
 MTL4::CommandBuffer* Example::commandBuffer() const
 {
     return m_commandBuffer.get();
@@ -200,6 +219,16 @@ MTL4::CommandBuffer* Example::commandBuffer() const
 MTL4::CommandAllocator* Example::commandAllocator() const
 {
     return m_commandAllocator[m_currentFrameIndex].get();
+}
+
+MTL::Texture* Example::msaaTexture() const
+{
+    return m_msaaTexture.get();
+}
+
+MTL::Texture* Example::depthStencilTexture() const
+{
+    return m_depthStencilTexture.get();
 }
 
 SDL_Window* Example::window() const
@@ -338,7 +367,7 @@ void Example::quit()
 }
 
 void Example::metalDisplayLinkNeedsUpdate(
-    CA::MetalDisplayLink* /*displayLink*/, CA::MetalDisplayLinkUpdate* update)
+    [[maybe_unused]] CA::MetalDisplayLink* displayLink, CA::MetalDisplayLinkUpdate* update)
 {
     m_timer.tick([this] { onUpdate(m_timer); });
 
@@ -379,49 +408,8 @@ void Example::metalDisplayLinkNeedsUpdate(
         createFrameResources(width, height);
     }
 
-    NS::SharedPtr<MTL4::RenderPassDescriptor> passDescriptor = NS::TransferPtr(MTL4::RenderPassDescriptor::alloc()->init());
-    passDescriptor->colorAttachments()->object(0)->setResolveTexture(drawable->texture());
-    passDescriptor->colorAttachments()->object(0)->setTexture(m_msaaTexture.get());
-    passDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
-    passDescriptor->colorAttachments()->object(0)->setStoreAction(
-        MTL::StoreActionMultisampleResolve);
-    passDescriptor->colorAttachments()->object(0)->setClearColor(
-        MTL::ClearColor(.39, .58, .92, 1.0));
-    passDescriptor->depthAttachment()->setTexture(m_depthStencilTexture.get());
-    passDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
-    passDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
-    passDescriptor->depthAttachment()->setClearDepth(1.0);
-    passDescriptor->stencilAttachment()->setTexture(m_depthStencilTexture.get());
-    passDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
-    passDescriptor->stencilAttachment()->setStoreAction(MTL::StoreActionDontCare);
-    passDescriptor->stencilAttachment()->setClearStencil(0);
+    onRender(drawable, m_commandBuffer.get(), m_timer);
 
-    MTL4::RenderCommandEncoder* commandEncoder
-        = m_commandBuffer->renderCommandEncoder(passDescriptor.get());
-
-    commandEncoder->pushDebugGroup(MTLSTR("SAMPLE RENDERING"));
-
-    onRender(commandEncoder, m_timer);
-
-    commandEncoder->popDebugGroup();
-
-    // TODO: Re-enable with Metal 4 support in imgui
-    // ImGui rendering
-    //    ImGui_ImplMetal_NewFrame(passDescriptor);
-    //    ImGui_ImplSDL3_NewFrame();
-    //    ImGui::NewFrame();
-    //
-    //    onSetupUi(m_timer);
-    //
-    //    commandEncoder->pushDebugGroup(MTLSTR("IMGUI RENDERING"));
-    //
-    //    // Rendering
-    //    ImGui::Render();
-    //    ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), commandBuffer, commandEncoder);
-    //
-    //    commandEncoder->popDebugGroup();
-
-    commandEncoder->endEncoding();
     m_commandBuffer->endCommandBuffer();
 
     m_commandQueue->wait(drawable);

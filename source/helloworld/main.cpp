@@ -39,7 +39,9 @@ public:
 
     void onUpdate(const GameTimer& timer) override;
 
-    void onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
+    void onRender(CA::MetalDrawable* drawable,
+        MTL4::CommandBuffer*         commandBuffer,
+        const GameTimer&             timer) override;
 
     void onResize(uint32_t width, uint32_t height) override;
 
@@ -98,13 +100,23 @@ void HelloWorld::onUpdate(const GameTimer& timer)
 {
     const auto elapsed = static_cast<float>(timer.elapsedSeconds());
 
+    updateUniforms();
+
     m_rotationY += elapsed;
 }
 
-void HelloWorld::onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& /*timer*/)
+void HelloWorld::onRender(CA::MetalDrawable* drawable,
+    MTL4::CommandBuffer*                     commandBuffer,
+    [[maybe_unused]] const GameTimer&        timer)
 {
 
-    updateUniforms();
+    NS::SharedPtr<MTL4::RenderPassDescriptor> passDescriptor
+        = NS::TransferPtr(defaultRenderPassDescriptor(drawable));
+
+    MTL4::RenderCommandEncoder* commandEncoder
+        = commandBuffer->renderCommandEncoder(passDescriptor.get());
+
+    commandEncoder->pushDebugGroup(MTLSTR("Triangle Rendering"));
 
     const auto currentFrameIndex = frameIndex();
     const auto uniformBufferOffset = g_alignedUniformSize * currentFrameIndex;
@@ -121,6 +133,10 @@ void HelloWorld::onRender(MTL4::RenderCommandEncoder* commandEncoder, const Game
     commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
         m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
         m_indexBuffer->gpuAddress(), m_indexBuffer->length());
+
+    commandEncoder->popDebugGroup();
+
+    commandEncoder->endEncoding();
 }
 
 void HelloWorld::onResize(const uint32_t width, const uint32_t height)

@@ -2,6 +2,7 @@
 add_library(base STATIC
         Camera.cpp
         Keyboard.cpp
+        Keyboard.hpp
         Mouse.cpp
         GameTimer.cpp
         GameTimer.cpp

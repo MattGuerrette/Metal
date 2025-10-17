@@ -45,7 +45,9 @@ public:
 
     void onUpdate(const GameTimer& timer) override;
 
-    void onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& timer) override;
+    void onRender(CA::MetalDrawable* drawable,
+        MTL4::CommandBuffer*         commandBuffer,
+        const GameTimer&             timer) override;
 
     void onResize(uint32_t width, uint32_t height) override;
 
@@ -117,13 +119,21 @@ void Instancing::onUpdate(const GameTimer& timer)
 
     m_rotationX += elapsed;
     m_rotationY += elapsed;
+
+    updateUniforms();
 }
 
-void Instancing::onRender(MTL4::RenderCommandEncoder* commandEncoder, const GameTimer& /*timer*/)
+void Instancing::onRender(CA::MetalDrawable* drawable,
+    MTL4::CommandBuffer*                     commandBuffer,
+    [[maybe_unused]] const GameTimer&        timer)
 {
-    updateUniforms();
+    NS::SharedPtr<MTL4::RenderPassDescriptor> passDescriptor
+        = NS::TransferPtr(defaultRenderPassDescriptor(drawable));
 
-    const auto currentFrameIndex = frameIndex();
+    MTL4::RenderCommandEncoder* commandEncoder
+        = commandBuffer->renderCommandEncoder(passDescriptor.get());
+
+    commandEncoder->pushDebugGroup(MTLSTR("Instanced Rendering"));
 
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
     commandEncoder->setDepthStencilState(depthStencilState());
@@ -136,6 +146,10 @@ void Instancing::onRender(MTL4::RenderCommandEncoder* commandEncoder, const Game
     commandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle,
         m_indexBuffer->length() / sizeof(uint16_t), MTL::IndexTypeUInt16,
         m_indexBuffer->gpuAddress(), m_indexBuffer->length(), s_instanceCount);
+
+    commandEncoder->popDebugGroup();
+
+    commandEncoder->endEncoding();
 }
 
 void Instancing::createResidencySet()
