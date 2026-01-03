@@ -11,27 +11,15 @@
 #include <filesystem>
 #include <memory>
 
-#include "imgui.h"
-#include "imgui_impl_metal.h"
-#include "imgui_impl_sdl3.h"
-
 #include "File.hpp"
 #include "GraphicsMath.hpp"
 
 Example::Example(const char* title, int32_t width, int32_t height)
 {
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.IniFilename = nullptr;
-    io.IniSavingRate = 0.0F;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-    ImGui::StyleColorsDark();
-
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD))
     {
-        throw std::runtime_error(fmt::format("Failed to initialize SDL: {}", SDL_GetError()));
+        // TODO: exceptions
+        // throw std::runtime_error(fmt::format("Failed to initialize SDL: {}", SDL_GetError()));
     }
 
     int   numDisplays = 0;
@@ -55,7 +43,8 @@ Example::Example(const char* title, int32_t width, int32_t height)
     m_window.reset(SDL_CreateWindow(title, screenWidth, screenHeight, flags));
     if (m_window == nullptr)
     {
-        throw std::runtime_error(fmt::format("Failed to create SDL window: {}", SDL_GetError()));
+        // TODO: exceptions
+        // throw std::runtime_error(fmt::format("Failed to create SDL window: {}", SDL_GetError()));
     }
     m_view.reset(SDL_Metal_CreateView(m_window.get()));
     m_running = true;
@@ -68,9 +57,6 @@ Example::Example(const char* title, int32_t width, int32_t height)
     auto* layer = static_cast<CA::MetalLayer*>(SDL_Metal_GetLayer(m_view.get()));
     layer->setPixelFormat(s_defaultPixelFormat);
     layer->setDevice(m_device.get());
-
-    ImGui_ImplMetal_Init(m_device.get());
-    ImGui_ImplSDL3_InitForMetal(m_window.get());
 
     m_commandQueue = NS::TransferPtr(m_device->newMTL4CommandQueue());
     m_commandBuffer = NS::TransferPtr(m_device->newCommandBuffer());
@@ -113,11 +99,6 @@ Example::Example(const char* title, int32_t width, int32_t height)
 
 Example::~Example()
 {
-    // Cleanup
-    ImGui_ImplMetal_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-    ImGui::DestroyContext();
-
     m_window.reset();
 
     SDL_Quit();
@@ -282,8 +263,6 @@ int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         SDL_Event e;
         if (SDL_WaitEvent(&e))
         {
-            ImGui_ImplSDL3_ProcessEvent(&e);
-
             if (e.type == SDL_EVENT_QUIT)
             {
                 m_running = false;
@@ -296,11 +275,6 @@ int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
                 auto*       layer = static_cast<CA::MetalLayer*>(SDL_Metal_GetLayer(m_view.get()));
                 layer->setDrawableSize(CGSize { static_cast<float>(e.window.data1) * density,
                     static_cast<float>(e.window.data2) * density });
-
-                //                ImGuiIO& io = ImGui::GetIO();
-                //                io.DisplaySize =
-                //                    ImVec2((float)e.window.data1 * density, (float)e.window.data2
-                //                    * density);
 
                 onResize(e.window.data1, e.window.data2);
             }
@@ -348,17 +322,8 @@ int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
     return 0;
 }
 
-void Example::onSetupUi(const GameTimer& timer)
+void Example::onSetupUi([[maybe_unused]] const GameTimer& timer)
 {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
-    ImGui::SetNextWindowPos(ImVec2(10, 10));
-    ImGui::SetNextWindowSize(ImVec2(125 * 2.0f, 0), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Metal Example", nullptr,
-        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
-    ImGui::Text("%s (%.1d fps)", SDL_GetWindowTitle(m_window.get()), timer.framesPerSecond());
-    ImGui::Text("Press Esc to quit");
-    ImGui::End();
-    ImGui::PopStyleVar();
 }
 
 void Example::quit()
@@ -383,7 +348,7 @@ void Example::metalDisplayLinkNeedsUpdate(
         // Wait for the GPU to finish rendering the frame that's
         // `kMaxFramesInFlight` before this one, and then proceed to the next step.
         uint64_t previousValueToWaitFor = m_frameNumber - s_bufferCount;
-        m_sharedEvent->waitUntilSignaledValue(previousValueToWaitFor, 10);
+        std::ignore = m_sharedEvent->waitUntilSignaledValue(previousValueToWaitFor, 10);
     }
 
     // Get the next allocator in the rotation.

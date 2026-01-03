@@ -29,8 +29,9 @@ File::File(const std::string& fileName)
     m_stream.reset(SDL_IOFromFile(filePath.c_str(), "rb"));
     if (m_stream == nullptr)
     {
-        throw std::runtime_error(
-            fmt::format("Failed to open {} for read. SDL_Error: {}", fileName, SDL_GetError()));
+        // TODO: exceptions
+        // throw std::runtime_error(
+            // fmt::format("Failed to open {} for read. SDL_Error: {}", fileName, SDL_GetError()));
     }
 }
 

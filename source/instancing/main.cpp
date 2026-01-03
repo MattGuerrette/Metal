@@ -162,8 +162,9 @@ void Instancing::createResidencySet()
         = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
-            "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
+        // TODO: exceptions
+        // throw std::runtime_error(fmt::format(
+        // "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
     }
 
     m_residencySet->addAllocation(m_vertexBuffer.get());
@@ -189,8 +190,9 @@ void Instancing::createArgumentTable()
     m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
-            "Failed to create argument table: {}", error->localizedFailureReason()->utf8String()));
+        // TODO: exceptions
+        // throw std::runtime_error(fmt::format(
+        // "Failed to create argument table: {}", error->localizedFailureReason()->utf8String()));
     }
 }
 
@@ -241,16 +243,18 @@ void Instancing::createPipelineState()
         = NS::TransferPtr(device()->newCompiler(compilerDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
-            "Failed to create shader compiler: {}", error->localizedFailureReason()->utf8String()));
+        // TODO: exceptions
+        // throw std::runtime_error(fmt::format(
+        // "Failed to create shader compiler: {}", error->localizedFailureReason()->utf8String()));
     }
 
     m_pipelineState = NS::TransferPtr(compiler->newRenderPipelineState(
         pipelineDescriptor.get(), compilerTaskOptions.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
-            "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
+        // TODO: exceptions
+        // throw std::runtime_error(fmt::format(
+        // "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
 }
 
@@ -326,15 +330,9 @@ void Instancing::updateUniforms() const
 int main(int argc, char** argv)
 {
     int result = EXIT_FAILURE;
-    try
-    {
-        const auto example = std::make_unique<Instancing>();
-        result = example->run(argc, argv);
-    }
-    catch (const std::runtime_error&)
-    {
-        fmt::println("Exiting...");
-    }
+
+    const auto example = std::make_unique<Instancing>();
+    result = example->run(argc, argv);
 
     return result;
 }

@@ -43,11 +43,6 @@ void Camera::updateBasisVectors(Vector3 direction)
 {
     m_direction = direction;
     m_direction.Normalize();
-
-    const Vector3 up = m_up;
-    const Vector3 right = up.Cross(m_direction);
-    const Vector3 newUp = right.Cross(m_direction);
-    m_up = up;
 }
 
 void Camera::updateUniforms()

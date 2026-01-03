@@ -110,7 +110,7 @@ protected:
 
     [[nodiscard]] CA::MetalLayer* metalLayer() const;
 
-    [[nodisacrd]] MTL4::RenderPassDescriptor* defaultRenderPassDescriptor(
+    [[nodiscard]] MTL4::RenderPassDescriptor* defaultRenderPassDescriptor(
         CA::MetalDrawable* drawable) const;
 
 #ifdef SDL_PLATFORM_MACOS

@@ -6,13 +6,13 @@
 #include "GameTimer.hpp"
 
 GameTimer::GameTimer()
-    : m_elapsedTicks(0)
+    : m_qpcSecondCounter(0)
+    , m_elapsedTicks(0)
     , m_totalTicks(0)
     , m_leftOverTicks(0)
     , m_frameCount(0)
     , m_framesPerSecond(0)
     , m_framesThisSecond(0)
-    , m_qpcSecondCounter(0)
     , m_isFixedTimeStep(false)
     , m_targetElapsedTicks(0)
 {

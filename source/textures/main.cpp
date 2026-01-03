@@ -14,8 +14,6 @@
 #include <Metal/Metal.hpp>
 #include <MetalKit/MetalKit.hpp>
 
-#include <imgui.h>
-
 #include "Camera.hpp"
 #include "Example.hpp"
 #include "File.hpp"
@@ -40,9 +38,6 @@ XM_ALIGNED_STRUCT(16) FragmentArgumentBuffer
     [[maybe_unused]] std::array<MTL::ResourceID, g_textureCount> textures;
     [[maybe_unused]] Matrix*                                     transforms;
 };
-
-static constexpr std::array g_comboItems
-    = { "Texture 0", "Texture 1", "Texture 2", "Texture 3", "Texture 4" };
 
 class Textures final : public Example
 {
@@ -147,7 +142,7 @@ bool Textures::onLoad()
     return true;
 }
 
-void Textures::onSetupUi(const GameTimer& timer)
+void Textures::onSetupUi([[maybe_unused]] const GameTimer& timer)
 {
     // TODO: Re-enable once Metal 4 support is added to ImGUI
     //    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.0);
@@ -197,72 +192,65 @@ MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
 {
     MTL::Texture* texture = nullptr;
 
-    try
+    const File file(fileName);
+
+    const auto bytes = file.readAll();
+
+    constexpr uint32_t flags
+        = KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT | KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
+    ktxTexture2*   ktx2Texture = nullptr;
+    KTX_error_code result = ktxTexture2_CreateFromMemory(
+        reinterpret_cast<const ktx_uint8_t*>(bytes.data()), bytes.size(), flags, &ktx2Texture);
+    if (result != KTX_SUCCESS)
     {
-        const File file(fileName);
-
-        const auto bytes = file.readAll();
-
-        constexpr uint32_t flags
-            = KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT | KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
-        ktxTexture2*   ktx2Texture = nullptr;
-        KTX_error_code result = ktxTexture2_CreateFromMemory(
-            reinterpret_cast<const ktx_uint8_t*>(bytes.data()), bytes.size(), flags, &ktx2Texture);
-        if (result != KTX_SUCCESS)
-        {
-            return nullptr;
-        }
-
-        constexpr MTL::TextureType type = MTL::TextureType2D;
-        constexpr MTL::PixelFormat pixelFormat = MTL::PixelFormatASTC_8x8_sRGB;
-        const bool                 genMipmaps = ktx2Texture->generateMipmaps;
-        const NS::UInteger         levelCount = ktx2Texture->numLevels;
-        const NS::UInteger         baseWidth = ktx2Texture->baseWidth;
-        const NS::UInteger         baseHeight = ktx2Texture->baseHeight;
-        const NS::UInteger         baseDepth = ktx2Texture->baseDepth;
-        const auto                 maxMipLevelCount = static_cast<NS::UInteger>(
-            std::floor(std::log2(std::fmax(baseWidth, baseHeight))) + 1);
-        const NS::UInteger storedMipLevelCount = genMipmaps ? maxMipLevelCount : levelCount;
-
-        NS::SharedPtr<MTL::TextureDescriptor> textureDescriptor
-            = NS::TransferPtr(MTL::TextureDescriptor::alloc()->init());
-        textureDescriptor->setTextureType(type);
-        textureDescriptor->setPixelFormat(pixelFormat);
-        textureDescriptor->setWidth(baseWidth);
-        textureDescriptor->setHeight(ktx2Texture->numDimensions > 1 ? baseHeight : 1);
-        textureDescriptor->setDepth(ktx2Texture->numDimensions > 2 ? baseDepth : 1);
-        textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
-        textureDescriptor->setStorageMode(MTL::StorageModeShared);
-        textureDescriptor->setArrayLength(1);
-        textureDescriptor->setMipmapLevelCount(storedMipLevelCount);
-
-        texture = device()->newTexture(textureDescriptor.get());
-
-        auto* ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
-        for (ktx_uint32_t level = 0; std::cmp_less(level, ktx2Texture->numLevels); ++level)
-        {
-            constexpr ktx_uint32_t faceSlice = 0;
-            constexpr ktx_uint32_t layer = 0;
-            ktx_size_t             offset = 0;
-            result = ktxTexture_GetImageOffset(ktx1Texture, level, layer, faceSlice, &offset);
-            const ktx_uint8_t* imageBytes = ktxTexture_GetData(ktx1Texture) + offset;
-            const ktx_uint32_t bytesPerRow = ktxTexture_GetRowPitch(ktx1Texture, level);
-            const ktx_size_t   bytesPerImage = ktxTexture_GetImageSize(ktx1Texture, level);
-            const auto         levelWidth
-                = static_cast<size_t>(std::fmax(1.0F, static_cast<float>(baseWidth >> level)));
-            const auto levelHeight
-                = static_cast<size_t>(std::fmax(1.0F, static_cast<float>(baseHeight >> level)));
-
-            texture->replaceRegion(MTL::Region(0, 0, levelWidth, levelHeight), level, faceSlice,
-                imageBytes, bytesPerRow, bytesPerImage);
-        }
-
-        ktxTexture_Destroy((ktxTexture*)ktx1Texture);
+        return nullptr;
     }
-    catch (const std::runtime_error& error)
+
+    constexpr MTL::TextureType type = MTL::TextureType2D;
+    constexpr MTL::PixelFormat pixelFormat = MTL::PixelFormatASTC_8x8_sRGB;
+    const bool                 genMipmaps = ktx2Texture->generateMipmaps;
+    const NS::UInteger         levelCount = ktx2Texture->numLevels;
+    const NS::UInteger         baseWidth = ktx2Texture->baseWidth;
+    const NS::UInteger         baseHeight = ktx2Texture->baseHeight;
+    const NS::UInteger         baseDepth = ktx2Texture->baseDepth;
+    const auto                 maxMipLevelCount
+        = static_cast<NS::UInteger>(std::floor(std::log2(std::fmax(baseWidth, baseHeight))) + 1);
+    const NS::UInteger storedMipLevelCount = genMipmaps ? maxMipLevelCount : levelCount;
+
+    NS::SharedPtr<MTL::TextureDescriptor> textureDescriptor
+        = NS::TransferPtr(MTL::TextureDescriptor::alloc()->init());
+    textureDescriptor->setTextureType(type);
+    textureDescriptor->setPixelFormat(pixelFormat);
+    textureDescriptor->setWidth(baseWidth);
+    textureDescriptor->setHeight(ktx2Texture->numDimensions > 1 ? baseHeight : 1);
+    textureDescriptor->setDepth(ktx2Texture->numDimensions > 2 ? baseDepth : 1);
+    textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
+    textureDescriptor->setStorageMode(MTL::StorageModeShared);
+    textureDescriptor->setArrayLength(1);
+    textureDescriptor->setMipmapLevelCount(storedMipLevelCount);
+
+    texture = device()->newTexture(textureDescriptor.get());
+
+    auto* ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
+    for (ktx_uint32_t level = 0; std::cmp_less(level, ktx2Texture->numLevels); ++level)
     {
-        fmt::println("{}", error.what());
+        constexpr ktx_uint32_t faceSlice = 0;
+        constexpr ktx_uint32_t layer = 0;
+        ktx_size_t             offset = 0;
+        result = ktxTexture_GetImageOffset(ktx1Texture, level, layer, faceSlice, &offset);
+        const ktx_uint8_t* imageBytes = ktxTexture_GetData(ktx1Texture) + offset;
+        const ktx_uint32_t bytesPerRow = ktxTexture_GetRowPitch(ktx1Texture, level);
+        const ktx_size_t   bytesPerImage = ktxTexture_GetImageSize(ktx1Texture, level);
+        const auto         levelWidth
+            = static_cast<size_t>(std::fmax(1.0F, static_cast<float>(baseWidth >> level)));
+        const auto levelHeight
+            = static_cast<size_t>(std::fmax(1.0F, static_cast<float>(baseHeight >> level)));
+
+        texture->replaceRegion(MTL::Region(0, 0, levelWidth, levelHeight), level, faceSlice,
+            imageBytes, bytesPerRow, bytesPerImage);
     }
+
+    ktxTexture_Destroy((ktxTexture*)ktx1Texture);
 
     return texture;
 }
@@ -313,8 +301,8 @@ void Textures::createResidencySet()
         = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
-            "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
+        // throw std::runtime_error(fmt::format(
+        // "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
     }
 }
 
@@ -329,8 +317,8 @@ void Textures::createArgumentTable()
     m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
-            "Failed to create argument table: {}", error->localizedFailureReason()->utf8String()));
+        // throw std::runtime_error(fmt::format(
+        // "Failed to create argument table: {}", error->localizedFailureReason()->utf8String()));
     }
 }
 
@@ -381,8 +369,8 @@ void Textures::createPipelineState()
         = NS::TransferPtr(device()->newRenderPipelineState(pipelineDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
-            "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
+        // throw std::runtime_error(fmt::format(
+        // "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
 }
 
@@ -586,15 +574,9 @@ void Textures::createArgumentBuffers()
 int main(const int argc, char** argv)
 {
     int result = EXIT_FAILURE;
-    try
-    {
-        const auto example = std::make_unique<Textures>();
-        result = example->run(argc, argv);
-    }
-    catch (const std::runtime_error&)
-    {
-        fmt::println("Exiting...");
-    }
+
+    const auto example = std::make_unique<Textures>();
+    result = example->run(argc, argv);
 
     return result;
 }
