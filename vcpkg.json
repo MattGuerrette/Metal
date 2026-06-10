@@ -1,26 +1,18 @@
 {
-  "name": "metal",
-  "builtin-baseline": "9e8416f15d93fa9347e3291bd8c128dd44200ba5",
+  "name": "mineshaft-mayhem",
+  "version-string": "0.1.0",
+  "builtin-baseline": "890e0f0506f9dcb76800dfa2ea28b03ebc627bfa",
   "dependencies": [
-    {
-      "name": "directxmath",
-      "version>=": "2025-04-03"
-    },
-    {
-      "name": "fmt",
-      "version>=": "11.0.2#1"
-    },
-    {
-      "name": "sdl3",
-      "version>=": "3.2.24"
-    },
+    "ktx",
     {
       "name": "cgltf",
       "version>=": "1.14"
     },
+    "fmt",
+    "directxmath",
     {
-      "name": "ktx",
-      "version>=": "4.3.2"
+      "name": "sdl3",
+      "version>=": "3.4.2"
     }
   ]
 }

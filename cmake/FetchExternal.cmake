@@ -2,7 +2,7 @@ include(FetchContent)
 
 if (NOT METALCPP_DIR)
     FetchContent_Declare(metalcpp
-            GIT_REPOSITORY "https://github.com/MattGuerrette/metalcpp"
+            GIT_REPOSITORY "https://github.com/MattGuerrette/metal-cpp"
             GIT_TAG main
     )
     FetchContent_MakeAvailable(metalcpp)
@@ -13,7 +13,7 @@ endif ()
 include_directories(${metalcpp_SOURCE_DIR})
 
 set_target_properties(
-        AppleFrameworksCpp
+        metal-cpp
         PROPERTIES FOLDER "External")
 
 FetchContent_Declare(

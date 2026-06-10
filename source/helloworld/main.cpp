@@ -4,6 +4,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <memory>
+#include <utility>
 
 #include <fmt/core.h>
 
@@ -265,7 +266,7 @@ void HelloWorld::createBuffers()
     m_vertexBuffer->setLabel(NS::String::string("Vertices", NS::ASCIIStringEncoding));
 
     m_indexBuffer = NS::TransferPtr(device()->newBuffer(
-        indices.data(), indexBufferLength, MTL::ResourceOptionCPUCacheModeDefault));
+        indices.data(), indexBufferLength, MTL::ResourceCPUCacheModeDefaultCache));
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     for (auto index = 0; std::cmp_less(index, s_bufferCount); index++)
@@ -274,7 +275,7 @@ void HelloWorld::createBuffers()
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
         m_uniformBuffer[index] = NS::TransferPtr(device()->newBuffer(
-            g_alignedUniformSize * s_bufferCount, MTL::ResourceOptionCPUCacheModeDefault));
+            g_alignedUniformSize * s_bufferCount, MTL::ResourceCPUCacheModeDefaultCache));
         m_uniformBuffer[index]->setLabel(nsLabel.get());
     }
 }

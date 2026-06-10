@@ -8,21 +8,21 @@ A collection of open source C++ examples for [Metal](https://developer.apple.com
 
 ### metal-cpp
 
-These examples use a modified version of Metal-CPP originally published by Apple. This modified version is maintained
+These examples use a modified version of metal-cpp published by Apple. This modified version is maintained
 here:
-[metal-cpp](https://github.com/MattGuerrette/metalcpp) and includes some additional API bindings not yet supported by
+[metal-cpp](https://github.com/MattGuerrette/metal-cpp) and includes some additional API bindings not yet supported by
 Apple, however
 it is actively updated with the latest fixes and additions from Apple as well.
 
 ## Requirements
 
-These samples are developed using **C++20** and target the following platforms and os versions:
+These samples are developed using **C++23** and target the following platforms and os versions:
 
-| Platform | OS Version | |
-|----------|------------|-- |
-| macOS    | 26.0+      | |
-| iOS      | 26.0+      | |
-| tvOS     | 26.0+      |Needs vcpkg support [#12](https://github.com/MattGuerrette/Metal/issues/12) |
+| Platform | OS Version |
+|----------|------------|
+| macOS    | 26.0+      |
+| iOS      | 26.0+      |
+| tvOS     | 26.0+      |
 
 ## Building
 
@@ -34,23 +34,19 @@ generate the Xcode project files here are some example commands:
 ### Ninja
 
 ```
-   git clone https://github.com/MattGuerrette/Metal.git
+   git clone --recursive https://github.com/MattGuerrette/Metal.git
    cd Metal
-   mkdir cmake-build-debug
-   cd cmake-build-debug
-   cmake .. -GNinja -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
-   cmake --build .
+   cmake --preset macos-debug
+   cmake --build out/build/macos-debug
 ```
 
 ### Xcode
 
 ```
-   git clone https://github.com/MattGuerrette/Metal.git
+   git clone --recursive https://github.com/MattGuerrette/Metal.git
    cd Metal
-   mkdir cmake-build-xcode
-   cd cmake-build-xcode
-   cmake .. -GXcode -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=<Apple Developer ID>
-   cmake --build .
+   cmake --preset macos -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=<Apple Developer ID>
+   cmake --build out/build/macos
 ```
 
 For codesigning purposes, you will want to specify the development team ID as shown above to avoid needing

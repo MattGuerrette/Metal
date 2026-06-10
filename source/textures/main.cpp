@@ -7,6 +7,7 @@
 #include <ktx.h>
 #endif
 
+#include <utility>
 #include <cstddef>
 #include <fmt/core.h>
 #include <memory>
@@ -403,7 +404,7 @@ void Textures::createBuffers()
     m_vertexBuffer->setLabel(NS::String::string("Vertices", NS::ASCIIStringEncoding));
 
     m_indexBuffer = NS::TransferPtr(device()->newBuffer(
-        indices.data(), indexBufferLength, MTL::ResourceOptionCPUCacheModeDefault));
+        indices.data(), indexBufferLength, MTL::ResourceCPUCacheModeDefaultCache));
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     constexpr size_t instanceDataSize
@@ -415,7 +416,7 @@ void Textures::createBuffers()
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
 
         m_instanceBuffer[index] = NS::TransferPtr(
-            device()->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
+            device()->newBuffer(instanceDataSize, MTL::ResourceCPUCacheModeDefaultCache));
         m_instanceBuffer[index]->setLabel(nsLabel.get());
     }
 }
@@ -560,7 +561,7 @@ void Textures::createArgumentBuffers()
         {
             constexpr auto size = sizeof(FragmentArgumentBuffer);
             m_argumentBuffer[i] = NS::TransferPtr(
-                device()->newBuffer(size, MTL::ResourceOptionCPUCacheModeDefault));
+                device()->newBuffer(size, MTL::ResourceCPUCacheModeDefaultCache));
 
             NS::String* label = NS::String::string(
                 fmt::format("Argument Buffer {}", i).c_str(), NS::UTF8StringEncoding);

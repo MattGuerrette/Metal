@@ -147,7 +147,7 @@ void Example::createFrameResources(const int32_t width, const int32_t height)
     textureDescriptor->setSampleCount(s_multisampleCount);
     textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
     textureDescriptor->setResourceOptions(
-        MTL::ResourceOptionCPUCacheModeDefault | MTL::ResourceStorageModePrivate);
+        MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModePrivate);
     textureDescriptor->setStorageMode(MTL::StorageModeMemoryless);
 
     m_depthStencilTexture = NS::TransferPtr(m_device->newTexture(textureDescriptor.get()));

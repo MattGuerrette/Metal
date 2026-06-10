@@ -5,9 +5,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <cstddef>
+#include <format>
 #include <memory>
-
-#include <fmt/core.h>
+#include <print>
+#include <utility>
 
 #include <Metal/Metal.hpp>
 
@@ -162,7 +163,7 @@ void Instancing::createResidencySet()
         = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
     }
 
@@ -189,7 +190,7 @@ void Instancing::createArgumentTable()
     m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create argument table: {}", error->localizedFailureReason()->utf8String()));
     }
 }
@@ -241,7 +242,7 @@ void Instancing::createPipelineState()
         = NS::TransferPtr(device()->newCompiler(compilerDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create shader compiler: {}", error->localizedFailureReason()->utf8String()));
     }
 
@@ -249,7 +250,7 @@ void Instancing::createPipelineState()
         pipelineDescriptor.get(), compilerTaskOptions.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
 }
@@ -276,18 +277,18 @@ void Instancing::createBuffers()
     m_vertexBuffer->setLabel(NS::String::string("Vertices", NS::ASCIIStringEncoding));
 
     m_indexBuffer = NS::TransferPtr(device()->newBuffer(
-        indices.data(), indexBufferLength, MTL::ResourceOptionCPUCacheModeDefault));
+        indices.data(), indexBufferLength, MTL::ResourceCPUCacheModeDefaultCache));
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
     constexpr size_t instanceDataSize
         = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(InstanceData);
     for (auto index = 0; std::cmp_less(index, s_bufferCount); ++index)
     {
-        const auto                      label = fmt::format("Instance Buffer: {}", index);
+        const auto                      label = std::format("Instance Buffer: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
         m_instanceBuffer[index] = NS::TransferPtr(
-            device()->newBuffer(instanceDataSize, MTL::ResourceOptionCPUCacheModeDefault));
+            device()->newBuffer(instanceDataSize, MTL::ResourceCPUCacheModeDefaultCache));
         m_instanceBuffer[index]->setLabel(nsLabel.get());
     }
 }
@@ -333,7 +334,7 @@ int main(int argc, char** argv)
     }
     catch (const std::runtime_error&)
     {
-        fmt::println("Exiting...");
+        std::println("Exiting...");
     }
 
     return result;
