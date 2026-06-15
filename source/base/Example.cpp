@@ -275,7 +275,7 @@ int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         return EXIT_FAILURE;
     }
 
-    m_displayLink->addToRunLoop(NS::RunLoop::mainRunLoop(), NS::DefaultRunLoopMode);
+    m_displayLink->addToRunLoop(NS::RunLoop::mainRunLoop(), NS::RunLoopCommonModes);
 
     while (m_running)
     {
@@ -403,8 +403,12 @@ void Example::metalDisplayLinkNeedsUpdate(
     if (drawable->texture()->width() != m_depthStencilTexture->width()
         || drawable->texture()->height() != m_depthStencilTexture->height())
     {
-        const auto width = windowWidth();
-        const auto height = windowHeight();
+        if (m_frameNumber > 0)
+        {
+            m_sharedEvent->waitUntilSignaledValue(m_frameNumber - 1, 100);
+        }
+        const auto width = drawable->texture()->width();
+        const auto height = drawable->texture()->height();
         createFrameResources(width, height);
     }
 
@@ -422,4 +426,5 @@ void Example::metalDisplayLinkNeedsUpdate(
     // Signal when the GPU finishes rendering this frame with a shared event.
     uint64_t futureValueToWaitFor = m_frameNumber;
     m_commandQueue->signalEvent(m_sharedEvent.get(), futureValueToWaitFor);
+    m_frameNumber++;
 }

@@ -119,9 +119,6 @@ void HelloWorld::onRender(CA::MetalDrawable* drawable,
 
     commandEncoder->pushDebugGroup(MTLSTR("Triangle Rendering"));
 
-    const auto currentFrameIndex = frameIndex();
-    const auto uniformBufferOffset = g_alignedUniformSize * currentFrameIndex;
-
     commandEncoder->setRenderPipelineState(m_pipelineState.get());
     commandEncoder->setDepthStencilState(depthStencilState());
     commandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
@@ -303,10 +300,8 @@ void HelloWorld::updateUniforms() const
     Uniforms uniforms {};
     uniforms.modelViewProjection = model * cameraUniforms.viewProjection;
 
-    const size_t uniformBufferOffset = g_alignedUniformSize * currentFrameIndex;
-
     auto* buffer = static_cast<char*>(this->m_uniformBuffer[currentFrameIndex]->contents());
-    memcpy(buffer + uniformBufferOffset, &uniforms, sizeof(uniforms));
+    memcpy(buffer, &uniforms, sizeof(uniforms));
 
     m_argumentTable->setAddress(m_uniformBuffer[currentFrameIndex]->gpuAddress(), 1);
 }
