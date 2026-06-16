@@ -7,7 +7,6 @@
       "name": "cgltf",
       "version>=": "1.14"
     },
-    "fmt",
     "directxmath",
     {
       "name": "sdl3",

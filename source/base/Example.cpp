@@ -388,6 +388,9 @@ void Example::quit()
 void Example::metalDisplayLinkNeedsUpdate(
     [[maybe_unused]] CA::MetalDisplayLink* displayLink, CA::MetalDisplayLinkUpdate* update)
 {
+    // Get the next allocator/buffer index in the rotation.
+    m_currentFrameIndex = m_frameNumber % s_bufferCount;
+
     m_timer.tick([this] { onUpdate(m_timer); });
 
     m_keyboard->update();
@@ -405,8 +408,6 @@ void Example::metalDisplayLinkNeedsUpdate(
         m_sharedEvent->waitUntilSignaledValue(previousValueToWaitFor, 10);
     }
 
-    // Get the next allocator in the rotation.
-    m_currentFrameIndex = m_frameNumber % s_bufferCount;
     MTL4::CommandAllocator* frameAllocator = m_commandAllocator[m_currentFrameIndex].get();
 
     // Prepare to use or reuse the allocator by resetting it.

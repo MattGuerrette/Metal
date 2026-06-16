@@ -8,7 +8,6 @@ enable_language(OBJC OBJCXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(FetchExternal)
 
-find_package(fmt CONFIG REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(directxmath CONFIG REQUIRED)
 

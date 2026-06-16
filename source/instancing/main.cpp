@@ -8,6 +8,8 @@
 #include <format>
 #include <memory>
 #include <print>
+#include <ranges>
+#include <span>
 #include <utility>
 
 #include <Metal/Metal.hpp>
@@ -170,9 +172,9 @@ void Instancing::createResidencySet()
 
     m_residencySet->addAllocation(m_vertexBuffer.get());
     m_residencySet->addAllocation(m_indexBuffer.get());
-    for (uint32_t i = 0; i < s_bufferCount; i++)
+    for (const auto& buffer : m_instanceBuffer)
     {
-        m_residencySet->addAllocation(m_instanceBuffer[i].get());
+        m_residencySet->addAllocation(buffer.get());
     }
 
     commandQueue()->addResidencySet(m_residencySet.get());
@@ -283,14 +285,14 @@ void Instancing::createBuffers()
 
     constexpr size_t instanceDataSize
         = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(InstanceData);
-    for (auto index = 0; std::cmp_less(index, s_bufferCount); ++index)
+    for (const auto [index, buffer] : std::views::zip(std::views::iota(0u), m_instanceBuffer))
     {
         const auto                      label = std::format("Instance Buffer: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
-        m_instanceBuffer[index] = NS::TransferPtr(
+        buffer = NS::TransferPtr(
             device()->newBuffer(instanceDataSize, MTL::ResourceCPUCacheModeDefaultCache));
-        m_instanceBuffer[index]->setLabel(nsLabel.get());
+        buffer->setLabel(nsLabel.get());
     }
 }
 
@@ -300,8 +302,9 @@ void Instancing::updateUniforms() const
 
     MTL::Buffer* instanceBuffer = m_instanceBuffer[currentFrameIndex].get();
 
-    auto* instanceData = static_cast<InstanceData*>(instanceBuffer->contents());
-    for (auto index = 0; std::cmp_less(index, s_instanceCount); ++index)
+    auto*                   instanceData = static_cast<InstanceData*>(instanceBuffer->contents());
+    std::span<InstanceData> instanceSpan(instanceData, s_instanceCount);
+    for (auto [index, data] : std::views::zip(std::views::iota(0u), instanceSpan))
     {
         auto position = Vector3(-5.0F + 5.0F * static_cast<float>(index), 0.0F, -10.0F);
         auto rotationX = m_rotationX;
@@ -319,7 +322,7 @@ void Instancing::updateUniforms() const
         const Matrix         model = scale * rotation * translation;
         const CameraUniforms cameraUniforms = m_mainCamera->uniforms();
 
-        instanceData[index].transform = model * cameraUniforms.viewProjection;
+        data.transform = model * cameraUniforms.viewProjection;
     }
 
     m_argumentTable->setAddress(m_instanceBuffer[currentFrameIndex]->gpuAddress(), 1);

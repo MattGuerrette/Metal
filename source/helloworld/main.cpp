@@ -3,10 +3,11 @@
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <format>
 #include <memory>
+#include <print>
+#include <ranges>
 #include <utility>
-
-#include <fmt/core.h>
 
 #include <Metal/Metal.hpp>
 
@@ -157,14 +158,14 @@ void HelloWorld::createResidencySet()
         = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
     }
     m_residencySet->addAllocation(m_vertexBuffer.get());
     m_residencySet->addAllocation(m_indexBuffer.get());
-    for (uint32_t i = 0; i < s_bufferCount; i++)
+    for (const auto& buffer : m_uniformBuffer)
     {
-        m_residencySet->addAllocation(m_uniformBuffer[i].get());
+        m_residencySet->addAllocation(buffer.get());
     }
 
     commandQueue()->addResidencySet(m_residencySet.get());
@@ -183,7 +184,7 @@ void HelloWorld::createArgumentTable()
     m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create argument table: {}", error->localizedFailureReason()->utf8String()));
     }
 }
@@ -235,7 +236,7 @@ void HelloWorld::createPipelineState()
         = NS::TransferPtr(device()->newCompiler(compilerDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create shader compiler: {}", error->localizedFailureReason()->utf8String()));
     }
 
@@ -243,7 +244,7 @@ void HelloWorld::createPipelineState()
         pipelineDescriptor.get(), compilerTaskOptions.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
 }
@@ -267,14 +268,14 @@ void HelloWorld::createBuffers()
         indices.data(), indexBufferLength, MTL::ResourceCPUCacheModeDefaultCache));
     m_indexBuffer->setLabel(NS::String::string("Indices", NS::ASCIIStringEncoding));
 
-    for (auto index = 0; std::cmp_less(index, s_bufferCount); index++)
+    for (const auto [index, buffer] : std::views::zip(std::views::iota(0u), m_uniformBuffer))
     {
-        const auto                      label = fmt::format("Uniform: {}", index);
+        const auto                      label = std::format("Uniform: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
-        m_uniformBuffer[index] = NS::TransferPtr(device()->newBuffer(
+        buffer = NS::TransferPtr(device()->newBuffer(
             g_alignedUniformSize * s_bufferCount, MTL::ResourceCPUCacheModeDefaultCache));
-        m_uniformBuffer[index]->setLabel(nsLabel.get());
+        buffer->setLabel(nsLabel.get());
     }
 }
 
@@ -324,7 +325,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     }
     catch (const std::exception& e)
     {
-        fmt::println("Error during initialization: {}", e.what());
+        std::println("Error during initialization: {}", e.what());
         return SDL_APP_FAILURE;
     }
 }
@@ -358,5 +359,4 @@ void SDL_AppQuit(void* appstate, [[maybe_unused]] SDL_AppResult result)
         delete example;
     }
 }
-
 }

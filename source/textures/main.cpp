@@ -8,10 +8,13 @@
 #include <stb_image.h>
 #endif
 
-#include <utility>
 #include <cstddef>
-#include <fmt/core.h>
+#include <format>
 #include <memory>
+#include <print>
+#include <ranges>
+#include <span>
+#include <utility>
 
 #include <Metal/Metal.hpp>
 #include <MetalKit/MetalKit.hpp>
@@ -137,9 +140,9 @@ bool Textures::onLoad()
     // populate residency set and bind to command queue
     m_residencySet->addAllocation(m_vertexBuffer.get());
     m_residencySet->addAllocation(m_indexBuffer.get());
-    for (uint32_t i = 0; i < s_bufferCount; i++)
+    for (const auto& buffer : m_instanceBuffer)
     {
-        m_residencySet->addAllocation(m_instanceBuffer[i].get());
+        m_residencySet->addAllocation(buffer.get());
     }
 
     commandQueue()->addResidencySet(m_residencySet.get());
@@ -209,14 +212,12 @@ MTL::Texture* Textures::newTextureFromFile(const std::string& fileName) const
         int height = 0;
         int channels = 0;
 
-        stbi_uc* imageData = stbi_load_from_memory(
-            reinterpret_cast<const stbi_uc*>(bytes.data()),
-            static_cast<int>(bytes.size()),
-            &width, &height, &channels, 4);
+        stbi_uc* imageData = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(bytes.data()),
+            static_cast<int>(bytes.size()), &width, &height, &channels, 4);
 
         if (imageData == nullptr)
         {
-            fmt::println("Failed to load image via stb_image: {}", stbi_failure_reason());
+            std::println("Failed to load image via stb_image: {}", stbi_failure_reason());
             return nullptr;
         }
 
@@ -240,15 +241,15 @@ MTL::Texture* Textures::newTextureFromFile(const std::string& fileName) const
         {
             const NS::UInteger bytesPerRow = static_cast<NS::UInteger>(width) * 4;
             const NS::UInteger bytesPerImage = bytesPerRow * static_cast<NS::UInteger>(height);
-            texture->replaceRegion(MTL::Region(0, 0, width, height), 0, 0,
-                imageData, bytesPerRow, bytesPerImage);
+            texture->replaceRegion(
+                MTL::Region(0, 0, width, height), 0, 0, imageData, bytesPerRow, bytesPerImage);
         }
 
         stbi_image_free(imageData);
     }
     catch (const std::runtime_error& error)
     {
-        fmt::println("{}", error.what());
+        std::println("{}", error.what());
     }
 
     return texture;
@@ -300,7 +301,7 @@ void Textures::createResidencySet()
         = NS::TransferPtr(device()->newResidencySet(residencySetDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create residence set: {}", error->localizedFailureReason()->utf8String()));
     }
 }
@@ -316,7 +317,7 @@ void Textures::createArgumentTable()
     m_argumentTable = NS::TransferPtr(device()->newArgumentTable(argTableDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create argument table: {}", error->localizedFailureReason()->utf8String()));
     }
 }
@@ -368,7 +369,7 @@ void Textures::createPipelineState()
         = NS::TransferPtr(device()->newRenderPipelineState(pipelineDescriptor.get(), &error));
     if (error != nullptr)
     {
-        throw std::runtime_error(fmt::format(
+        throw std::runtime_error(std::format(
             "Failed to create pipeline state: {}", error->localizedFailureReason()->utf8String()));
     }
 }
@@ -395,15 +396,15 @@ void Textures::createBuffers()
 
     constexpr size_t instanceDataSize
         = static_cast<unsigned long>(s_bufferCount * s_instanceCount) * sizeof(Matrix);
-    for (auto index = 0; std::cmp_less(index, s_bufferCount); ++index)
+    for (const auto [index, buffer] : std::views::zip(std::views::iota(0u), m_instanceBuffer))
     {
-        const auto                      label = fmt::format("Instance Buffer: {}", index);
+        const auto                      label = std::format("Instance Buffer: {}", index);
         const NS::SharedPtr<NS::String> nsLabel
             = NS::TransferPtr(NS::String::string(label.c_str(), NS::ASCIIStringEncoding));
 
-        m_instanceBuffer[index] = NS::TransferPtr(
+        buffer = NS::TransferPtr(
             device()->newBuffer(instanceDataSize, MTL::ResourceCPUCacheModeDefaultCache));
-        m_instanceBuffer[index]->setLabel(nsLabel.get());
+        buffer->setLabel(nsLabel.get());
     }
 }
 
@@ -413,8 +414,9 @@ void Textures::updateUniforms() const
 
     MTL::Buffer* instanceBuffer = m_instanceBuffer[currentFrameIndex].get();
 
-    auto* instanceData = static_cast<Matrix*>(instanceBuffer->contents());
-    for (auto index = 0; std::cmp_less(index, s_bufferCount); ++index)
+    auto*             instanceData = static_cast<Matrix*>(instanceBuffer->contents());
+    std::span<Matrix> instanceSpan(instanceData, s_bufferCount);
+    for (auto [index, data] : std::views::zip(std::views::iota(0u), instanceSpan))
     {
         auto position = Vector3(-5.0F + 5.0F * static_cast<float>(index), 0.0F, -8.0F);
         auto rotationX = m_rotationX;
@@ -432,7 +434,7 @@ void Textures::updateUniforms() const
         const Matrix         model = scale * rotation * translation;
         const CameraUniforms cameraUniforms = m_mainCamera->uniforms();
 
-        instanceData[index] = model * cameraUniforms.viewProjection;
+        data = model * cameraUniforms.viewProjection;
     }
 }
 
@@ -440,12 +442,12 @@ void Textures::createTextureHeap()
 {
     std::vector<NS::SharedPtr<MTL::Texture>> textures;
     textures.resize(g_textureCount);
-    for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
+    for (auto [i, texture] : std::views::zip(std::views::iota(0u), textures))
     {
-        const auto fileName = fmt::format("00{}_basecolor.png", i + 1);
+        const auto fileName = std::format("00{}_basecolor.png", i + 1);
 
         // Load PNG textures using stb_image
-        textures[i] = NS::TransferPtr(newTextureFromFile(fileName));
+        texture = NS::TransferPtr(newTextureFromFile(fileName));
     }
 
     MTL::HeapDescriptor* heapDescriptor = MTL::HeapDescriptor::alloc()->init();
@@ -455,9 +457,9 @@ void Textures::createTextureHeap()
 
     // Allocate space in the heap for each texture
     NS::UInteger heapSize = 0;
-    for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
+    for (const auto& texturePtr : textures)
     {
-        const MTL::Texture* texture = textures[i].get();
+        const MTL::Texture* texture = texturePtr.get();
         if (texture == nullptr)
         {
             continue;
@@ -487,9 +489,9 @@ void Textures::createTextureHeap()
     NS::SharedPtr<MTL::CommandBuffer> _commandBuffer
         = NS::TransferPtr(_commandQueue->commandBuffer());
     MTL::BlitCommandEncoder* blitCommandEncoder = _commandBuffer->blitCommandEncoder();
-    for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
+    for (const auto& texturePtr : textures)
     {
-        const MTL::Texture*     texture = textures[i].get();
+        const MTL::Texture*     texture = texturePtr.get();
         MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
         textureDescriptor->setTextureType(texture->textureType());
         textureDescriptor->setPixelFormat(texture->pixelFormat());
@@ -505,9 +507,9 @@ void Textures::createTextureHeap()
         textureDescriptor->release();
 
         auto blitRegion = MTL::Region(0, 0, texture->width(), texture->height());
-        for (auto level = 0; std::cmp_less(level, texture->mipmapLevelCount()); ++level)
+        for (auto level : std::views::iota(0uL, texture->mipmapLevelCount()))
         {
-            for (auto slice = 0; std::cmp_less(slice, texture->arrayLength()); ++slice)
+            for (auto slice : std::views::iota(0uL, texture->arrayLength()))
             {
                 blitCommandEncoder->copyFromTexture(texture, slice, level, blitRegion.origin,
                     blitRegion.size, heapTexture.get(), slice, level, blitRegion.origin);
@@ -543,29 +545,27 @@ void Textures::createArgumentBuffers()
     // Tier 2 argument buffers
     if (device()->argumentBuffersSupport() == MTL::ArgumentBuffersTier2)
     {
-        for (auto i = 0; std::cmp_less(i, s_bufferCount); ++i)
+        for (auto [i, argumentBuffer] : std::views::zip(std::views::iota(0u), m_argumentBuffer))
         {
             constexpr auto size = sizeof(FragmentArgumentBuffer);
-            m_argumentBuffer[i] = NS::TransferPtr(
-                device()->newBuffer(size, MTL::ResourceCPUCacheModeDefaultCache));
+            argumentBuffer
+                = NS::TransferPtr(device()->newBuffer(size, MTL::ResourceCPUCacheModeDefaultCache));
 
             NS::String* label = NS::String::string(
-                fmt::format("Argument Buffer {}", i).c_str(), NS::UTF8StringEncoding);
-            m_argumentBuffer[i]->setLabel(label);
+                std::format("Argument Buffer {}", i).c_str(), NS::UTF8StringEncoding);
+            argumentBuffer->setLabel(label);
             label->release();
 
-            auto* buffer = static_cast<FragmentArgumentBuffer*>(m_argumentBuffer[i]->contents());
+            auto* buffer = static_cast<FragmentArgumentBuffer*>(argumentBuffer->contents());
             // Bind each texture's GPU id into argument buffer for access in fragment shader
-            for (auto j = 0; std::cmp_less(j, m_heapTextures.size()); ++j)
+            buffer->transforms = reinterpret_cast<Matrix*>(m_instanceBuffer[i]->gpuAddress());
+            for (auto [j, texture] : std::views::zip(std::views::iota(0u), m_heapTextures))
             {
-                const auto texture = m_heapTextures[j];
                 buffer->textures[j] = texture->gpuResourceID();
-
-                buffer->transforms = reinterpret_cast<Matrix*>(m_instanceBuffer[i]->gpuAddress());
             }
 
-            m_residencySet->addAllocation(m_argumentBuffer[i].get());
-            m_argumentTable->setAddress(m_argumentBuffer[i]->gpuAddress(), 0);
+            m_residencySet->addAllocation(argumentBuffer.get());
+            m_argumentTable->setAddress(argumentBuffer->gpuAddress(), 0);
         }
     }
 }
@@ -587,7 +587,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     }
     catch (const std::exception& e)
     {
-        fmt::println("Error during initialization: {}", e.what());
+        std::println("Error during initialization: {}", e.what());
         return SDL_APP_FAILURE;
     }
 }
@@ -621,5 +621,4 @@ void SDL_AppQuit(void* appstate, [[maybe_unused]] SDL_AppResult result)
         delete example;
     }
 }
-
 }

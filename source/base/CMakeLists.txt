@@ -26,7 +26,7 @@ set_target_properties(base PROPERTIES
 
 target_compile_definitions(base PRIVATE -DIMGUI_IMPL_METAL_CPP)
 target_include_directories(base PUBLIC .)
-target_link_libraries(base PUBLIC fmt::fmt SDL3::SDL3 Microsoft::DirectXMath metal-cpp::metal-cpp
+target_link_libraries(base PUBLIC SDL3::SDL3 Microsoft::DirectXMath metal-cpp::metal-cpp
         "-framework Foundation"
         "-framework Metal"
         "-framework MetalKit"
