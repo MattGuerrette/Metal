@@ -13,6 +13,7 @@
 #include "Camera.hpp"
 #include "Example.hpp"
 
+#define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
 
 using namespace DirectX;
@@ -306,18 +307,56 @@ void HelloWorld::updateUniforms() const
     m_argumentTable->setAddress(m_uniformBuffer[currentFrameIndex]->gpuAddress(), 1);
 }
 
-int main(const int argc, char** argv)
+extern "C" {
+
+SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
-    int result = EXIT_FAILURE;
     try
     {
-        const auto example = std::make_unique<HelloWorld>();
-        result = example->run(argc, argv);
+        auto* example = new HelloWorld();
+        if (!example->startup())
+        {
+            delete example;
+            return SDL_APP_FAILURE;
+        }
+        *appstate = example;
+        return SDL_APP_CONTINUE;
     }
-    catch (const std::runtime_error&)
+    catch (const std::exception& e)
     {
-        fmt::println("Exiting...");
+        fmt::println("Error during initialization: {}", e.what());
+        return SDL_APP_FAILURE;
     }
+}
 
-    return result;
+SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
+{
+    auto* example = static_cast<HelloWorld*>(appstate);
+    example->processEvent(*event);
+    if (!example->isRunning())
+    {
+        return SDL_APP_SUCCESS;
+    }
+    return SDL_APP_CONTINUE;
+}
+
+SDL_AppResult SDL_AppIterate(void* appstate)
+{
+    auto* example = static_cast<HelloWorld*>(appstate);
+    if (!example->isRunning())
+    {
+        return SDL_APP_SUCCESS;
+    }
+    return SDL_APP_CONTINUE;
+}
+
+void SDL_AppQuit(void* appstate, [[maybe_unused]] SDL_AppResult result)
+{
+    if (appstate != nullptr)
+    {
+        auto* example = static_cast<HelloWorld*>(appstate);
+        delete example;
+    }
+}
+
 }

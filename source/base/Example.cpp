@@ -262,7 +262,7 @@ NS::Menu* Example::createMenuBar()
 }
 #endif
 
-int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
+bool Example::startup()
 {
 #ifdef SDL_PLATFORM_MACOS
     if (const NS::Menu* menu = createMenuBar(); menu != nullptr)
@@ -272,76 +272,95 @@ int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 #endif
     if (!onLoad())
     {
-        return EXIT_FAILURE;
+        return false;
     }
 
     m_displayLink->addToRunLoop(NS::RunLoop::mainRunLoop(), NS::RunLoopCommonModes);
+    return true;
+}
+
+void Example::processEvent(SDL_Event& e)
+{
+    ImGui_ImplSDL3_ProcessEvent(&e);
+
+    if (e.type == SDL_EVENT_QUIT)
+    {
+        m_running = false;
+        return;
+    }
+
+    if (e.type == SDL_EVENT_WINDOW_RESIZED)
+    {
+        const float density = SDL_GetWindowPixelDensity(m_window.get());
+        auto*       layer = static_cast<CA::MetalLayer*>(SDL_Metal_GetLayer(m_view.get()));
+        layer->setDrawableSize(CGSize { static_cast<float>(e.window.data1) * density,
+            static_cast<float>(e.window.data2) * density });
+
+        //                ImGuiIO& io = ImGui::GetIO();
+        //                io.DisplaySize =
+        //                    ImVec2((float)e.window.data1 * density, (float)e.window.data2
+        //                    * density);
+
+        onResize(e.window.data1, e.window.data2);
+    }
+
+    if (e.type == SDL_EVENT_JOYSTICK_ADDED)
+    {
+        if (SDL_IsGamepad(e.jdevice.which))
+        {
+            m_gamepad = std::make_unique<Gamepad>(e.jdevice.which);
+        }
+    }
+
+    if (e.type == SDL_EVENT_JOYSTICK_REMOVED)
+    {
+        if (SDL_IsGamepad(e.jdevice.which))
+        {
+            m_gamepad.reset();
+        }
+    }
+
+    if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP)
+    {
+        m_keyboard->registerKeyEvent(&e.key);
+    }
+    if (e.type == SDL_EVENT_MOUSE_BUTTON_UP || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+    {
+        m_mouse->registerMouseButton(&e.button);
+    }
+    if (e.type == SDL_EVENT_MOUSE_MOTION)
+    {
+        m_mouse->registerMouseMotion(&e.motion);
+    }
+    if (e.type == SDL_EVENT_MOUSE_WHEEL)
+    {
+        m_mouse->registerMouseWheel(&e.wheel);
+    }
+
+    if (m_keyboard->isKeyClicked(SDL_SCANCODE_ESCAPE))
+    {
+        quit();
+    }
+}
+
+bool Example::isRunning() const
+{
+    return m_running;
+}
+
+int Example::run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
+{
+    if (!startup())
+    {
+        return EXIT_FAILURE;
+    }
 
     while (m_running)
     {
         SDL_Event e;
         if (SDL_WaitEvent(&e))
         {
-            ImGui_ImplSDL3_ProcessEvent(&e);
-
-            if (e.type == SDL_EVENT_QUIT)
-            {
-                m_running = false;
-                break;
-            }
-
-            if (e.type == SDL_EVENT_WINDOW_RESIZED)
-            {
-                const float density = SDL_GetWindowPixelDensity(m_window.get());
-                auto*       layer = static_cast<CA::MetalLayer*>(SDL_Metal_GetLayer(m_view.get()));
-                layer->setDrawableSize(CGSize { static_cast<float>(e.window.data1) * density,
-                    static_cast<float>(e.window.data2) * density });
-
-                //                ImGuiIO& io = ImGui::GetIO();
-                //                io.DisplaySize =
-                //                    ImVec2((float)e.window.data1 * density, (float)e.window.data2
-                //                    * density);
-
-                onResize(e.window.data1, e.window.data2);
-            }
-
-            if (e.type == SDL_EVENT_JOYSTICK_ADDED)
-            {
-                if (SDL_IsGamepad(e.jdevice.which))
-                {
-                    m_gamepad = std::make_unique<Gamepad>(e.jdevice.which);
-                }
-            }
-
-            if (e.type == SDL_EVENT_JOYSTICK_REMOVED)
-            {
-                if (SDL_IsGamepad(e.jdevice.which))
-                {
-                    m_gamepad.reset();
-                }
-            }
-
-            if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP)
-            {
-                m_keyboard->registerKeyEvent(&e.key);
-            }
-            if (e.type == SDL_EVENT_MOUSE_BUTTON_UP || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
-            {
-                m_mouse->registerMouseButton(&e.button);
-            }
-            if (e.type == SDL_EVENT_MOUSE_MOTION)
-            {
-                m_mouse->registerMouseMotion(&e.motion);
-            }
-            if (e.type == SDL_EVENT_MOUSE_WHEEL)
-            {
-                m_mouse->registerMouseWheel(&e.wheel);
-            }
-
-            if (m_keyboard->isKeyClicked(SDL_SCANCODE_ESCAPE))
-            {
-                quit();
-            }
+            processEvent(e);
         }
     }
 

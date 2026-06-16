@@ -3,7 +3,6 @@
   "version-string": "0.1.0",
   "builtin-baseline": "890e0f0506f9dcb76800dfa2ea28b03ebc627bfa",
   "dependencies": [
-    "ktx",
     {
       "name": "cgltf",
       "version>=": "1.14"

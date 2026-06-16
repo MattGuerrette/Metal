@@ -58,6 +58,12 @@ public:
 
     int run([[maybe_unused]] int argc, [[maybe_unused]] char** argv);
 
+    bool startup();
+
+    void processEvent(SDL_Event& event);
+
+    [[nodiscard]] bool isRunning() const;
+
     void quit();
 
     void metalDisplayLinkNeedsUpdate(

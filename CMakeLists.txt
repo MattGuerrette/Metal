@@ -11,7 +11,6 @@ include(FetchExternal)
 find_package(fmt CONFIG REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(directxmath CONFIG REQUIRED)
-find_package(Ktx CONFIG REQUIRED)
 
 find_path(CGLTF_INCLUDE_DIRS "cgltf.h")
 include_directories(${CGLTF_INCLUDE_DIRS})

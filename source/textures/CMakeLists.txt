@@ -13,11 +13,11 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "tvOS")
     list(APPEND RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/tvOS/LaunchScreen.storyboard)
 endif ()
 
-list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/001_basecolor.ktx)
-list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/002_basecolor.ktx)
-list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/003_basecolor.ktx)
-list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/004_basecolor.ktx)
-list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/005_basecolor.ktx)
+list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/001_basecolor.png)
+list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/002_basecolor.png)
+list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/003_basecolor.png)
+list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/004_basecolor.png)
+list(APPEND RESOURCE_FILES ${CMAKE_SOURCE_DIR}/assets/textures/005_basecolor.png)
 
 
 add_executable(${EXAMPLE}
@@ -39,8 +39,8 @@ else ()
 endif ()
 
 
-target_link_libraries(${EXAMPLE} base KTX::ktx)
-target_compile_definitions(${EXAMPLE} PRIVATE USE_KTX_LIBRARY)
+target_link_libraries(${EXAMPLE} base stb::stb)
+target_compile_definitions(${EXAMPLE} PRIVATE USE_STB_IMAGE)
 
 set_target_properties(${EXAMPLE}
         PROPERTIES

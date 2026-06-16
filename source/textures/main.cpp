@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef USE_KTX_LIBRARY
-#include <ktx.h>
+#ifdef USE_STB_IMAGE
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 #endif
 
 #include <utility>
@@ -21,6 +22,7 @@
 #include "Example.hpp"
 #include "File.hpp"
 
+#define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
 
 XM_ALIGNED_STRUCT(16) Vertex
@@ -81,7 +83,7 @@ private:
 
     void updateUniforms() const;
 
-    [[nodiscard]] MTL::Texture* newTextureFromFileKTX(const std::string& fileName) const;
+    [[nodiscard]] MTL::Texture* newTextureFromFile(const std::string& fileName) const;
 
     NS::SharedPtr<MTL::RenderPipelineState>               m_pipelineState;
     NS::SharedPtr<MTL::Buffer>                            m_vertexBuffer;
@@ -194,71 +196,55 @@ void Textures::onResize(const uint32_t width, const uint32_t height)
     m_mainCamera->setProjection(fov, aspect, near, far);
 }
 
-MTL::Texture* Textures::newTextureFromFileKTX(const std::string& fileName) const
+MTL::Texture* Textures::newTextureFromFile(const std::string& fileName) const
 {
     MTL::Texture* texture = nullptr;
 
     try
     {
         const File file(fileName);
-
         const auto bytes = file.readAll();
 
-        constexpr uint32_t flags
-            = KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT | KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
-        ktxTexture2*   ktx2Texture = nullptr;
-        KTX_error_code result = ktxTexture2_CreateFromMemory(
-            reinterpret_cast<const ktx_uint8_t*>(bytes.data()), bytes.size(), flags, &ktx2Texture);
-        if (result != KTX_SUCCESS)
+        int width = 0;
+        int height = 0;
+        int channels = 0;
+
+        stbi_uc* imageData = stbi_load_from_memory(
+            reinterpret_cast<const stbi_uc*>(bytes.data()),
+            static_cast<int>(bytes.size()),
+            &width, &height, &channels, 4);
+
+        if (imageData == nullptr)
         {
+            fmt::println("Failed to load image via stb_image: {}", stbi_failure_reason());
             return nullptr;
         }
 
         constexpr MTL::TextureType type = MTL::TextureType2D;
-        constexpr MTL::PixelFormat pixelFormat = MTL::PixelFormatASTC_8x8_sRGB;
-        const bool                 genMipmaps = ktx2Texture->generateMipmaps;
-        const NS::UInteger         levelCount = ktx2Texture->numLevels;
-        const NS::UInteger         baseWidth = ktx2Texture->baseWidth;
-        const NS::UInteger         baseHeight = ktx2Texture->baseHeight;
-        const NS::UInteger         baseDepth = ktx2Texture->baseDepth;
-        const auto                 maxMipLevelCount = static_cast<NS::UInteger>(
-            std::floor(std::log2(std::fmax(baseWidth, baseHeight))) + 1);
-        const NS::UInteger storedMipLevelCount = genMipmaps ? maxMipLevelCount : levelCount;
+        constexpr MTL::PixelFormat pixelFormat = MTL::PixelFormatRGBA8Unorm_sRGB;
 
         NS::SharedPtr<MTL::TextureDescriptor> textureDescriptor
             = NS::TransferPtr(MTL::TextureDescriptor::alloc()->init());
         textureDescriptor->setTextureType(type);
         textureDescriptor->setPixelFormat(pixelFormat);
-        textureDescriptor->setWidth(baseWidth);
-        textureDescriptor->setHeight(ktx2Texture->numDimensions > 1 ? baseHeight : 1);
-        textureDescriptor->setDepth(ktx2Texture->numDimensions > 2 ? baseDepth : 1);
+        textureDescriptor->setWidth(width);
+        textureDescriptor->setHeight(height);
+        textureDescriptor->setDepth(1);
         textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
         textureDescriptor->setStorageMode(MTL::StorageModeShared);
         textureDescriptor->setArrayLength(1);
-        textureDescriptor->setMipmapLevelCount(storedMipLevelCount);
+        textureDescriptor->setMipmapLevelCount(1);
 
         texture = device()->newTexture(textureDescriptor.get());
-
-        auto* ktx1Texture = reinterpret_cast<ktxTexture*>(ktx2Texture);
-        for (ktx_uint32_t level = 0; std::cmp_less(level, ktx2Texture->numLevels); ++level)
+        if (texture != nullptr)
         {
-            constexpr ktx_uint32_t faceSlice = 0;
-            constexpr ktx_uint32_t layer = 0;
-            ktx_size_t             offset = 0;
-            result = ktxTexture_GetImageOffset(ktx1Texture, level, layer, faceSlice, &offset);
-            const ktx_uint8_t* imageBytes = ktxTexture_GetData(ktx1Texture) + offset;
-            const ktx_uint32_t bytesPerRow = ktxTexture_GetRowPitch(ktx1Texture, level);
-            const ktx_size_t   bytesPerImage = ktxTexture_GetImageSize(ktx1Texture, level);
-            const auto         levelWidth
-                = static_cast<size_t>(std::fmax(1.0F, static_cast<float>(baseWidth >> level)));
-            const auto levelHeight
-                = static_cast<size_t>(std::fmax(1.0F, static_cast<float>(baseHeight >> level)));
-
-            texture->replaceRegion(MTL::Region(0, 0, levelWidth, levelHeight), level, faceSlice,
-                imageBytes, bytesPerRow, bytesPerImage);
+            const NS::UInteger bytesPerRow = static_cast<NS::UInteger>(width) * 4;
+            const NS::UInteger bytesPerImage = bytesPerRow * static_cast<NS::UInteger>(height);
+            texture->replaceRegion(MTL::Region(0, 0, width, height), 0, 0,
+                imageData, bytesPerRow, bytesPerImage);
         }
 
-        ktxTexture_Destroy((ktxTexture*)ktx1Texture);
+        stbi_image_free(imageData);
     }
     catch (const std::runtime_error& error)
     {
@@ -456,10 +442,10 @@ void Textures::createTextureHeap()
     textures.resize(g_textureCount);
     for (size_t i = 0; std::cmp_less(i, g_textureCount); ++i)
     {
-        const auto fileName = fmt::format("00{}_basecolor.ktx", i + 1);
+        const auto fileName = fmt::format("00{}_basecolor.png", i + 1);
 
-        // Load KTX textures using KTX lib directly
-        textures[i] = NS::TransferPtr(newTextureFromFileKTX(fileName));
+        // Load PNG textures using stb_image
+        textures[i] = NS::TransferPtr(newTextureFromFile(fileName));
     }
 
     MTL::HeapDescriptor* heapDescriptor = MTL::HeapDescriptor::alloc()->init();
@@ -584,18 +570,56 @@ void Textures::createArgumentBuffers()
     }
 }
 
-int main(const int argc, char** argv)
+extern "C" {
+
+SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
-    int result = EXIT_FAILURE;
     try
     {
-        const auto example = std::make_unique<Textures>();
-        result = example->run(argc, argv);
+        auto* example = new Textures();
+        if (!example->startup())
+        {
+            delete example;
+            return SDL_APP_FAILURE;
+        }
+        *appstate = example;
+        return SDL_APP_CONTINUE;
     }
-    catch (const std::runtime_error&)
+    catch (const std::exception& e)
     {
-        fmt::println("Exiting...");
+        fmt::println("Error during initialization: {}", e.what());
+        return SDL_APP_FAILURE;
     }
+}
 
-    return result;
+SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
+{
+    auto* example = static_cast<Textures*>(appstate);
+    example->processEvent(*event);
+    if (!example->isRunning())
+    {
+        return SDL_APP_SUCCESS;
+    }
+    return SDL_APP_CONTINUE;
+}
+
+SDL_AppResult SDL_AppIterate(void* appstate)
+{
+    auto* example = static_cast<Textures*>(appstate);
+    if (!example->isRunning())
+    {
+        return SDL_APP_SUCCESS;
+    }
+    return SDL_APP_CONTINUE;
+}
+
+void SDL_AppQuit(void* appstate, [[maybe_unused]] SDL_AppResult result)
+{
+    if (appstate != nullptr)
+    {
+        auto* example = static_cast<Textures*>(appstate);
+        delete example;
+    }
+}
+
 }
