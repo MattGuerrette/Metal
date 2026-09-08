@@ -6,8 +6,7 @@
 #include "File.hpp"
 
 #include <filesystem>
-
-#include <fmt/core.h>
+#include <format>
 
 #include <SDL3/SDL_storage.h>
 
@@ -30,7 +29,7 @@ File::File(const std::string& fileName)
     if (m_stream == nullptr)
     {
         throw std::runtime_error(
-            fmt::format("Failed to open {} for read. SDL_Error: {}", fileName, SDL_GetError()));
+            std::format("Failed to open {} for read. SDL_Error: {}", fileName, SDL_GetError()));
     }
 }
 

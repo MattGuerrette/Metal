@@ -5,14 +5,14 @@
 
 #include "Gamepad.hpp"
 
-#include <fmt/format.h>
+#include <format>
 
 Gamepad::Gamepad(SDL_JoystickID id)
 {
     SDL_Gamepad* gamepad = SDL_OpenGamepad(id);
     if (gamepad == nullptr)
     {
-        throw std::runtime_error(fmt::format("Failed to open gamepad: {}", SDL_GetError()));
+        throw std::runtime_error(std::format("Failed to open gamepad: {}", SDL_GetError()));
     }
 
     m_gamepad.reset(SDL_OpenGamepad(id));

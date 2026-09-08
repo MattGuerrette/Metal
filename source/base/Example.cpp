@@ -6,9 +6,8 @@
 
 #include "Example.hpp"
 
-#include <fmt/core.h>
-
 #include <filesystem>
+#include <format>
 #include <memory>
 
 #include "imgui.h"
@@ -31,7 +30,7 @@ Example::Example(const char* title, int32_t width, int32_t height)
 
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD))
     {
-        throw std::runtime_error(fmt::format("Failed to initialize SDL: {}", SDL_GetError()));
+        throw std::runtime_error(std::format("Failed to initialize SDL: {}", SDL_GetError()));
     }
 
     int   numDisplays = 0;
@@ -55,7 +54,7 @@ Example::Example(const char* title, int32_t width, int32_t height)
     m_window.reset(SDL_CreateWindow(title, screenWidth, screenHeight, flags));
     if (m_window == nullptr)
     {
-        throw std::runtime_error(fmt::format("Failed to create SDL window: {}", SDL_GetError()));
+        throw std::runtime_error(std::format("Failed to create SDL window: {}", SDL_GetError()));
     }
     m_view.reset(SDL_Metal_CreateView(m_window.get()));
     m_running = true;
